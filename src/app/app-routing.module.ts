@@ -5,18 +5,19 @@ import { DashboardComponent } from './component/dashboard/dashboard.component';
 import { RegisterComponent } from './component/register/register.component';
 import { VerifyEmailComponent } from './component/verify-email/verify-email.component';
 import { ForgotPasswordComponent } from './component/forgot-password/forgot-password.component';
+import { LandingPageComponent } from './component/landing-page/landing-page.component';
 
 const routes: Routes = [
-  {path:'', redirectTo:'login', pathMatch:'full'},
-  {path:'login', component: LoginComponent},
-  {path:'dashboard', component:DashboardComponent},
-  {path:'register', component: RegisterComponent},
-  {path:'verify-email', component: VerifyEmailComponent},
-  {path: 'forgot-password', component: ForgotPasswordComponent},
+  { path: '', component: LandingPageComponent },
+  { path: 'login', component: LoginComponent },
+  { path: 'dashboard', component: DashboardComponent },
+  { path: 'register', component: RegisterComponent },
+  { path: 'verify-email', component: VerifyEmailComponent },
+  { path: 'forgot-password', component: ForgotPasswordComponent },
 ];
 
 @NgModule({
   imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
+  exports: [RouterModule],
 })
-export class AppRoutingModule { }
+export class AppRoutingModule {}
