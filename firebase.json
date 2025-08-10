@@ -1,6 +1,7 @@
 {
   "hosting": {
     "public": "dist/kank-learning",
+        "site": "kank-learning",
     "ignore": [
       "firebase.json",
       "**/.*",
