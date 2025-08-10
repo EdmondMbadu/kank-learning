@@ -1,0 +1,9 @@
+{
+  "hosting": [
+    {
+      "target": "kank-learning",
+      "source": ".",
+      "frameworksBackend": {}
+    }
+  ]
+}
