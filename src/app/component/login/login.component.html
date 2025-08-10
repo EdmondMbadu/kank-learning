@@ -1,6 +1,14 @@
 <div class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
   <div class="w-full max-w-xl rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl ring-1 ring-black/5">
-    <div class="p-8 md:p-10">
+    <div class="p-8 md:p-10 relative">
+      <!-- overlay while loading -->
+      <div *ngIf="loading" class="absolute inset-0 rounded-2xl bg-white/60 dark:bg-slate-900/50 grid place-items-center">
+        <div class="flex items-center gap-3 text-slate-700 dark:text-slate-200">
+          <span class="inline-block h-5 w-5 animate-spin rounded-full border-2 border-slate-400 border-t-indigo-600"></span>
+          <span>Connexion…</span>
+        </div>
+      </div>
+
       <!-- en-tête -->
       <div class="text-center mb-6">
         <img
@@ -12,13 +20,16 @@
         <p class="text-slate-500 dark:text-slate-400 mt-1">Ravi de vous revoir</p>
       </div>
 
-      <form novalidate>
+      <!-- use ngSubmit so Enter works -->
+      <form novalidate (ngSubmit)="login()">
         <!-- email -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">E-mail</label>
           <input
             type="email"
             name="email"
+            required
+            [disabled]="loading"
             [(ngModel)]="email"
             placeholder="vous@exemple.com"
             autocomplete="email"
@@ -33,6 +44,8 @@
             <input
               [type]="showPassword ? 'text' : 'password'"
               name="password"
+              required
+              [disabled]="loading"
               [(ngModel)]="password"
               placeholder="••••••••"
               autocomplete="current-password"
@@ -41,6 +54,7 @@
             <button
               type="button"
               (click)="showPassword = !showPassword"
+              [disabled]="loading"
               class="absolute inset-y-0 right-0 my-1 mr-1 px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
             >
               {{ showPassword ? 'Masquer' : 'Afficher' }}
@@ -51,11 +65,11 @@
         <!-- actions -->
         <div class="mt-5">
           <button
-            type="button"
-            (click)="login()"
+            type="submit"
             [disabled]="!email || !password || loading"
-            class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold shadow-lg hover:shadow-xl transition"
+            class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold shadow-lg hover:shadow-xl transition inline-flex items-center justify-center"
           >
+            <span *ngIf="loading" class="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/60 border-t-white"></span>
             {{ loading ? 'Connexion…' : 'Se connecter' }}
           </button>
         </div>

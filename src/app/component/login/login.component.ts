@@ -4,30 +4,29 @@ import { AuthService } from 'src/app/shared/auth.service';
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css'],
 })
 export class LoginComponent {
-  email: string = '';
-  password: string = '';
+  email = '';
+  password = '';
   showPassword = false;
   loading = false;
 
   constructor(private auth: AuthService) {}
-  ngOnInit(): void {}
 
-  login() {
-    if (this.email == '') {
-      alert('Please enter email');
+  async login() {
+    if (!this.email || !this.password) {
+      alert('Veuillez renseigner votre e-mail et votre mot de passe');
       return;
     }
-
-    if (this.password == '') {
-      alert('Please enter password');
-      return;
+    this.loading = true;
+    try {
+      await this.auth.login(this.email, this.password); // navigates to /home on success
+      this.email = '';
+      this.password = '';
+    } catch {
+      // error already alerted in service; keep fields as-is for retry
+    } finally {
+      this.loading = false;
     }
-    this.auth.login(this.email, this.password);
-
-    this.email = '';
-    this.password = '';
   }
 }

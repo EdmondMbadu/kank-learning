@@ -32,24 +32,24 @@ export class AuthService {
   }
 
   // -------- AUTH --------
-
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<void> {
     try {
       const cred = await this.afAuth.signInWithEmailAndPassword(
         email,
         password
       );
 
-      // No Firestore writes here — just route
       localStorage.setItem('token', 'true');
+
       if (cred.user?.emailVerified) {
-        await this.router.navigate(['/dashboard']);
+        await this.router.navigate(['/dashboard']); // ← go to home after login
       } else {
         await this.router.navigate(['/verify-email']);
       }
     } catch (err: any) {
-      alert(err?.message || 'Something went wrong');
-      this.router.navigate(['/login']);
+      alert(err?.message || 'Une erreur est survenue.');
+      // don't navigate here; let the component decide
+      throw err; // ← lets the component turn off loading properly
     }
   }
 
