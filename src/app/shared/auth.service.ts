@@ -7,13 +7,13 @@ import {
   AngularFirestoreDocument,
 } from '@angular/fire/compat/firestore';
 import { Observable, of } from 'rxjs';
-import { switchMap, take } from 'rxjs/operators';
+import { map, shareReplay, switchMap, take } from 'rxjs/operators';
 import { User } from '../model/user';
 // { uid?, email?, firstName?, lastName? }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  user$: Observable<any>;
+  user$: Observable<User | null>;
   currentUser: any;
 
   constructor(
@@ -25,9 +25,17 @@ export class AuthService {
     this.user$ = this.afAuth.authState.pipe(
       switchMap((auth) => {
         if (!auth) return of(null);
-        return this.afs.doc<User>(`users/${auth.uid}`).valueChanges();
-      })
+        return this.afs
+          .doc<User>(`users/${auth.uid}`)
+          .valueChanges()
+          .pipe(
+            // If the doc doesn't exist yet, fall back to auth info
+            map((doc) => doc ?? { uid: auth.uid, email: auth.email ?? '' })
+          );
+      }),
+      shareReplay(1) // cache latest for multiple subscribers
     );
+
     this.user$.subscribe((u) => (this.currentUser = u));
   }
 
@@ -86,7 +94,7 @@ export class AuthService {
     try {
       await this.afAuth.signOut();
       localStorage.removeItem('token');
-      await this.router.navigate(['/login']);
+      await this.router.navigate(['/']);
     } catch (err: any) {
       alert(err?.message || 'Something went wrong');
     }

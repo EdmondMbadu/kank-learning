@@ -16,6 +16,7 @@ import { FormsModule } from '@angular/forms';
 import { ForgotPasswordComponent } from './component/forgot-password/forgot-password.component';
 import { VerifyEmailComponent } from './component/verify-email/verify-email.component';
 import { LandingPageComponent } from './component/landing-page/landing-page.component';
+import { NavbarComponent } from './component/navbar/navbar.component';
 
 @NgModule({
   declarations: [
@@ -26,6 +27,7 @@ import { LandingPageComponent } from './component/landing-page/landing-page.comp
     ForgotPasswordComponent,
     VerifyEmailComponent,
     LandingPageComponent,
+    NavbarComponent,
   ],
   imports: [
     BrowserModule,

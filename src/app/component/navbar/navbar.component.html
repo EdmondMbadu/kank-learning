@@ -1,0 +1,121 @@
+<!-- Fixed top bar (lighter than sticky+heavy blur) -->
+<header
+  class="fixed inset-x-0 top-0 z-50 bg-white/90 dark:bg-slate-900/85 ring-1 ring-black/5
+         supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur-md">
+  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+    <!-- Left: brand + nav -->
+    <div class="flex items-center gap-3">
+      <!-- mobile burger -->
+      <button class="lg:hidden rounded-md p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+              (click)="toggleMenu()" aria-label="Ouvrir le menu">
+        <svg class="h-6 w-6 text-slate-700 dark:text-slate-200" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 6h18v2H3M3 11h18v2H3m0 5h18v2H3"/>
+        </svg>
+      </button>
+
+      <img src="assets/img/fondation-gervais-logo.jpeg" alt="Fondation Gervais"
+           class="h-8 w-8 rounded-full object-cover ring-2 ring-indigo-300/60 shadow-sm">
+      <span class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
+        Fondation Gervais <span class="text-indigo-600 dark:text-indigo-400">ABC</span>
+      </span>
+
+      <!-- Desktop nav -->
+      <nav class="ml-6 hidden gap-1 lg:flex">
+        <a routerLink="/dashboard" [routerLinkActiveOptions]="{exact:true}"
+           routerLinkActive="bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+           class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Accueil</a>
+        <a routerLink="/modules" class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Modules</a>
+        <a routerLink="/messages" class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Messages</a>
+        <a routerLink="/calendar" class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Calendrier</a>
+      </nav>
+    </div>
+
+    <!-- Right: account chip + logout -->
+    <div class="flex items-center gap-3">
+      <ng-container *ngIf="me$ | async as me; else chipLoading">
+        <div class="hidden md:flex items-center gap-2 rounded-2xl bg-white/90 px-2.5 py-1 ring-1 ring-slate-200 shadow-sm
+                    dark:bg-slate-800/70 dark:ring-slate-700">
+          <div class="grid h-7 w-7 place-items-center rounded-full
+                      bg-gradient-to-tr from-indigo-600 to-cyan-600 text-[11px] font-bold text-white shadow">
+            {{ initials(me) }}
+          </div>
+          <div class="leading-tight">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Connecté en tant que</div>
+            <div class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ label(me) }}</div>
+          </div>
+        </div>
+      </ng-container>
+      <ng-template #chipLoading>
+        <div class="hidden md:flex items-center gap-2">
+          <div class="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+          <div class="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+        </div>
+      </ng-template>
+
+      <button (click)="logout()"
+              class="hidden sm:inline rounded-xl px-3 py-1.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-100
+                     dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800">
+        Déconnexion
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile Drawer -->
+<div class="lg:hidden" [class.pointer-events-none]="!menuOpen">
+  <div class="fixed inset-0 z-40 bg-black/40 transition-opacity" [class.opacity-0]="!menuOpen" [class.opacity-100]="menuOpen"
+       (click)="closeMenu()"></div>
+
+  <aside class="fixed top-0 left-0 z-50 h-full w-72 transform-gpu transition-transform duration-200
+                bg-slate-900 text-slate-200 shadow-2xl"
+         [class.-translate-x-full]="!menuOpen" [class.translate-x-0]="menuOpen">
+    <div class="flex items-center gap-3 px-4 py-4 border-b border-white/10">
+      <img src="assets/img/fondation-gervais-logo.jpeg" class="h-9 w-9 rounded-full ring-2 ring-indigo-300/50" alt="">
+      <div class="text-sm">
+        <div class="font-semibold">Fondation Gervais ABC</div>
+        <div class="text-slate-400">Espace interne</div>
+      </div>
+      <button class="ml-auto rounded p-1 hover:bg-white/10" (click)="closeMenu()">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4z"/></svg>
+      </button>
+    </div>
+
+    <div class="px-4 py-3">
+      <ng-container *ngIf="me$ | async as me; else mloading">
+        <div class="flex items-center gap-2 rounded-xl bg-white/10 px-2.5 py-1">
+          <div class="grid h-6 w-6 place-items-center rounded-full bg-indigo-500 text-[11px] font-bold text-white">
+            {{ initials(me) }}
+          </div>
+          <div class="text-sm break-all">{{ label(me) }}</div>
+        </div>
+      </ng-container>
+      <ng-template #mloading>
+        <div class="h-7 w-40 rounded bg-white/10 animate-pulse"></div>
+      </ng-template>
+    </div>
+
+    <nav class="px-2 py-2 space-y-1">
+      <a routerLink="/dashboard" [routerLinkActiveOptions]="{exact:true}" routerLinkActive="bg-white/10"
+         class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h8V3H3zm0 10h8v-8H3zm10 0h8v-6h-8zm0-12h8V3h-8z"/></svg>
+        Accueil
+      </a>
+      <a routerLink="/modules" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h12a2 2 0 012 2v14l-6-3-6 3V5a2 2 0 012-2z"/></svg>
+        Modules
+      </a>
+      <a routerLink="/messages" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg>
+        Messages
+      </a>
+      <a routerLink="/calendar" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2zm13 8H4v10h16V10z"/></svg>
+        Calendrier
+      </a>
+      <button (click)="logout()" class="mt-2 w-full text-left rounded-lg px-3 py-2 hover:bg-white/10">
+        <svg class="mr-2 inline h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M10 17v-2h4v-6h-4V7l-5 5 5 5zm9-12h-8v2h8v10h-8v2h8a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/></svg>
+        Déconnexion
+      </button>
+    </nav>
+  </aside>
+</div>
