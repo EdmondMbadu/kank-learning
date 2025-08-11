@@ -1,7 +1,9 @@
 <!-- Fixed top bar (lighter than sticky+heavy blur) -->
 <header
   class="fixed inset-x-0 top-0 z-50 bg-white/90 dark:bg-slate-900/85 ring-1 ring-black/5
-         supports-[backdrop-filter]:bg-white/70 supports-[backdrop-filter]:backdrop-blur-md">
+         md:supports-[backdrop-filter]:bg-white/70 md:supports-[backdrop-filter]:backdrop-blur-sm"
+  style="will-change: transform; transform: translateZ(0);">
+
   <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
     <!-- Left: brand + nav -->
     <div class="flex items-center gap-3">
@@ -62,13 +64,12 @@
 </header>
 
 <!-- Mobile Drawer -->
-<div class="lg:hidden" [class.pointer-events-none]="!menuOpen">
-  <div class="fixed inset-0 z-40 bg-black/40 transition-opacity" [class.opacity-0]="!menuOpen" [class.opacity-100]="menuOpen"
-       (click)="closeMenu()"></div>
+<!-- Mobile Drawer -->
+<ng-container *ngIf="menuOpen">
+  <div class="fixed inset-0 z-40 bg-black/40" (click)="closeMenu()"></div>
 
   <aside class="fixed top-0 left-0 z-50 h-full w-72 transform-gpu transition-transform duration-200
-                bg-slate-900 text-slate-200 shadow-2xl"
-         [class.-translate-x-full]="!menuOpen" [class.translate-x-0]="menuOpen">
+                bg-slate-900 text-slate-200 shadow-2xl translate-x-0">
     <div class="flex items-center gap-3 px-4 py-4 border-b border-white/10">
       <img src="assets/img/fondation-gervais-logo.jpeg" class="h-9 w-9 rounded-full ring-2 ring-indigo-300/50" alt="">
       <div class="text-sm">
@@ -118,4 +119,4 @@
       </button>
     </nav>
   </aside>
-</div>
+</ng-container>

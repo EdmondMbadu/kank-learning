@@ -18,10 +18,16 @@ export class NavbarComponent {
 
   toggleMenu() {
     this.menuOpen = !this.menuOpen;
+    document.body.style.overflow = this.menuOpen ? 'hidden' : '';
   }
   closeMenu() {
     this.menuOpen = false;
+    document.body.style.overflow = '';
   }
+  ngOnDestroy() {
+    document.body.style.overflow = '';
+  }
+
   logout() {
     this.auth.logout();
   }
