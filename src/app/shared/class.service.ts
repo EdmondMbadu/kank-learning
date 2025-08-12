@@ -48,6 +48,7 @@ export class ClassService {
       .valueChanges({ idField: 'uid' }) as any;
   }
 
+  // class.service.ts
   async createClass(params: {
     courseId: string;
     title: string;
@@ -56,7 +57,10 @@ export class ClassService {
     const { courseId, title, instructorId } = params;
     const id = this.afs.createId();
     const now = firebase.firestore.FieldValue.serverTimestamp();
-    const courseSnap = await this.afs.doc(`courses/${courseId}`).ref.get();
+
+    // read course contentVersion (fallback 1)
+    const courseRef = this.afs.doc(`courses/${courseId}`).ref;
+    const courseSnap = await courseRef.get();
     const contentVersion =
       (courseSnap.exists && (courseSnap.data() as any)?.contentVersion) || 1;
 
@@ -72,28 +76,38 @@ export class ClassService {
       updatedAt: now,
     };
 
-    await this.afs.doc(`classes/${id}`).set(cls);
-    await this.afs.doc(`classes/${id}/members/${instructorId}`).set({
+    const classRef = this.afs.doc(`classes/${id}`).ref;
+    const memberRef = this.afs.doc(`classes/${id}/members/${instructorId}`).ref;
+    const userIdxRef = this.afs.doc(
+      `users/${instructorId}/classIndex/${id}`
+    ).ref;
+
+    const batch = this.afs.firestore.batch();
+    batch.set(classRef, cls);
+    batch.set(memberRef, {
       uid: instructorId,
       role: 'instructor',
       status: 'active',
       enrolledAt: now,
     });
-    await this.afs.doc(`users/${instructorId}/classIndex/${id}`).set({
+    batch.set(userIdxRef, {
       classId: id,
+      title: cls.title,
       role: 'instructor',
       status: 'active',
-      title: cls.title,
       updatedAt: now,
     });
+    await batch.commit();
+
     return id;
   }
 
-  /** --- NEW: invite by email (unchanged from earlier) --- */
+  // class.service.ts
   async inviteByEmail(classId: string, email: string, role: Role = 'student') {
     const clean = email.trim();
     if (!clean) throw new Error('Email requis');
 
+    // find user by emailLower then email
     let q = this.afs.collection('users', (ref) =>
       ref.where('emailLower', '==', clean.toLowerCase())
     ).ref;
@@ -106,40 +120,35 @@ export class ClassService {
     }
     if (snap.empty) throw new Error('Utilisateur introuvable avec cet email.');
 
-    const userDoc = snap.docs[0];
-    const uid = userDoc.id;
+    const uid = snap.docs[0].id;
+
     const now = firebase.firestore.FieldValue.serverTimestamp();
+    const classRef = this.afs.doc(`classes/${classId}`).ref;
+    const memberRef = this.afs.doc(`classes/${classId}/members/${uid}`).ref;
+    const userIdxRef = this.afs.doc(`users/${uid}/classIndex/${classId}`).ref;
 
-    await this.afs.doc(`classes/${classId}/members/${uid}`).set(
-      {
-        uid,
-        role,
-        status: 'active',
-        enrolledAt: now,
-      },
-      { merge: true }
-    );
+    // get class title for the index
+    const classSnap = await classRef.get();
+    const classTitle = (classSnap.data() as any)?.title || '';
 
-    const incField =
+    const inc =
       role === 'student'
         ? { 'counts.students': firebase.firestore.FieldValue.increment(1) }
         : { 'counts.instructors': firebase.firestore.FieldValue.increment(1) };
-    await this.afs
-      .doc(`classes/${classId}`)
-      .update({ ...incField, updatedAt: now });
 
-    const classSnap = await this.afs.doc(`classes/${classId}`).ref.get();
-    const title = (classSnap.data() as any)?.title || '';
-    await this.afs.doc(`users/${uid}/classIndex/${classId}`).set(
-      {
-        classId,
-        role,
-        status: 'active',
-        title,
-        updatedAt: now,
-      },
+    const batch = this.afs.firestore.batch();
+    batch.set(
+      memberRef,
+      { uid, role, status: 'active', enrolledAt: now },
       { merge: true }
     );
+    batch.update(classRef, { ...inc, updatedAt: now });
+    batch.set(
+      userIdxRef,
+      { classId, title: classTitle, role, status: 'active', updatedAt: now },
+      { merge: true }
+    );
+    await batch.commit();
   }
 
   /** --- NEW: remove a single member (and fix counters + user index) --- */
@@ -196,4 +205,5 @@ export class ClassService {
       .valueChanges()
       .pipe(map((rows) => rows.map((r) => ({ ...r }))));
   }
+  // class.service.ts
 }
