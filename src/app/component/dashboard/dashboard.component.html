@@ -133,7 +133,8 @@
           </ng-template>
         </div>
       </section>
-<!-- My Classes -->
+
+      <!-- My Classes -->
 <section class="px-4 pt-6 pb-8">
   <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
     <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -151,17 +152,17 @@
         <div *ngFor="let cl of classes; trackBy: byId"
              class="group rounded-2xl border border-slate-200/80 p-4 hover:shadow-lg transition dark:border-slate-800">
 
-          <!-- Header + delete -->
-          <div class="flex items-start justify-between gap-2">
-            <div>
-              <div class="font-medium">{{ cl.title }}</div>
-              <div class="text-xs text-slate-500 mt-1">
+          <!-- Header: stacks on mobile, side-by-side on ≥sm -->
+          <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+            <div class="min-w-0">
+              <div class="font-medium line-clamp-2">{{ cl.title }}</div>
+              <div class="text-xs text-slate-500 mt-1 break-all">
                 Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
               </div>
             </div>
 
             <button (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
-                    class="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium
+                    class="w-full sm:w-auto justify-center inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium
                            bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100
                            disabled:opacity-60 disabled:cursor-not-allowed
                            dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
@@ -169,7 +170,8 @@
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/>
                 <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/>
               </svg>
-              <span>Supprimer</span>
+              <span class="hidden sm:inline">Supprimer</span>
+              <span class="sm:hidden">Suppr.</span>
             </button>
           </div>
 
@@ -179,7 +181,7 @@
 
             <div class="space-y-2">
               <input
-                [value]="inviteForms[cl.id!]?.email || ''"
+                [value]="inviteForms[cl.id!].email || ''"
                 (input)="onInviteEmailChange(cl.id!, $any($event.target).value)"
                 type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false"
                 placeholder="email@domaine.com"
@@ -187,11 +189,11 @@
                        text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500
                        dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
 
-              <div class="flex gap-2">
+              <div class="flex flex-col gap-2 xs:flex-row xs:items-center">
                 <select
-                  [value]="inviteForms[cl.id!]?.role || 'student'"
+                  [value]="inviteForms[cl.id!].role || 'student'"
                   (change)="onInviteRoleChange(cl.id!, $any($event.target).value)"
-                  class="h-11 w-40 rounded-lg border border-slate-300 bg-white px-2 text-sm
+                  class="h-11 w-full xs:w-40 rounded-lg border border-slate-300 bg-white px-2 text-sm
                          text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500
                          dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
                   <option value="student">Étudiant</option>
@@ -200,8 +202,8 @@
                 </select>
 
                 <button (click)="inviteByEmail(cl)"
-                        [disabled]="!(inviteForms[cl.id!]?.email)"
-                        class="h-11 rounded-lg px-4 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700
+                        [disabled]="!(inviteForms[cl.id!].email)"
+                        class="h-11 w-full xs:w-auto rounded-lg px-4 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700
                                disabled:opacity-60 disabled:cursor-not-allowed">
                   Inviter
                 </button>
@@ -210,7 +212,7 @@
             </div>
           </div>
 
-          <!-- Members list (clean, stable height, smooth remove) -->
+          <!-- Members list -->
           <div class="mt-4">
             <div class="text-sm font-medium">Membres</div>
 
@@ -274,6 +276,7 @@
     </ng-template>
   </div>
 </section>
+
 
 
 
