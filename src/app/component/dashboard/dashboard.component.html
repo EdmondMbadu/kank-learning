@@ -13,35 +13,9 @@
        class="pointer-events-none fixed -bottom-24 -right-24 hidden md:block h-96 w-96 rounded-full
               bg-gradient-to-tr from-fuchsia-500 to-indigo-500 opacity-20 blur-3xl"></div>
 
-  <div class="mx-auto grid max-w-7xl grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
+  <div class="mx-auto grid max-w-7xl ">
     <!-- Sidebar -->
-    <aside class="hidden lg:block lg:min-h-[calc(100vh-64px)] bg-white/70 dark:bg-slate-900/60 backdrop-blur ring-1 ring-black/5">
-      <nav class="p-4 space-y-1">
-        <div class="px-2 py-1 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Navigation</div>
 
-        <a routerLink="/dashboard" [routerLinkActiveOptions]="{exact:true}" routerLinkActive="bg-slate-100 dark:bg-slate-800"
-           class="block rounded-xl px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Accueil</a>
-        <a routerLink="/modules"
-           class="block rounded-xl px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Modules</a>
-        <a routerLink="/messages"
-           class="block rounded-xl px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Messages</a>
-        <a routerLink="/calendar"
-           class="block rounded-xl px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">Calendrier</a>
-
-        <div class="mt-6 px-2 py-1 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Compte</div>
-        <div class="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200 dark:bg-slate-800/60 dark:ring-slate-700">
-          <ng-container *ngIf="me$ | async as me; else sideChipLoading">
-            <div class="flex items-center gap-3">
-              <div class="grid h-8 w-8 place-items-center rounded-full bg-indigo-600 text-[11px] font-bold text-white shadow">{{ initials(me) }}</div>
-              <div class="text-sm break-all">{{ label(me) }}</div>
-            </div>
-          </ng-container>
-          <ng-template #sideChipLoading>
-            <div class="h-8 w-full rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
-          </ng-template>
-        </div>
-      </nav>
-    </aside>
 
     <!-- Main -->
     <main class="min-h-screen">

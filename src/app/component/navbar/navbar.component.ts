@@ -2,7 +2,8 @@ import { Component } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map, switchMap, shareReplay } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
-import { User } from 'src/app/model/user';
+import { User, UserClassIndex } from 'src/app/model/user';
+import { ClassService } from 'src/app/shared/class.service';
 
 @Component({
   selector: 'app-navbar',
@@ -10,12 +11,24 @@ import { User } from 'src/app/model/user';
 })
 export class NavbarComponent {
   menuOpen = false;
+  classesMenuOpen = false;
 
   // Stream of the current user (doc or auth fallback)
   me$: Observable<User | null> = this.auth.user$;
 
-  constructor(private auth: AuthService) {}
+  myClassesIndex$!: Observable<UserClassIndex[]>;
 
+  constructor(private auth: AuthService, private classes: ClassService) {
+    this.me$ = this.auth.user$;
+    this.myClassesIndex$ = this.auth.user$.pipe(
+      switchMap((me) =>
+        me?.uid ? this.classes.userClassIndex$(me.uid) : of([])
+      )
+    );
+  }
+  toggleClassesMenu() {
+    this.classesMenuOpen = !this.classesMenuOpen;
+  }
   toggleMenu() {
     this.menuOpen = !this.menuOpen;
     document.body.style.overflow = this.menuOpen ? 'hidden' : '';

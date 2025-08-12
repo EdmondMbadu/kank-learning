@@ -20,16 +20,57 @@
       <span class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
         Fondation Gervais <span class="text-indigo-600 dark:text-indigo-400">ABC</span>
       </span>
+<!-- Desktop nav (single) -->
+<nav class="ml-6 hidden items-center gap-1 lg:flex">
+  <a routerLink="/dashboard" [routerLinkActiveOptions]="{exact:true}"
+     routerLinkActive="bg-slate-900 text-white dark:bg-white dark:text-slate-900"
+     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+    Accueil
+  </a>
 
-      <!-- Desktop nav -->
-      <nav class="ml-6 hidden gap-1 lg:flex">
-        <a routerLink="/dashboard" [routerLinkActiveOptions]="{exact:true}"
-           routerLinkActive="bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-           class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Accueil</a>
-        <a routerLink="/modules" class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Modules</a>
-        <a routerLink="/messages" class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Messages</a>
-        <a routerLink="/calendar" class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">Calendrier</a>
-      </nav>
+  <!-- Classes dropdown -->
+  <div class="relative">
+    <button type="button" (click)="toggleClassesMenu()"
+            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100
+                   dark:text-slate-200 dark:hover:bg-slate-800 inline-flex items-center gap-1">
+      Classes
+      <svg class="h-4 w-4 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+    </button>
+
+    <div *ngIf="classesMenuOpen"
+         class="absolute left-0 mt-2 w-72 max-h-[70vh] overflow-auto rounded-xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5
+                dark:bg-slate-900/95 dark:ring-slate-700">
+      <ng-container *ngIf="myClassesIndex$ | async as cls; else clsLoading">
+        <a *ngFor="let c of cls | slice:0:8"
+           [routerLink]="['/class', c.classId]"
+           (click)="classesMenuOpen = false"
+           class="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">
+          <div class="truncate font-medium">{{ c.title || c.classId }}</div>
+          <div class="text-xs text-slate-500">Rôle : {{ c.role }}</div>
+        </a>
+        <div *ngIf="!cls.length" class="px-3 py-2 text-sm text-slate-500">Aucune classe</div>
+      </ng-container>
+      <ng-template #clsLoading>
+        <div class="h-7 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
+      </ng-template>
+    </div>
+  </div>
+
+  <a routerLink="/modules"
+     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+    Modules
+  </a>
+  <a routerLink="/messages"
+     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+    Messages
+  </a>
+  <a routerLink="/calendar"
+     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+    Calendrier
+  </a>
+</nav>
+
+  
     </div>
 
     <!-- Right: account chip + logout -->
@@ -101,6 +142,7 @@
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h8V3H3zm0 10h8v-8H3zm10 0h8v-6h-8zm0-12h8V3h-8z"/></svg>
         Accueil
       </a>
+      
       <a routerLink="/modules" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h12a2 2 0 012 2v14l-6-3-6 3V5a2 2 0 012-2z"/></svg>
         Modules
@@ -113,6 +155,24 @@
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2zm13 8H4v10h16V10z"/></svg>
         Calendrier
       </a>
+      <!-- NEW: Mes classes list -->
+      <div class="mt-2 border-t border-white/10 pt-2">
+        <div class="px-3 pb-1 text-[11px] uppercase tracking-wide text-white/70">Mes classes</div>
+        <ng-container *ngIf="myClassesIndex$ | async as cls; else mclsLoading">
+          <a *ngFor="let c of cls | slice:0:10"
+            [routerLink]="['/class', c.classId]"
+            (click)="closeMenu()"
+            class="block rounded-lg px-3 py-2 text-sm hover:bg-white/10 truncate">
+            {{ c.title || c.classId }}
+            <span class="ml-1 text-[11px] text-white/60">({{ c.role }})</span>
+          </a>
+          <div *ngIf="!cls.length" class="px-3 py-2 text-xs text-white/60">Aucune classe</div>
+        </ng-container>
+        <ng-template #mclsLoading>
+          <div class="mx-3 my-2 h-6 rounded bg-white/10 animate-pulse"></div>
+        </ng-template>
+      </div>
+
       <button (click)="logout()" class="mt-2 w-full text-left rounded-lg px-3 py-2 hover:bg-white/10">
         <svg class="mr-2 inline h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M10 17v-2h4v-6h-4V7l-5 5 5 5zm9-12h-8v2h8v10h-8v2h8a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/></svg>
         Déconnexion

@@ -5,7 +5,12 @@ import firebase from 'firebase/compat/app';
 import { of } from 'rxjs';
 import { map } from 'rxjs';
 import { Observable } from 'rxjs';
-import { ClassSection, ClassMember, Role } from 'src/app/model/user';
+import {
+  ClassSection,
+  ClassMember,
+  Role,
+  UserClassIndex,
+} from 'src/app/model/user';
 
 @Injectable({ providedIn: 'root' })
 export class ClassService {
@@ -182,5 +187,13 @@ export class ClassService {
     // TODO: also delete assignments, announcements, etc. in a similar loop.
 
     await this.afs.doc(`classes/${classId}`).delete();
+  }
+  userClassIndex$(uid: string): Observable<UserClassIndex[]> {
+    return this.afs
+      .collection<UserClassIndex>(`users/${uid}/classIndex`, (ref) =>
+        ref.orderBy('updatedAt', 'desc')
+      )
+      .valueChanges()
+      .pipe(map((rows) => rows.map((r) => ({ ...r }))));
   }
 }
