@@ -7,20 +7,16 @@
          bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
          touch-pan-y">
 
-
   <!-- soft blobs -->
-<!-- soft blobs -->
-<div aria-hidden="true"
-     class="pointer-events-none fixed -top-20 -left-24 hidden md:block h-72 w-72 rounded-full
-            bg-gradient-to-tr from-indigo-500 to-cyan-400 opacity-20 blur-3xl"></div>
-<div aria-hidden="true"
-     class="pointer-events-none fixed -bottom-24 -right-24 hidden md:block h-96 w-96 rounded-full
-            bg-gradient-to-tr from-fuchsia-500 to-indigo-500 opacity-20 blur-3xl"></div>
-
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -top-20 -left-24 hidden md:block h-72 w-72 rounded-full
+              bg-gradient-to-tr from-indigo-500 to-cyan-400 opacity-20 blur-3xl"></div>
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -bottom-24 -right-24 hidden md:block h-96 w-96 rounded-full
+              bg-gradient-to-tr from-fuchsia-500 to-indigo-500 opacity-20 blur-3xl"></div>
 
   <!-- Layout -->
   <div class="mx-auto grid max-w-7xl grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)]">
-
     <!-- Sidebar (desktop) -->
     <aside class="hidden lg:block lg:min-h-[calc(100vh-64px)] bg-white/70 dark:bg-slate-900/60 backdrop-blur ring-1 ring-black/5">
       <nav class="p-4 space-y-1">
@@ -53,7 +49,7 @@
         <div class="rounded-3xl bg-white/80 dark:bg-slate-900/70 backdrop-blur ring-1 ring-black/5 shadow-md p-5 md:p-6">
           <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div class="flex items-center gap-4">
-              <div class="relative">
+              <div class="relative  hidden md:block">
                 <img src="assets/img/fondation-gervais-logo.jpeg" class="md:h-12 md:w-12 h-8 w-8 rounded-2xl ring-2 ring-indigo-300/60" alt="">
                 <span class="absolute -right-1 -bottom-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
               </div>
@@ -73,127 +69,92 @@
               </div>
             </div>
 
-            <div class="flex gap-2">
-              <a routerLink="/modules" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700">Reprendre</a>
-              <a routerLink="/calendar" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">Calendrier</a>
+            <div class="flex  md:flex-row flex-col gap-2 md:gap-4 space-y-6 md:space-y-0">
+              <!-- <a routerLink="/modules" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700">Reprendre</a>
+              <a routerLink="/calendar" class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">Calendrier</a> -->
+              <!-- NEW: Create course button -->
+              <button (click)="openCreateCourse()" class="rounded-xl bg-indigo-600  px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700">
+                + Nouveau cours
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Stats -->
-      <section class="px-4 pt-6 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div class="group rounded-2xl bg-white/80 p-5 ring-1 ring-black/5 shadow hover:shadow-lg transition dark:bg-slate-900/70">
-          <div class="flex items-center gap-3">
-            <span class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h16v2H4zm0 4h16v14H4zM7 9h3v3H7z"/></svg>
-            </span>
-            <div class="ml-auto text-right">
-              <div class="text-xs text-slate-500">Modules terminés</div>
-              <div class="text-xl font-bold">—</div>
-            </div>
-          </div>
-        </div>
 
-        <div class="group rounded-2xl bg-white/80 p-5 ring-1 ring-black/5 shadow hover:shadow-lg transition dark:bg-slate-900/70">
-          <div class="flex items-center gap-3">
-            <span class="grid h-10 w-10 place-items-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8z"/></svg>
-            </span>
-            <div class="ml-auto text-right">
-              <div class="text-xs text-slate-500">Temps d’apprentissage</div>
-              <div class="text-xl font-bold">—</div>
-            </div>
-          </div>
-        </div>
 
-        <div class="group rounded-2xl bg-white/80 p-5 ring-1 ring-black/5 shadow hover:shadow-lg transition dark:bg-slate-900/70">
-          <div class="flex items-center gap-3">
-            <span class="grid h-10 w-10 place-items-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="m10 17-4-4 1.4-1.4L10 14.2l6.6-6.6L18 9z"/></svg>
-            </span>
-            <div class="ml-auto text-right">
-              <div class="text-xs text-slate-500">Score moyen</div>
-              <div class="text-xl font-bold">—</div>
-            </div>
+      <!-- NEW: My Courses -->
+      <section class="px-4 pt-6">
+        <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="text-lg font-semibold">Mes cours</h2>
+            <button (click)="openCreateCourse()" class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600  text-white hover:bg-indigo-800 ">
+              Créer un cours
+            </button>
           </div>
-        </div>
 
-        <div class="group rounded-2xl bg-white/80 p-5 ring-1 ring-black/5 shadow hover:shadow-lg transition dark:bg-slate-900/70">
-          <div class="flex items-center gap-3">
-            <span class="grid h-10 w-10 place-items-center rounded-xl bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/40 dark:text-fuchsia-300">
-              <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2zm13 8H4v10h16V10z"/></svg>
-            </span>
-            <div class="ml-auto text-right">
-              <div class="text-xs text-slate-500">Prochaine session</div>
-              <div class="text-xl font-bold">—</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Main content -->
-      <section class="px-4 py-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <!-- Continue / Announcements -->
-        <div class="xl:col-span-2 space-y-6">
-          <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
-            <div class="mb-3 flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Reprendre l’apprentissage</h2>
-              <a routerLink="/modules" class="text-sm text-indigo-600 hover:underline dark:text-indigo-400">Voir tout</a>
-            </div>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div class="group rounded-2xl border border-slate-200/80 p-4 hover:shadow-lg transition dark:border-slate-800">
-                <div class="flex items-center gap-3">
-                  <span class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M21 4H7a2 2 0 0 0-2 2v12l4-2 4 2 4-2 4 2V6a2 2 0 0 0-2-2z"/></svg>
-                  </span>
-                  <div>
-                    <div class="font-medium">Bases du prêt</div>
-                    <div class="text-xs text-slate-500">Progression —</div>
-                  </div>
+          <ng-container *ngIf="myCourses$ | async as courses; else coursesLoading">
+            <div *ngIf="courses.length; else noCourses" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div *ngFor="let c of courses" class="group rounded-2xl border border-slate-200/80 p-4 hover:shadow-lg transition dark:border-slate-800">
+                <div class="font-medium">{{ c.title }}</div>
+                <div class="text-sm text-slate-500 mt-1 max-h-12 overflow-hidden">
+                  {{ c.description || '—' }}
                 </div>
-              </div>
-
-              <div class="group rounded-2xl border border-slate-200/80 p-4 hover:shadow-lg transition dark:border-slate-800">
-                <div class="flex items-center gap-3">
-                  <span class="grid h-10 w-10 place-items-center rounded-xl bg-cyan-50 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3zm0 8h8v-6H3zm10 0h8V11h-8z"/></svg>
-                  </span>
-                  <div>
-                    <div class="font-medium">Credit scoring</div>
-                    <div class="text-xs text-slate-500">Progression —</div>
-                  </div>
+                <div class="mt-3 flex gap-2">
+                  <button (click)="openEditCourse(c)" class="rounded-lg px-3 py-1.5 text-sm ring-1 ring-slate-200 hover:bg-white/70 dark:ring-slate-700 dark:hover:bg-slate-800">Modifier</button>
+                  <button (click)="deleteCourse(c)" class="rounded-lg px-3 py-1.5 text-sm bg-rose-600 text-white hover:bg-rose-700">Supprimer</button>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
-            <h2 class="text-lg font-semibold mb-2">Annonces</h2>
-            <div class="h-36 grid place-items-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800">Contenu à venir</div>
-          </div>
+            <ng-template #noCourses>
+              <div class="text-sm text-slate-500">
+                Aucun cours pour l’instant.
+                <button (click)="openCreateCourse()" class="text-indigo-600 hover:underline dark:text-indigo-400">Créer un cours</button>
+              </div>
+            </ng-template>
+          </ng-container>
+
+          <ng-template #coursesLoading>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div *ngFor="let i of [1,2,3]" class="rounded-2xl border border-slate-200/80 p-4 h-24 animate-pulse dark:border-slate-800"></div>
+            </div>
+          </ng-template>
         </div>
-
-        <!-- Right rail -->
-        <aside class="space-y-6">
-          <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
-            <h3 class="font-semibold mb-2">Raccourcis</h3>
-            <ul class="space-y-2 text-sm">
-              <li><a routerLink="/messages" class="text-indigo-600 hover:underline dark:text-indigo-400">Messages</a></li>
-              <li><a routerLink="/calendar" class="text-indigo-600 hover:underline dark:text-indigo-400">Calendrier</a></li>
-              <li><a routerLink="/results" class="text-indigo-600 hover:underline dark:text-indigo-400">Résultats</a></li>
-            </ul>
-          </div>
-
-          <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
-            <h3 class="font-semibold mb-2">Support & ressources</h3>
-            <p class="text-sm text-slate-700 dark:text-slate-300">
-              <span class="font-medium">Assistance :</span> support@fondation-gervais.org — +1 (000) 000-0000<br>
-              <span class="font-medium">Procédures :</span> KYC, conformité, anti-fraude (placeholders).
-            </p>
-          </div>
-        </aside>
       </section>
+
+
+      <!-- NEW: Create/Edit Course Modal -->
+      <div *ngIf="showCourseDialog" class="fixed inset-0 z-50 grid place-items-center">
+        <div class="absolute inset-0 bg-black/40" (click)="closeCourseDialog()"></div>
+        <div class="relative w-full max-w-lg rounded-2xl bg-white p-5 ring-1 ring-black/10 shadow-xl dark:bg-slate-900 dark:ring-slate-700">
+          <h3 class="text-lg font-semibold mb-4">{{ editCourse ? 'Modifier le cours' : 'Nouveau cours' }}</h3>
+          <form (ngSubmit)="saveCourse()" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Titre</label>
+              <input [(ngModel)]="courseForm.title" name="title" required minlength="3"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700"
+                placeholder="Ex.: Introduction à la microfinance">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Description</label>
+              <textarea [(ngModel)]="courseForm.description" name="description" rows="4"
+                class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700"
+                placeholder="Résumé du cours…"></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" (click)="closeCourseDialog()"
+                class="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
+                Annuler
+              </button>
+              <button type="submit" [disabled]="!courseForm.title || courseForm.title.length < 3"
+                class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700">
+                {{ editCourse ? 'Enregistrer' : 'Créer' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </main>
   </div>
 </div>
