@@ -1,9 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable, of, firstValueFrom } from 'rxjs';
 import { switchMap, take } from 'rxjs/operators';
-import { Course, User } from 'src/app/model/user';
+import {
+  User,
+  Course,
+  ClassSection,
+  Role,
+  ClassMember,
+} from 'src/app/model/user';
 import { AuthService } from 'src/app/shared/auth.service';
 import { CourseService } from 'src/app/shared/course.service';
+import { ClassService } from 'src/app/shared/class.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,23 +20,77 @@ import { CourseService } from 'src/app/shared/course.service';
 export class DashboardComponent implements OnInit {
   me$!: Observable<User | null>;
   myCourses$!: Observable<Course[]>;
+  myClasses$!: Observable<ClassSection[]>;
 
-  // Create/Edit dialog state
+  // Course dialog
   showCourseDialog = false;
   editCourse: Course | null = null;
   courseForm = { title: '', description: '' };
 
-  constructor(private auth: AuthService, private courses: CourseService) {}
+  // Class dialog
+  showClassDialog = false;
+  classForm = { courseId: '', title: '' };
+  creatingFromCourse: Course | null = null;
+  membersByClass: Record<
+    string,
+    Observable<(ClassMember & { uid: string })[]>
+  > = {};
+
+  private loadMembersFor(id: string) {
+    if (!this.membersByClass[id])
+      this.membersByClass[id] = this.classes.members$(id);
+  }
+
+  // Invite forms (per class)
+  // dashboard.component.ts
+  inviteForms: Record<
+    string,
+    { email: string; role: 'student' | 'instructor' | 'ta' }
+  > = {};
+
+  byId(_: number, c: any) {
+    return c.id;
+  }
+
+  constructor(
+    private auth: AuthService,
+    private courses: CourseService,
+    private classes: ClassService
+  ) {}
 
   ngOnInit(): void {
     this.me$ = this.auth.user$;
     this.myCourses$ = this.auth.user$.pipe(
       switchMap((me) => (me?.uid ? this.courses.myCourses$(me.uid) : of([])))
     );
-    console.log('My courses', this.myCourses$);
+    this.myClasses$ = this.auth.user$.pipe(
+      switchMap((me) =>
+        me?.uid ? this.classes.myClassesAsInstructor$(me.uid) : of([])
+      )
+    );
+    // Prefill forms once classes load/change
+    this.myClasses$.subscribe((classes) => {
+      classes.forEach((cl) => {
+        if (cl.id) {
+          this.ensureInviteForm(cl.id);
+          this.loadMembersFor(cl.id);
+        }
+      });
+    });
+  }
+  // Pending states
+  deletingClass: Record<string, boolean> = {};
+  removingMember: Record<string, Record<string, boolean>> = {}; // classId -> { uid: true }
+
+  // TrackBy for members
+  trackMember(_: number, m: any) {
+    return m?.uid;
+  }
+  isRemoving(classId: string, uid: string) {
+    return !!this.removingMember[classId]?.[uid];
   }
 
-  // UI helpers
+  // UI helpers (unchanged)
   label(u: User | null): string {
     if (!u) return '';
     if ((u.firstName ?? '') || (u.lastName ?? '')) {
@@ -76,8 +137,8 @@ export class DashboardComponent implements OnInit {
     const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
     if (!me?.uid) return;
 
-    if (this.editCourse) {
-      await this.courses.update(this.editCourse.id!, {
+    if (this.editCourse?.id) {
+      await this.courses.update(this.editCourse.id, {
         title: this.courseForm.title.trim(),
         description: this.courseForm.description.trim(),
       });
@@ -91,8 +152,95 @@ export class DashboardComponent implements OnInit {
     this.showCourseDialog = false;
   }
   deleteCourse(c: Course) {
-    if (confirm('Supprimer ce cours ?')) {
-      this.courses.delete(c.id!);
+    if (confirm('Supprimer ce cours ?')) this.courses.delete(c.id!);
+  }
+
+  // --- Class dialog actions ---
+  openCreateClass(course?: Course) {
+    this.creatingFromCourse = course ?? null;
+    this.classForm.courseId = course?.id ?? '';
+    this.classForm.title = course ? `${course.title} — Session` : '';
+    this.showClassDialog = true;
+  }
+  closeClassDialog() {
+    this.showClassDialog = false;
+    this.creatingFromCourse = null;
+  }
+  async saveClass() {
+    const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
+    if (!me?.uid) return;
+    const { courseId, title } = this.classForm;
+    if (!courseId || !title.trim()) return;
+
+    await this.classes.createClass({
+      courseId,
+      title: title.trim(),
+      instructorId: me.uid,
+    });
+    this.showClassDialog = false;
+    this.creatingFromCourse = null;
+    this.classForm = { courseId: '', title: '' };
+  }
+
+  // Ensure a form exists for a class id
+  private ensureInviteForm(id: string) {
+    if (!this.inviteForms[id])
+      this.inviteForms[id] = { email: '', role: 'student' };
+  }
+
+  // Update helper to avoid complex two-way bindings in template
+  updateInviteForm(id: string, patch: Partial<{ email: string; role: Role }>) {
+    this.ensureInviteForm(id);
+    this.inviteForms[id] = { ...this.inviteForms[id], ...patch };
+  }
+
+  // (Optional) make invite safer
+  async inviteByEmail(cls: ClassSection) {
+    this.ensureInviteForm(cls.id!);
+    const f = this.inviteForms[cls.id!];
+    try {
+      await this.classes.inviteByEmail(cls.id!, f.email, f.role);
+      this.inviteForms[cls.id!].email = '';
+      alert('Invitation enregistrée ✅');
+    } catch (e: any) {
+      alert(e?.message || 'Erreur lors de l’invitation');
+    }
+  }
+  onInviteEmailChange(id: string, email: string) {
+    this.inviteForms[id] ??= { email: '', role: 'student' };
+    this.inviteForms[id].email = email;
+  }
+  onInviteRoleChange(id: string, role: 'student' | 'instructor' | 'ta') {
+    this.inviteForms[id] ??= { email: '', role: 'student' };
+    this.inviteForms[id].role = role;
+  }
+  async removeMember(cl: ClassSection, m: { uid: string; role: any }) {
+    if (!cl.id) return;
+    this.removingMember[cl.id] ??= {};
+    this.removingMember[cl.id][m.uid] = true;
+    try {
+      await this.classes.removeMember(cl.id, m.uid);
+    } finally {
+      // small timeout to let the stream update so it doesn't flicker
+      setTimeout(() => {
+        delete this.removingMember[cl.id!][m.uid];
+      }, 150);
+    }
+  }
+
+  async deleteClass(cl: ClassSection) {
+    if (!cl.id) return;
+    if (
+      !confirm(
+        `Supprimer la classe "${cl.title}" ? (Tous les membres seront retirés)`
+      )
+    )
+      return;
+    this.deletingClass[cl.id] = true;
+    try {
+      await this.classes.deleteClass(cl.id);
+    } finally {
+      delete this.deletingClass[cl.id];
     }
   }
 }
