@@ -160,6 +160,11 @@
                 Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
               </div>
             </div>
+            <a [routerLink]="['/class', cl.id]"
+              class="w-full sm:w-auto justify-center inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium
+                      bg-indigo-600 text-white hover:bg-indigo-700">
+              Ouvrir
+            </a>
 
             <button (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
                     class="w-full sm:w-auto justify-center inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium

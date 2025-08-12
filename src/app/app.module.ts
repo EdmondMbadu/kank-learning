@@ -17,6 +17,7 @@ import { ForgotPasswordComponent } from './component/forgot-password/forgot-pass
 import { VerifyEmailComponent } from './component/verify-email/verify-email.component';
 import { LandingPageComponent } from './component/landing-page/landing-page.component';
 import { NavbarComponent } from './component/navbar/navbar.component';
+import { ClassComponent } from './component/class/class.component';
 
 @NgModule({
   declarations: [
@@ -28,6 +29,7 @@ import { NavbarComponent } from './component/navbar/navbar.component';
     VerifyEmailComponent,
     LandingPageComponent,
     NavbarComponent,
+    ClassComponent,
   ],
   imports: [
     BrowserModule,

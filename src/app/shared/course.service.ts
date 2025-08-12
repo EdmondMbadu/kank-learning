@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import firebase from 'firebase/compat/app';
 import { Observable } from 'rxjs';
-import { Course } from '../model/user';
+import { Course, CourseDoc, CourseModule } from '../model/user';
 
 @Injectable({ providedIn: 'root' })
 export class CourseService {
@@ -27,6 +27,19 @@ export class CourseService {
     return this.afs.doc(`courses/${id}`).set(course);
   }
 
+  get$(id: string): Observable<CourseDoc | undefined> {
+    return this.afs
+      .doc<CourseDoc>(`courses/${id}`)
+      .valueChanges({ idField: 'id' });
+  }
+
+  modules$(courseId: string): Observable<CourseModule[]> {
+    return this.afs
+      .collection<CourseModule>(`courses/${courseId}/modules`, (ref) =>
+        ref.orderBy('order')
+      )
+      .valueChanges({ idField: 'id' });
+  }
   myCourses$(uid: string): Observable<Course[]> {
     return this.afs
       .collection<Course>('courses', (ref) =>

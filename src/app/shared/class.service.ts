@@ -2,6 +2,8 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import firebase from 'firebase/compat/app';
+import { of } from 'rxjs';
+import { map } from 'rxjs';
 import { Observable } from 'rxjs';
 import { ClassSection, ClassMember, Role } from 'src/app/model/user';
 
@@ -15,6 +17,30 @@ export class ClassService {
         ref.where('instructorId', '==', uid).orderBy('createdAt', 'desc')
       )
       .valueChanges({ idField: 'id' });
+  }
+  class$(id: string): Observable<ClassSection | null | undefined> {
+    return this.afs
+      .doc<ClassSection>(`classes/${id}`)
+      .valueChanges({ idField: 'id' });
+  }
+
+  memberRole$(
+    classId: string,
+    uid?: string | null
+  ): Observable<'instructor' | 'ta' | 'student' | null> {
+    if (!uid) return of(null);
+    return this.afs
+      .doc<ClassMember>(`classes/${classId}/members/${uid}`)
+      .valueChanges()
+      .pipe(map((m) => (m?.role as any) ?? null));
+  }
+
+  members$(classId: string): Observable<(ClassMember & { uid: string })[]> {
+    return this.afs
+      .collection<ClassMember>(`classes/${classId}/members`, (ref) =>
+        ref.orderBy('role')
+      )
+      .valueChanges({ idField: 'uid' }) as any;
   }
 
   async createClass(params: {
@@ -56,15 +82,6 @@ export class ClassService {
       updatedAt: now,
     });
     return id;
-  }
-
-  /** --- NEW: list members of a class --- */
-  members$(classId: string): Observable<(ClassMember & { uid: string })[]> {
-    return this.afs
-      .collection<ClassMember>(`classes/${classId}/members`, (ref) =>
-        ref.orderBy('role')
-      )
-      .valueChanges({ idField: 'uid' }) as any;
   }
 
   /** --- NEW: invite by email (unchanged from earlier) --- */

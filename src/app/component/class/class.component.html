@@ -1,0 +1,142 @@
+<app-navbar></app-navbar>
+
+<div class="pt-16 min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+  <div class="mx-auto max-w-5xl px-4 py-6">
+    <ng-container *ngIf="(class$ | async) as cl; else loading">
+      <header class="rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
+        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <div class="min-w-0">
+            <h1 class="text-xl font-bold text-slate-900 dark:text-white line-clamp-2">{{ cl.title }}</h1>
+            <div class="text-xs text-slate-500 mt-1 break-all">
+              Classe ID: {{ cl.id }} • Cours ID: {{ cl.courseId }} • Version: {{ cl.contentVersion }}
+            </div>
+          </div>
+          <span class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium
+                        bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+            {{ (role$ | async) || 'visiteur' }}
+          </span>
+        </div>
+      </header>
+
+      <!-- Course summary + modules -->
+      <section class="mt-6 grid gap-6 md:grid-cols-3">
+        <div class="md:col-span-2 rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
+          <h2 class="text-lg font-semibold mb-3">Modules</h2>
+          <ng-container *ngIf="(modules$ | async) as modules; else modulesLoading">
+            <div *ngIf="modules.length; else noModules" class="space-y-2">
+              <div *ngFor="let m of modules; trackBy: trackById"
+                   class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 px-3 py-2">
+                <div class="min-w-0">
+                  <div class="text-sm font-medium truncate">{{ m.title }}</div>
+                  <div class="text-xs text-slate-500">Durée ~ {{ m.durationMin || 10 }} min</div>
+                </div>
+                <button class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+                  Ouvrir
+                </button>
+              </div>
+            </div>
+            <ng-template #noModules>
+              <div class="text-sm text-slate-500">Aucun module pour l’instant.</div>
+            </ng-template>
+          </ng-container>
+          <ng-template #modulesLoading>
+            <div class="h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+          </ng-template>
+        </div>
+
+        <aside class="rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
+          <h3 class="text-lg font-semibold mb-3">Résumé du cours</h3>
+          <div *ngIf="(course$ | async) as course; else courseLoading">
+            <div class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">
+              {{ course?.description || '—' }}
+            </div>
+          </div>
+          <ng-template #courseLoading>
+            <div class="h-20 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+          </ng-template>
+        </aside>
+      </section>
+
+      <!-- People + Instructor tools -->
+      <section class="mt-6 grid gap-6 md:grid-cols-3">
+        <div class="md:col-span-2 rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
+          <h2 class="text-lg font-semibold mb-3">Participants</h2>
+
+          <ng-container *ngIf="(members$ | async) as members; else peopleLoading">
+            <div *ngIf="members.length; else noPeople"
+                 class="rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+              <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                <li *ngFor="let m of members; trackBy: trackById"
+                    class="flex items-center justify-between gap-3 px-3 py-2">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div class="h-7 w-7 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase">
+                      {{ (m.uid || '??') | slice:0:2 }}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-xs font-medium">{{ m.role | titlecase }}</div>
+                      <div class="text-[11px] text-slate-500 truncate">{{ m.uid }}</div>
+                    </div>
+                  </div>
+
+                  <!-- Remove only if instructor/ta -->
+                  <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                          (click)="removeMember(cl.id!, m.uid)"
+                          [disabled]="removing[m.uid]"
+                          class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
+                                 text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                 disabled:opacity-60 disabled:cursor-not-allowed
+                                 dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                    <svg *ngIf="removing[m.uid]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/>
+                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/>
+                    </svg>
+                    <span>Retirer</span>
+                  </button>
+                </li>
+              </ul>
+            </div>
+            <ng-template #noPeople>
+              <div class="text-sm text-slate-500">Aucun participant pour l’instant.</div>
+            </ng-template>
+          </ng-container>
+          <ng-template #peopleLoading>
+            <div class="h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+          </ng-template>
+        </div>
+
+        <!-- Instructor tools (invite) -->
+        <aside *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+               class="rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
+          <h3 class="text-lg font-semibold mb-3">Outils formateur</h3>
+          <div class="rounded-xl bg-slate-50/70 ring-1 ring-slate-200 p-3 dark:bg-slate-800/40 dark:ring-slate-700">
+            <div class="text-sm font-medium mb-2">Inviter un membre</div>
+            <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+              <input [(ngModel)]="invite.email" name="inviteEmail" type="email" inputmode="email" autocomplete="email"
+                     placeholder="email@domaine.com"
+                     class="min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base
+                            text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                            dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+              <select [(ngModel)]="invite.role" name="inviteRole"
+                      class="rounded-lg border border-slate-300 bg-white px-2 py-2.5 text-sm
+                             text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                             dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+                <option value="student">Étudiant</option>
+                <option value="instructor">Formateur</option>
+                <option value="ta">Assistant</option>
+              </select>
+              <button (click)="inviteMember(cl.id!)" [disabled]="inviting || !invite.email"
+                      class="rounded-lg px-4 py-2.5 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700
+                             disabled:opacity-60 disabled:cursor-not-allowed">
+                {{ inviting ? 'Envoi…' : 'Inviter' }}
+              </button>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </ng-container>
+
+    <ng-template #loading>
+      <div class="rounded-3xl h-40 bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+    </ng-template>
+  </div>
+</div>

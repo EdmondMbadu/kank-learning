@@ -29,6 +29,18 @@ export interface School {
   updatedAt?: FSDate;
 }
 
+export interface CourseDoc {
+  id?: string;
+  title: string;
+  description?: string;
+}
+export interface CourseModule {
+  id?: string;
+  title: string;
+  order: number;
+  durationMin?: number;
+}
+
 // --- Course content (reusable across classes) ---
 export interface Course {
   id?: string;

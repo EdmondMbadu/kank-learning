@@ -7,6 +7,7 @@ import { VerifyEmailComponent } from './component/verify-email/verify-email.comp
 import { ForgotPasswordComponent } from './component/forgot-password/forgot-password.component';
 import { LandingPageComponent } from './component/landing-page/landing-page.component';
 import { AuthGuard } from './shared/auth.guard';
+import { ClassComponent } from './component/class/class.component';
 
 const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -16,6 +17,9 @@ const routes: Routes = [
     component: DashboardComponent,
     canActivate: [AuthGuard],
   },
+  // app-routing.module.ts
+  { path: 'class/:id', component: ClassComponent, canActivate: [AuthGuard] },
+
   { path: 'register', component: RegisterComponent },
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
