@@ -107,7 +107,7 @@ export class ClassService {
     const clean = email.trim();
     if (!clean) throw new Error('Email requis');
 
-    // find user by emailLower then email
+    // 1) Find user by emailLower/email
     let q = this.afs.collection('users', (ref) =>
       ref.where('emailLower', '==', clean.toLowerCase())
     ).ref;
@@ -122,33 +122,83 @@ export class ClassService {
 
     const uid = snap.docs[0].id;
 
-    const now = firebase.firestore.FieldValue.serverTimestamp();
+    // 2) Refs
     const classRef = this.afs.doc(`classes/${classId}`).ref;
     const memberRef = this.afs.doc(`classes/${classId}/members/${uid}`).ref;
     const userIdxRef = this.afs.doc(`users/${uid}/classIndex/${classId}`).ref;
 
-    // get class title for the index
-    const classSnap = await classRef.get();
-    const classTitle = (classSnap.data() as any)?.title || '';
+    // 3) Transaction: no instructor downgrade + correct counters
+    await this.afs.firestore.runTransaction(async (tx) => {
+      const [classDoc, memberDoc] = await Promise.all([
+        tx.get(classRef),
+        tx.get(memberRef),
+      ]);
+      if (!classDoc.exists) throw new Error('Classe introuvable');
 
-    const inc =
-      role === 'student'
-        ? { 'counts.students': firebase.firestore.FieldValue.increment(1) }
-        : { 'counts.instructors': firebase.firestore.FieldValue.increment(1) };
+      const classData = classDoc.data() as any;
+      const classTitle = classData?.title || '';
+      const now = firebase.firestore.FieldValue.serverTimestamp();
 
-    const batch = this.afs.firestore.batch();
-    batch.set(
-      memberRef,
-      { uid, role, status: 'active', enrolledAt: now },
-      { merge: true }
-    );
-    batch.update(classRef, { ...inc, updatedAt: now });
-    batch.set(
-      userIdxRef,
-      { classId, title: classTitle, role, status: 'active', updatedAt: now },
-      { merge: true }
-    );
-    await batch.commit();
+      const prevRole = (
+        memberDoc.exists ? (memberDoc.data() as any).role : null
+      ) as Role | null;
+
+      // Prevent downgrading an existing instructor via invites
+      let newRole: Role = role;
+      if (prevRole === 'instructor' && role !== 'instructor') {
+        newRole = 'instructor';
+      }
+
+      // Build class counts updates only when they actually change
+      const classUpdates: any = { updatedAt: now };
+
+      if (!memberDoc.exists) {
+        // new member -> increment the right counter
+        const field =
+          newRole === 'student' ? 'counts.students' : 'counts.instructors';
+        classUpdates[field] = firebase.firestore.FieldValue.increment(1);
+      } else if (prevRole !== newRole) {
+        // role change (promotion/demotion) — demotion from instructor blocked above
+        const decField =
+          prevRole === 'student' ? 'counts.students' : 'counts.instructors';
+        const incField =
+          newRole === 'student' ? 'counts.students' : 'counts.instructors';
+        classUpdates[decField] = firebase.firestore.FieldValue.increment(-1);
+        classUpdates[incField] = firebase.firestore.FieldValue.increment(1);
+      }
+      // Write updates
+      if (Object.keys(classUpdates).length > 1) {
+        tx.update(classRef, classUpdates);
+      }
+
+      // Keep original enrolledAt if present
+      const enrolledAt = memberDoc.exists
+        ? (memberDoc.data() as any).enrolledAt ?? now
+        : now;
+
+      tx.set(
+        memberRef,
+        {
+          uid,
+          role: newRole,
+          status: 'active',
+          enrolledAt,
+        },
+        { merge: true }
+      );
+
+      tx.set(
+        userIdxRef,
+        {
+          classId,
+          title: classTitle,
+          role: newRole,
+          status: 'active',
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+    });
   }
 
   /** --- NEW: remove a single member (and fix counters + user index) --- */

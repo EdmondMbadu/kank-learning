@@ -198,6 +198,15 @@ export class DashboardComponent implements OnInit {
   async inviteByEmail(cls: ClassSection) {
     this.ensureInviteForm(cls.id!);
     const f = this.inviteForms[cls.id!];
+    const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
+    if (
+      me?.email &&
+      f.email.trim().toLowerCase() === me.email.toLowerCase() &&
+      f.role !== 'instructor'
+    ) {
+      alert('Vous êtes déjà formateur de cette classe.');
+      return;
+    }
     try {
       await this.classes.inviteByEmail(cls.id!, f.email, f.role);
       this.inviteForms[cls.id!].email = '';
@@ -206,6 +215,7 @@ export class DashboardComponent implements OnInit {
       alert(e?.message || 'Erreur lors de l’invitation');
     }
   }
+
   onInviteEmailChange(id: string, email: string) {
     this.inviteForms[id] ??= { email: '', role: 'student' };
     this.inviteForms[id].email = email;
