@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { map, switchMap, shareReplay } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
@@ -26,6 +26,21 @@ export class NavbarComponent {
       )
     );
   }
+
+  accountMenuOpen = false;
+
+  toggleAccountMenu() {
+    this.accountMenuOpen = !this.accountMenuOpen;
+  }
+  closeAccountMenu() {
+    this.accountMenuOpen = false;
+  }
+
+  @HostListener('document:keydown.escape')
+  onEsc() {
+    this.closeAccountMenu();
+  }
+
   toggleClassesMenu() {
     this.classesMenuOpen = !this.classesMenuOpen;
   }

@@ -1,11 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AuthService } from 'src/app/shared/auth.service';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   email = '';
   password = '';
   showPassword = false;
@@ -13,6 +13,9 @@ export class LoginComponent {
 
   constructor(private auth: AuthService) {}
 
+  ngOnInit() {
+    window.scroll(0, 0);
+  }
   async login() {
     if (!this.email || !this.password) {
       alert('Veuillez renseigner votre e-mail et votre mot de passe');
