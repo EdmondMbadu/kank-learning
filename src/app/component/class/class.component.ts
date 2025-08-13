@@ -29,7 +29,10 @@ export class ClassComponent {
       cl?.courseId ? this.courses.get$(cl.courseId) : of(undefined)
     )
   );
-
+  // NEW: pending invites stream
+  invites$ = this.classId$.pipe(
+    switchMap((id) => this.classes.pendingInvites$(id))
+  );
   modules$ = this.class$.pipe(
     switchMap((cl) =>
       cl?.courseId
@@ -46,6 +49,7 @@ export class ClassComponent {
 
   // remove state
   removing: Record<string, boolean> = {};
+  canceling: Record<string, boolean> = {}; // NEW: cancel pending invite
 
   constructor(
     private route: ActivatedRoute,
@@ -78,6 +82,16 @@ export class ClassComponent {
       await this.classes.removeMember(classId, uid);
     } finally {
       delete this.removing[uid];
+    }
+  }
+
+  // NEW: cancel a pending invite
+  async removeInvite(classId: string, inviteId: string) {
+    this.canceling[inviteId] = true;
+    try {
+      await this.classes.cancelInvite(classId, inviteId);
+    } finally {
+      delete this.canceling[inviteId];
     }
   }
 

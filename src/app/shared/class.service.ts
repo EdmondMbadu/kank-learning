@@ -140,6 +140,10 @@ export class ClassService {
     await this.addOrUpdateMemberInTx(classId, uid, role);
     return uid;
   }
+  // cancel a pending invite
+  async cancelInvite(classId: string, inviteId: string) {
+    await this.afs.doc(`classes/${classId}/invites/${inviteId}`).delete();
+  }
 
   /** --- NEW: remove a single member (and fix counters + user index) --- */
   async removeMember(classId: string, uid: string) {
@@ -260,7 +264,20 @@ export class ClassService {
       const uid = snap.docs[0].id;
       console.debug('[invite] existing user -> add member', uid);
       await this.addOrUpdateMemberInTx(classId, uid, role);
-      return uid; // member added
+
+      // NEW: remove any pending invite for the same email
+      const db = this.afs.firestore;
+      const invSnap = await db
+        .collection(`classes/${classId}/invites`)
+        .where('email', '==', lower)
+        .get();
+      if (!invSnap.empty) {
+        const batch = db.batch();
+        invSnap.docs.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+
+      return uid;
     }
 
     // No user yet → create pending invite

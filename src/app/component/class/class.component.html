@@ -59,7 +59,54 @@
 
       <!-- People + Instructor tools -->
       <section class="mt-6 grid gap-6 md:grid-cols-3">
+        
         <div class="md:col-span-2 rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
+          <!-- Pending Invites -->
+<div class="mt-6">
+  <div class="text-sm font-semibold mb-2">Invitations en attente</div>
+
+  <ng-container *ngIf="(invites$ | async) as invites">
+    <div *ngIf="invites.length; else noInvites"
+         class="rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+      <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
+        <li *ngFor="let inv of invites; trackBy: trackById"
+            class="flex items-center justify-between gap-3 px-3 py-2">
+          <div class="min-w-0">
+            <div class="text-xs font-medium">{{ inv.email }}</div>
+            <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200
+                        dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+              En attente
+            </span>
+
+            <!-- Only instructors/TAs can cancel -->
+            <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                    (click)="removeInvite(cl.id!, inv.id)"
+                    [disabled]="canceling[inv.id!]"
+                    class="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium
+                           text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                           disabled:opacity-60 disabled:cursor-not-allowed
+                           dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+              <svg *ngIf="canceling[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+              </svg>
+              <span>Annuler</span>
+            </button>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <ng-template #noInvites>
+      <div class="text-sm text-slate-500">Aucune invitation en attente.</div>
+    </ng-template>
+  </ng-container>
+</div>
+
           <h2 class="text-lg font-semibold mb-3">Participants</h2>
 
           <ng-container *ngIf="(members$ | async) as members; else peopleLoading">
@@ -103,6 +150,7 @@
             <div class="h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
           </ng-template>
         </div>
+        
 
         <!-- Instructor tools (invite) -->
         <aside *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
