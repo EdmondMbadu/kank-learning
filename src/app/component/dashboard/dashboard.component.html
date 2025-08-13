@@ -197,18 +197,40 @@
                 <div *ngIf="invites.length; else noInvites"
                     class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
                   <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
-                    <li *ngFor="let inv of invites"
-                        class="flex items-center justify-between gap-3 px-3 py-2">
-                      <div class="min-w-0">
-                        <div class="text-xs font-medium">{{ inv.email }}</div>
-                        <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
+                   <li *ngFor="let inv of invites"
+                        class="px-3 py-2">
+                      <div class="flex items-center gap-3">
+                        <!-- left: email + role -->
+                        <div class="min-w-0 flex-1">
+                          <div class="text-xs font-medium truncate">{{ inv.email }}</div>
+                          <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
+                        </div>
+
+                        <!-- right: status + action -->
+                        <div class="flex items-center gap-2 shrink-0">
+                          <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200
+                                      dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                            En attente
+                          </span>
+
+                          <button (click)="cancelInvite(cl, inv)"
+                                  [disabled]="cancelingInvite[inv.id!]"
+                                  class="inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium
+                                        text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                        disabled:opacity-60 disabled:cursor-not-allowed
+                                        dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                            <svg *ngIf="cancelingInvite[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                              <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                            </svg>
+                            <span>Annuler</span>
+                          </button>
+                        </div>
                       </div>
-                      <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200
-                                  dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                        En attente
-                      </span>
                     </li>
+
                   </ul>
+                  
                 </div>
                 <ng-template #noInvites>
                   <div class="mt-2 text-xs text-slate-500">Aucune invitation en attente.</div>

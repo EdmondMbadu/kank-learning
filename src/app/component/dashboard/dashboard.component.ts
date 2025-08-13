@@ -36,6 +36,18 @@ export class DashboardComponent implements OnInit {
     Observable<(ClassMember & { uid: string })[]>
   > = {};
 
+  cancelingInvite: Record<string, boolean> = {};
+
+  async cancelInvite(cl: ClassSection, inv: { id: string }) {
+    if (!cl.id || !inv.id) return;
+    this.cancelingInvite[inv.id] = true;
+    try {
+      await this.classes.cancelInvite(cl.id, inv.id);
+    } finally {
+      delete this.cancelingInvite[inv.id];
+    }
+  }
+
   private loadMembersFor(id: string) {
     if (!this.membersByClass[id])
       this.membersByClass[id] = this.classes.members$(id);
