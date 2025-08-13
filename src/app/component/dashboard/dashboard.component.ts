@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable, of, firstValueFrom } from 'rxjs';
-import { switchMap, take } from 'rxjs/operators';
+import { map, switchMap, take } from 'rxjs/operators';
 import {
   User,
   Course,
@@ -70,17 +70,23 @@ export class DashboardComponent implements OnInit {
     private courses: CourseService,
     private classes: ClassService
   ) {}
-
+  isAdmin$!: Observable<boolean>;
   ngOnInit(): void {
     this.me$ = this.auth.user$;
+    this.isAdmin$ = this.auth.user$.pipe(
+      map((u) => (u?.platformRole || '').toLowerCase() === 'admin')
+    );
+
     this.myCourses$ = this.auth.user$.pipe(
       switchMap((me) => (me?.uid ? this.courses.myCourses$(me.uid) : of([])))
     );
+    // dashboard.component.ts (ngOnInit)
     this.myClasses$ = this.auth.user$.pipe(
       switchMap((me) =>
-        me?.uid ? this.classes.myClassesAsInstructor$(me.uid) : of([])
+        me?.uid ? this.classes.myClassesAsMember$(me.uid) : of([])
       )
     );
+
     // Prefill forms once classes load/change
     this.myClasses$.subscribe((classes) => {
       classes.forEach((cl) => {
@@ -102,6 +108,11 @@ export class DashboardComponent implements OnInit {
   }
   isRemoving(classId: string, uid: string) {
     return !!this.removingMember[classId]?.[uid];
+  }
+  private async requireAdmin(): Promise<boolean> {
+    const ok = await firstValueFrom(this.isAdmin$.pipe(take(1)));
+    if (!ok) alert('Action non autorisée.');
+    return ok;
   }
 
   // UI helpers (unchanged)
@@ -148,6 +159,7 @@ export class DashboardComponent implements OnInit {
     this.showCourseDialog = false;
   }
   async saveCourse() {
+    if (!(await this.requireAdmin())) return; // admin only
     const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
     if (!me?.uid) return;
 
@@ -165,16 +177,24 @@ export class DashboardComponent implements OnInit {
     }
     this.showCourseDialog = false;
   }
-  deleteCourse(c: Course) {
+
+  async deleteCourse(c: Course) {
+    if (!(await this.requireAdmin())) return; // admin only
     if (confirm('Supprimer ce cours ?')) this.courses.delete(c.id!);
   }
 
-  // --- Class dialog actions ---
   openCreateClass(course?: Course) {
-    this.creatingFromCourse = course ?? null;
-    this.classForm.courseId = course?.id ?? '';
-    this.classForm.title = course ? `${course.title} — Session` : '';
-    this.showClassDialog = true;
+    // Allow only admins to create classes (per your requirement)
+    this.isAdmin$.pipe(take(1)).subscribe((isAdmin) => {
+      if (!isAdmin) {
+        alert('Action non autorisée.');
+        return;
+      }
+      this.creatingFromCourse = course ?? null;
+      this.classForm.courseId = course?.id ?? '';
+      this.classForm.title = course ? `${course.title} — Session` : '';
+      this.showClassDialog = true;
+    });
   }
   closeClassDialog() {
     this.showClassDialog = false;
@@ -270,18 +290,28 @@ export class DashboardComponent implements OnInit {
   }
 
   async deleteClass(cl: ClassSection) {
-    if (!cl.id) return;
+    // Let admin OR the class instructor delete
+    const [isAdmin, me] = await Promise.all([
+      firstValueFrom(this.isAdmin$.pipe(take(1))),
+      firstValueFrom(this.auth.user$.pipe(take(1))),
+    ]);
+    const can = isAdmin || cl.instructorId === me?.uid;
+    if (!can) {
+      alert('Action non autorisée.');
+      return;
+    }
+
     if (
       !confirm(
         `Supprimer la classe "${cl.title}" ? (Tous les membres seront retirés)`
       )
     )
       return;
-    this.deletingClass[cl.id] = true;
+    this.deletingClass[cl.id!] = true;
     try {
-      await this.classes.deleteClass(cl.id);
+      await this.classes.deleteClass(cl.id!);
     } finally {
-      delete this.deletingClass[cl.id];
+      delete this.deletingClass[cl.id!];
     }
   }
 }

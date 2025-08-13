@@ -398,5 +398,21 @@ export class ClassService {
       );
   }
 
+  myClassesAsMember$(uid: string) {
+    return this.userClassIndex$(uid).pipe(
+      switchMap((rows) => {
+        if (!rows.length) return of([] as Array<ClassSection & { role: Role }>);
+        const streams = rows.map((r) => this.class$(r.classId));
+        return combineLatest(streams).pipe(
+          map((classes) =>
+            classes
+              .filter((c): c is ClassSection => !!c)
+              .map((c, i) => ({ ...c, role: rows[i].role }))
+          )
+        );
+      })
+    );
+  }
+
   // class.service.ts
 }
