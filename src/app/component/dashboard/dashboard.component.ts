@@ -74,6 +74,7 @@ export class DashboardComponent implements OnInit {
         if (cl.id) {
           this.ensureInviteForm(cl.id);
           this.loadMembersFor(cl.id);
+          this.loadInvitesFor(cl.id);
         }
       });
     });
@@ -187,6 +188,17 @@ export class DashboardComponent implements OnInit {
     if (!this.inviteForms[id])
       this.inviteForms[id] = { email: '', role: 'student' };
   }
+  // dashboard.component.ts
+  invitesByClass: Record<
+    string,
+    Observable<{ id: string; email: string; role: Role; status: string }[]>
+  > = {};
+
+  private loadInvitesFor(id: string) {
+    if (!this.invitesByClass[id]) {
+      this.invitesByClass[id] = this.classes.pendingInvites$(id) as any;
+    }
+  }
 
   // Update helper to avoid complex two-way bindings in template
   updateInviteForm(id: string, patch: Partial<{ email: string; role: Role }>) {
@@ -194,23 +206,29 @@ export class DashboardComponent implements OnInit {
     this.inviteForms[id] = { ...this.inviteForms[id], ...patch };
   }
 
-  // (Optional) make invite safer
+  // dashboard.component.ts
   async inviteByEmail(cls: ClassSection) {
     this.ensureInviteForm(cls.id!);
     const f = this.inviteForms[cls.id!];
+    console.log('[ui] inviting ->', f.email, 'role:', f.role, 'class:', cls.id);
+
     const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
-    if (
-      me?.email &&
-      f.email.trim().toLowerCase() === me.email.toLowerCase() &&
-      f.role !== 'instructor'
-    ) {
-      alert('Vous êtes déjà formateur de cette classe.');
+    if (me?.email && f.email.trim().toLowerCase() === me.email.toLowerCase()) {
+      alert('Vous ne pouvez pas vous inviter vous-même.');
       return;
     }
+
     try {
-      await this.classes.inviteByEmail(cls.id!, f.email, f.role);
+      const uid = await this.classes.inviteByEmailOrCreatePending(
+        cls.id!,
+        f.email,
+        f.role
+      );
+      console.log('Invite result:', uid ?? '(pending invite)');
+      this.loadMembersFor(cls.id!);
+      this.loadInvitesFor(cls.id!); // new, see below
       this.inviteForms[cls.id!].email = '';
-      alert('Invitation enregistrée ✅');
+      alert(uid ? 'Membre ajouté ✅' : 'Invitation en attente ✉️');
     } catch (e: any) {
       alert(e?.message || 'Erreur lors de l’invitation');
     }

@@ -77,6 +77,7 @@ export class AuthService {
       await this.createUserDoc(cred.user!.uid, {
         uid: cred.user!.uid,
         email,
+        emailLower: (email || '').toLowerCase(),
         firstName: firstName ?? '',
         lastName: lastName ?? '',
       });

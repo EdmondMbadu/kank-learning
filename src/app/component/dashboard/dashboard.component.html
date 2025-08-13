@@ -190,10 +190,37 @@
               <p class="text-xs text-slate-500 dark:text-slate-400">Entrez l’e-mail du membre et choisissez un rôle.</p>
             </div>
           </div>
-
+    <!-- Pending Invites -->
+            <div class="mt-3">
+              <div class="text-sm font-medium">Invitations en attente</div>
+              <ng-container *ngIf="invitesByClass[cl.id!] | async as invites">
+                <div *ngIf="invites.length; else noInvites"
+                    class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                    <li *ngFor="let inv of invites"
+                        class="flex items-center justify-between gap-3 px-3 py-2">
+                      <div class="min-w-0">
+                        <div class="text-xs font-medium">{{ inv.email }}</div>
+                        <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
+                      </div>
+                      <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200
+                                  dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                        En attente
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <ng-template #noInvites>
+                  <div class="mt-2 text-xs text-slate-500">Aucune invitation en attente.</div>
+                </ng-template>
+              </ng-container>
+            </div>
           <!-- Members list -->
           <div class="mt-4">
+          
             <div class="text-sm font-medium">Membres</div>
+          
+
 
             <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
               <div *ngIf="members.length; else noMembers"
@@ -247,6 +274,8 @@
         </div>
       </ng-template>
     </ng-container>
+
+    
 
     <ng-template #classesLoading>
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

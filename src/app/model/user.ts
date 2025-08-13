@@ -7,6 +7,8 @@ export class User {
   firstName?: string;
   lastName?: string;
   photoURL?: string;
+  emailLower?: string;
+  schoolId?: string;
   platformRole?: 'user' | 'instructor' | 'admin'; // optional, lightweight
 }
 

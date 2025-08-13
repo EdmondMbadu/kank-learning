@@ -12,6 +12,15 @@ import {
   UserClassIndex,
 } from 'src/app/model/user';
 
+type PendingInvite = {
+  id?: string;
+  email: string; // lowercased
+  role: Role;
+  status: 'pending' | 'accepted' | 'canceled';
+  createdAt: any;
+  invitedBy?: string; // optional
+};
+
 @Injectable({ providedIn: 'root' })
 export class ClassService {
   constructor(private afs: AngularFirestore) {}
@@ -102,103 +111,34 @@ export class ClassService {
     return id;
   }
 
-  // class.service.ts
-  async inviteByEmail(classId: string, email: string, role: Role = 'student') {
+  async inviteByEmail(
+    classId: string,
+    email: string,
+    role: Role = 'student'
+  ): Promise<string> {
     const clean = email.trim();
     if (!clean) throw new Error('Email requis');
 
-    // 1) Find user by emailLower/email
-    let q = this.afs.collection('users', (ref) =>
-      ref.where('emailLower', '==', clean.toLowerCase())
-    ).ref;
-    let snap = await q.get();
+    const db = this.afs.firestore;
+
+    let snap = await db
+      .collection('users')
+      .where('emailLower', '==', clean.toLowerCase())
+      .limit(1)
+      .get();
+
     if (snap.empty) {
-      q = this.afs.collection('users', (ref) =>
-        ref.where('email', '==', clean)
-      ).ref;
-      snap = await q.get();
+      snap = await db
+        .collection('users')
+        .where('email', '==', clean)
+        .limit(1)
+        .get();
     }
     if (snap.empty) throw new Error('Utilisateur introuvable avec cet email.');
 
     const uid = snap.docs[0].id;
-
-    // 2) Refs
-    const classRef = this.afs.doc(`classes/${classId}`).ref;
-    const memberRef = this.afs.doc(`classes/${classId}/members/${uid}`).ref;
-    const userIdxRef = this.afs.doc(`users/${uid}/classIndex/${classId}`).ref;
-
-    // 3) Transaction: no instructor downgrade + correct counters
-    await this.afs.firestore.runTransaction(async (tx) => {
-      const [classDoc, memberDoc] = await Promise.all([
-        tx.get(classRef),
-        tx.get(memberRef),
-      ]);
-      if (!classDoc.exists) throw new Error('Classe introuvable');
-
-      const classData = classDoc.data() as any;
-      const classTitle = classData?.title || '';
-      const now = firebase.firestore.FieldValue.serverTimestamp();
-
-      const prevRole = (
-        memberDoc.exists ? (memberDoc.data() as any).role : null
-      ) as Role | null;
-
-      // Prevent downgrading an existing instructor via invites
-      let newRole: Role = role;
-      if (prevRole === 'instructor' && role !== 'instructor') {
-        newRole = 'instructor';
-      }
-
-      // Build class counts updates only when they actually change
-      const classUpdates: any = { updatedAt: now };
-
-      if (!memberDoc.exists) {
-        // new member -> increment the right counter
-        const field =
-          newRole === 'student' ? 'counts.students' : 'counts.instructors';
-        classUpdates[field] = firebase.firestore.FieldValue.increment(1);
-      } else if (prevRole !== newRole) {
-        // role change (promotion/demotion) — demotion from instructor blocked above
-        const decField =
-          prevRole === 'student' ? 'counts.students' : 'counts.instructors';
-        const incField =
-          newRole === 'student' ? 'counts.students' : 'counts.instructors';
-        classUpdates[decField] = firebase.firestore.FieldValue.increment(-1);
-        classUpdates[incField] = firebase.firestore.FieldValue.increment(1);
-      }
-      // Write updates
-      if (Object.keys(classUpdates).length > 1) {
-        tx.update(classRef, classUpdates);
-      }
-
-      // Keep original enrolledAt if present
-      const enrolledAt = memberDoc.exists
-        ? (memberDoc.data() as any).enrolledAt ?? now
-        : now;
-
-      tx.set(
-        memberRef,
-        {
-          uid,
-          role: newRole,
-          status: 'active',
-          enrolledAt,
-        },
-        { merge: true }
-      );
-
-      tx.set(
-        userIdxRef,
-        {
-          classId,
-          title: classTitle,
-          role: newRole,
-          status: 'active',
-          updatedAt: now,
-        },
-        { merge: true }
-      );
-    });
+    await this.addOrUpdateMemberInTx(classId, uid, role);
+    return uid;
   }
 
   /** --- NEW: remove a single member (and fix counters + user index) --- */
@@ -255,5 +195,164 @@ export class ClassService {
       .valueChanges()
       .pipe(map((rows) => rows.map((r) => ({ ...r }))));
   }
+
+  pendingInvites$(classId: string) {
+    return this.afs
+      .collection<PendingInvite>(`classes/${classId}/invites`, (ref) =>
+        ref.orderBy('createdAt', 'desc')
+      )
+      .valueChanges({ idField: 'id' });
+  }
+
+  /** Existing behavior if user doc exists; otherwise create a pending invite doc. */
+  // class.service.ts
+  async inviteByEmailOrCreatePending(
+    classId: string,
+    email: string,
+    role: Role = 'student',
+    invitedByUid?: string
+  ): Promise<string | null> {
+    const clean = email.trim();
+    if (!clean) throw new Error('Email requis');
+    const lower = clean.toLowerCase();
+
+    const db = this.afs.firestore;
+
+    console.debug('[invite] classId', classId, 'email', clean);
+
+    // Debug: prove filters are correct
+    const byLower = await db
+      .collection('users')
+      .where('emailLower', '==', lower)
+      .get();
+    console.debug(
+      '[invite] byLower.size',
+      byLower.size,
+      byLower.docs.map((d) => ({ id: d.id, ...d.data() }))
+    );
+
+    const byEmail = await db
+      .collection('users')
+      .where('email', '==', clean)
+      .get();
+    console.debug(
+      '[invite] byEmail.size',
+      byEmail.size,
+      byEmail.docs.map((d) => ({ id: d.id, ...d.data() }))
+    );
+
+    // Actual lookup (filtered!)
+    let snap = await db
+      .collection('users')
+      .where('emailLower', '==', lower)
+      .limit(1)
+      .get();
+
+    if (snap.empty) {
+      snap = await db
+        .collection('users')
+        .where('email', '==', clean)
+        .limit(1)
+        .get();
+    }
+
+    if (!snap.empty) {
+      const uid = snap.docs[0].id;
+      console.debug('[invite] existing user -> add member', uid);
+      await this.addOrUpdateMemberInTx(classId, uid, role);
+      return uid; // member added
+    }
+
+    // No user yet → create pending invite
+    console.debug('[invite] no user -> create pending invite for', lower);
+
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    const invitesCol = db.collection(`classes/${classId}/invites`);
+
+    const existing = await invitesCol
+      .where('email', '==', lower)
+      .limit(1)
+      .get();
+    const docRef = existing.empty ? invitesCol.doc() : existing.docs[0].ref;
+
+    await docRef.set(
+      {
+        email: lower,
+        role,
+        status: 'pending',
+        createdAt: now,
+        invitedBy: invitedByUid ?? '',
+      },
+      { merge: true }
+    );
+
+    await db.doc(`classes/${classId}`).update({ updatedAt: now });
+    return null;
+  }
+
+  private async addOrUpdateMemberInTx(
+    classId: string,
+    uid: string,
+    role: Role
+  ) {
+    const classRef = this.afs.doc(`classes/${classId}`).ref;
+    const memberRef = this.afs.doc(`classes/${classId}/members/${uid}`).ref;
+    const userIdxRef = this.afs.doc(`users/${uid}/classIndex/${classId}`).ref;
+
+    await this.afs.firestore.runTransaction(async (tx) => {
+      const [classDoc, memberDoc] = await Promise.all([
+        tx.get(classRef),
+        tx.get(memberRef),
+      ]);
+      if (!classDoc.exists) throw new Error('Classe introuvable');
+
+      const classTitle = (classDoc.data() as any)?.title || '';
+      const now = firebase.firestore.FieldValue.serverTimestamp();
+
+      const prevRole = (
+        memberDoc.exists ? (memberDoc.data() as any).role : null
+      ) as Role | null;
+      let newRole: Role = role;
+      if (prevRole === 'instructor' && role !== 'instructor')
+        newRole = 'instructor';
+
+      const updates: any = { updatedAt: now };
+      if (!memberDoc.exists) {
+        const inc =
+          newRole === 'student' ? 'counts.students' : 'counts.instructors';
+        updates[inc] = firebase.firestore.FieldValue.increment(1);
+      } else if (prevRole !== newRole) {
+        const dec =
+          prevRole === 'student' ? 'counts.students' : 'counts.instructors';
+        const inc =
+          newRole === 'student' ? 'counts.students' : 'counts.instructors';
+        updates[dec] = firebase.firestore.FieldValue.increment(-1);
+        updates[inc] = firebase.firestore.FieldValue.increment(1);
+      }
+      if (Object.keys(updates).length > 1) tx.update(classRef, updates);
+
+      const enrolledAt = memberDoc.exists
+        ? (memberDoc.data() as any).enrolledAt ?? now
+        : now;
+
+      tx.set(
+        memberRef,
+        { uid, role: newRole, status: 'active', enrolledAt },
+        { merge: true }
+      );
+      tx.set(
+        userIdxRef,
+        {
+          classId,
+          title: classTitle,
+          role: newRole,
+          status: 'active',
+          updatedAt: now,
+        },
+        { merge: true }
+      );
+    });
+  }
+
   // class.service.ts
 }
