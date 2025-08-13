@@ -1,7 +1,7 @@
 // src/app/component/class-view/class-view.component.ts
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { combineLatest, of } from 'rxjs';
+import { combineLatest, firstValueFrom, of } from 'rxjs';
 import { switchMap, map } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { ClassService } from 'src/app/shared/class.service';
@@ -67,14 +67,28 @@ export class ClassComponent {
   ) {}
 
   async inviteMember(classId: string) {
-    if (!this.invite.email) return;
+    const email = this.invite.email?.trim();
+    if (!email) return;
+
     this.inviting = true;
     try {
-      await this.classes.inviteByEmail(
+      // avoid inviting yourself (optional but nice)
+      const me = await firstValueFrom(this.auth.user$);
+      if (me?.email && me.email.toLowerCase() === email.toLowerCase()) {
+        alert('Vous ne pouvez pas vous inviter vous-même.');
+        return;
+      }
+
+      // 👉 use the dashboard behavior here
+      const uidOrNull = await this.classes.inviteByEmailOrCreatePending(
         classId,
-        this.invite.email,
+        email,
         this.invite.role
       );
+
+      // If uidOrNull is a uid, the member list updates.
+      // If null, a pending invite was created and invites$ updates.
+
       this.invite.email = '';
       this.invite.role = 'student';
     } catch (e: any) {
