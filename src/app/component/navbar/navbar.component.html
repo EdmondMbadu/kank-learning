@@ -74,7 +74,7 @@
     </div>
 
    <!-- Right: account dropdown -->
-<div class="relative flex items-center">
+<div class="relative flex items-center md:block hidden">
   <ng-container *ngIf="me$ | async as me; else chipLoading">
     <!-- Chip / Toggle -->
     <button type="button"
