@@ -41,7 +41,15 @@ export class ClassComponent {
     )
   );
 
-  members$ = this.classId$.pipe(switchMap((id) => this.classes.members$(id)));
+  members$ = this.classId$.pipe(
+    switchMap((id) => this.classes.membersWithUsers$(id))
+  );
+
+  instructor$ = this.class$.pipe(
+    switchMap((cl) =>
+      cl?.instructorId ? this.classes.user$(cl.instructorId) : of(null)
+    )
+  );
 
   // invite form state
   invite = { email: '', role: 'student' as 'student' | 'instructor' | 'ta' };

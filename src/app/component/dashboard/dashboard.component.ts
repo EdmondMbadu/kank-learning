@@ -33,7 +33,7 @@ export class DashboardComponent implements OnInit {
   creatingFromCourse: Course | null = null;
   membersByClass: Record<
     string,
-    Observable<(ClassMember & { uid: string })[]>
+    Observable<(ClassMember & { uid: string; user: User | null })[]>
   > = {};
 
   cancelingInvite: Record<string, boolean> = {};
@@ -49,8 +49,9 @@ export class DashboardComponent implements OnInit {
   }
 
   private loadMembersFor(id: string) {
-    if (!this.membersByClass[id])
-      this.membersByClass[id] = this.classes.members$(id);
+    if (!this.membersByClass[id]) {
+      this.membersByClass[id] = this.classes.membersWithUsers$(id);
+    }
   }
 
   // Invite forms (per class)

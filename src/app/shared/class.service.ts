@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import firebase from 'firebase/compat/app';
-import { of } from 'rxjs';
+import { combineLatest, of, switchMap } from 'rxjs';
 import { map } from 'rxjs';
 import { Observable } from 'rxjs';
 import {
@@ -10,6 +10,7 @@ import {
   ClassMember,
   Role,
   UserClassIndex,
+  User,
 } from 'src/app/model/user';
 
 type PendingInvite = {
@@ -369,6 +370,32 @@ export class ClassService {
         { merge: true }
       );
     });
+  }
+
+  user$(uid: string) {
+    return this.afs.doc<User>(`users/${uid}`).valueChanges({ idField: 'uid' });
+  }
+
+  membersWithUsers$(classId: string) {
+    return this.afs
+      .collection<ClassMember>(`classes/${classId}/members`, (ref) =>
+        ref.orderBy('role')
+      )
+      .valueChanges({ idField: 'uid' })
+      .pipe(
+        switchMap((members) => {
+          if (!members.length)
+            return of(
+              [] as (ClassMember & { uid: string; user: User | null })[]
+            );
+          const streams = members.map((m) => this.user$(m.uid));
+          return combineLatest(streams).pipe(
+            map((users) =>
+              members.map((m, i) => ({ ...m, user: users[i] ?? null }))
+            )
+          );
+        })
+      );
   }
 
   // class.service.ts

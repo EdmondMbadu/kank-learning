@@ -251,13 +251,19 @@
                   <li *ngFor="let m of members; trackBy: trackMember"
                       class="flex items-center justify-between gap-3 px-3 py-2 transition">
                     <div class="flex items-center gap-3 min-w-0">
-                      <div class="h-7 w-7 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase">
-                        {{ (m.uid || '??') | slice:0:2 }}
+                     <div class="h-7 w-7 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase">
+                      {{ (m.user?.email || m.uid) | slice:0:2 }}
+                    </div>
+
+                     <div class="min-w-0">
+                      <div class="text-xs font-medium">{{ m.role | titlecase }}</div>
+                      <div class="text-[11px] text-slate-500 truncate">
+                        {{ m.user?.firstName }} {{ m.user?.lastName }}
+                        <span *ngIf="m.user?.email">• {{ m.user?.email }}</span>
+                        <span *ngIf="!m.user">• {{ m.uid }}</span>
                       </div>
-                      <div class="min-w-0">
-                        <div class="text-xs font-medium">{{ m.role | titlecase }}</div>
-                        <div class="text-[11px] text-slate-500 truncate">{{ m.uid }}</div>
-                      </div>
+                    </div>
+
                     </div>
 
                     <button (click)="removeMember(cl, m)"

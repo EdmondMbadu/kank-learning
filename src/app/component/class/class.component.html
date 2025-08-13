@@ -117,13 +117,27 @@
                     class="flex items-center justify-between gap-3 px-3 py-2">
                   <div class="flex items-center gap-3 min-w-0">
                     <div class="h-7 w-7 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase">
-                      {{ (m.uid || '??') | slice:0:2 }}
+                      {{ (m.user?.email || m.uid) | slice:0:2 }}
                     </div>
-                    <div class="min-w-0">
-                      <div class="text-xs font-medium">{{ m.role | titlecase }}</div>
-                      <div class="text-[11px] text-slate-500 truncate">{{ m.uid }}</div>
+                   <div class="min-w-0">
+                    <div class="text-xs font-medium">{{ m.role | titlecase }}</div>
+                    <div class="text-[11px] text-slate-500 truncate">
+                      {{ m.user?.firstName }} {{ m.user?.lastName }}
+                      <span *ngIf="m.user?.email">• {{ m.user?.email }}</span>
+                      <span *ngIf="!m.user">• {{ m.uid }}</span>
                     </div>
                   </div>
+
+                  </div>
+                  <!-- <div *ngIf="instructor$ | async as instr"
+                    class="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                  Formateur :
+                  <span class="font-medium">
+                    {{ instr.firstName }} {{ instr.lastName }}
+                  </span>
+                  <span *ngIf="instr.email" class="text-slate-500">• {{ instr.email }}</span>
+                </div> -->
+
 
                   <!-- Remove only if instructor/ta -->
                   <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
