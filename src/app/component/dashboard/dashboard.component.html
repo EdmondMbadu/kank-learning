@@ -58,7 +58,7 @@
       </section>
 
       <!-- My Courses -->
-      <section class="px-4 pt-6">
+      <section *ngIf="(isAdmin$ | async)" class="px-4 pt-6">
         <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
           <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-lg font-semibold">Mes cours</h2>
@@ -213,7 +213,7 @@
                             En attente
                           </span>
 
-                          <button (click)="cancelInvite(cl, inv)"
+                          <button *ngIf="(isAdmin$ | async)" (click)="cancelInvite(cl, inv)"
                                   [disabled]="cancelingInvite[inv.id!]"
                                   class="inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium
                                         text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
