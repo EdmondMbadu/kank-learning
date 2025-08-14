@@ -281,4 +281,27 @@ export class ClassComponent {
     if (att?.score == null || !total) return 0;
     return Math.round((att.score / total) * 100);
   }
+  toggleAssignment(aid: string) {
+    if (this.openAssignmentId === aid) {
+      this.openAssignmentId = null;
+      this.openAssignmentId$.next(null);
+    } else {
+      this.openAssignmentId = aid;
+      this.openAssignmentId$.next(aid);
+    }
+  }
+
+  closeAssignment() {
+    if (this.openAssignmentId !== null) {
+      this.openAssignmentId = null;
+      this.openAssignmentId$.next(null);
+    }
+  }
+
+  /** From the dropdown; null = close */
+  onOpenSelect(val: string | null) {
+    const id = val ?? null;
+    this.openAssignmentId = id;
+    this.openAssignmentId$.next(id);
+  }
 }

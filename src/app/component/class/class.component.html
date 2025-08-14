@@ -223,6 +223,20 @@
 
   <!-- List with score/status -->
   <ng-container *ngIf="(assignments$ | async) as assigns; else aLoading">
+    <!-- Quick selector to open/close a quiz -->
+        <div class="mt-3 flex items-center gap-2">
+          <label class="text-xs text-slate-500">Afficher un quiz:</label>
+          <select
+            [ngModel]="openAssignmentId"
+            (ngModelChange)="onOpenSelect($event)"
+            class="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm
+                  text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                  dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+            <option [ngValue]="null">(aucun)</option>
+            <option *ngFor="let a of assigns" [ngValue]="a.id">{{ a.title }}</option>
+          </select>
+        </div>
+
     <ng-container *ngIf="(attemptsMap$ | async) as attempts">
       <div *ngIf="assigns.length; else noAssigns" class="mt-3 space-y-2">
         <div *ngFor="let a of assigns; trackBy: trackById"
@@ -269,11 +283,14 @@
               </span>
             </ng-container>
 
-            <!-- Open -->
-            <button (click)="openAssignment(a.id!)"
-                    class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
-              Ouvrir
+                        <!-- Toggle open/close -->
+            <button (click)="toggleAssignment(a.id!)"
+                    [attr.aria-expanded]="openAssignmentId === a.id"
+                    class="rounded-lg px-3 py-1.5 text-xs font-semibold
+                          bg-indigo-600 text-white hover:bg-indigo-700">
+              {{ openAssignmentId === a.id ? 'Fermer' : 'Ouvrir' }}
             </button>
+
 
             <!-- Delete (instructor/TA) -->
             <button
