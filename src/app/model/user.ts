@@ -149,12 +149,20 @@ export interface UserClassIndex {
   title?: string; // class title snapshot
   updatedAt?: FSDate;
 }
+
+export type QuizQuestionKind = 'mcq-single' | 'mcq-multi' | 'text';
 // --- Quiz bits ---
 export interface QuizQuestion {
   id: string; // unique within the pool
   prompt: string;
-  choices: string[]; // 4 options typical
-  correctIndex: number; // 0..choices.length-1
+  choices?: string[]; // 4 options typical
+  correctIndex?: number; // 0..choices.length-1
+  kind?: QuizQuestionKind;
+  // MCQ props
+  correct?: number; // for mcq-single
+  correctMulti?: number[]; // for mcq-multi
+  // Text props
+  correctText?: string; // for text exact match
 }
 
 export interface QuizAssignment extends Assignment {

@@ -5,6 +5,14 @@ import { map, switchMap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { QuizAssignment, QuizAttempt, QuizQuestion } from 'src/app/model/user';
 
+// --- ADD: helper to normalize text answers (diacritics-insensitive) ---
+function norm(s: string | null | undefined) {
+  return (s ?? '')
+    .trim()
+    .toLocaleLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '');
+}
 @Injectable({ providedIn: 'root' })
 export class AssignmentService {
   constructor(private afs: AngularFirestore) {}
@@ -190,38 +198,38 @@ export class AssignmentService {
   }
 
   /** Submit + auto-grade */
-  async submitAndGrade(classId: string, assignmentId: string, uid: string) {
-    const aRef = this.afs.doc<QuizAssignment>(
-      `classes/${classId}/assignments/${assignmentId}`
-    ).ref;
-    const tRef = this.afs.doc<QuizAttempt>(
-      `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
-    ).ref;
+  // async submitAndGrade(classId: string, assignmentId: string, uid: string) {
+  //   const aRef = this.afs.doc<QuizAssignment>(
+  //     `classes/${classId}/assignments/${assignmentId}`
+  //   ).ref;
+  //   const tRef = this.afs.doc<QuizAttempt>(
+  //     `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
+  //   ).ref;
 
-    await this.afs.firestore.runTransaction(async (tx) => {
-      const [aDoc, tDoc] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
-      if (!aDoc.exists || !tDoc.exists) throw new Error('Données manquantes.');
-      const a = aDoc.data() as QuizAssignment;
-      const t = tDoc.data() as QuizAttempt;
+  //   await this.afs.firestore.runTransaction(async (tx) => {
+  //     const [aDoc, tDoc] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
+  //     if (!aDoc.exists || !tDoc.exists) throw new Error('Données manquantes.');
+  //     const a = aDoc.data() as QuizAssignment;
+  //     const t = tDoc.data() as QuizAttempt;
 
-      const key = new Map(a.pool.map((q) => [q.id, q.correctIndex]));
-      const selected = t.selectedIds;
-      const answers = t.answers ?? [];
+  //     const key = new Map(a.pool.map((q) => [q.id, q.correctIndex]));
+  //     const selected = t.selectedIds;
+  //     const answers = t.answers ?? [];
 
-      let correct = 0;
-      selected.forEach((qid, i) => {
-        const expected = key.get(qid);
-        if (expected != null && answers[i] === expected) correct++;
-      });
+  //     let correct = 0;
+  //     selected.forEach((qid, i) => {
+  //       const expected = key.get(qid);
+  //       if (expected != null && answers[i] === expected) correct++;
+  //     });
 
-      const now = firebase.firestore.FieldValue.serverTimestamp();
-      tx.update(tRef, {
-        submittedAt: now,
-        gradedAt: now,
-        score: correct,
-      });
-    });
-  }
+  //     const now = firebase.firestore.FieldValue.serverTimestamp();
+  //     tx.update(tRef, {
+  //       submittedAt: now,
+  //       gradedAt: now,
+  //       score: correct,
+  //     });
+  //   });
+  // }
 
   async deleteAssignment(classId: string, assignmentId: string) {
     const db = this.afs.firestore;
@@ -262,6 +270,210 @@ export class AssignmentService {
           )
         )
       );
+  }
+
+  // --- CREATE a custom quiz with a prepared pool of questions ---
+  async createCustomQuiz(
+    classId: string,
+    createdByUid: string,
+    title: string,
+    pool: QuizQuestion[],
+    points?: number
+  ): Promise<string> {
+    if (!title?.trim()) throw new Error('Titre requis');
+    if (!pool?.length) throw new Error('Ajoutez au moins une question');
+
+    const id = this.afs.createId();
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    const a = {
+      id,
+      title: title.trim(),
+      type: 'quiz',
+      createdBy: createdByUid,
+      createdAt: now,
+      updatedAt: now,
+      pool,
+      numQuestions: pool.length,
+      points: points ?? pool.length, // default 1 pt per question
+    };
+
+    await this.afs.doc(`classes/${classId}/assignments/${id}`).set(a);
+    return id;
+  }
+
+  // --- ADD/UPDATE/DELETE questions on an existing quiz (optional utilities) ---
+  async addQuestion(classId: string, assignmentId: string, q: QuizQuestion) {
+    const ref = this.afs.doc(
+      `classes/${classId}/assignments/${assignmentId}`
+    ).ref;
+    await ref.update({
+      pool: firebase.firestore.FieldValue.arrayUnion(q),
+      numQuestions: firebase.firestore.FieldValue.increment(1),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  async removeQuestion(classId: string, assignmentId: string, q: QuizQuestion) {
+    const ref = this.afs.doc(
+      `classes/${classId}/assignments/${assignmentId}`
+    ).ref;
+    await ref.update({
+      pool: firebase.firestore.FieldValue.arrayRemove(q),
+      numQuestions: firebase.firestore.FieldValue.increment(-1),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  // --- SAVE answers (single, multi, text) ---
+  async saveAnswerSingle(
+    classId: string,
+    assignmentId: string,
+    uid: string,
+    index: number,
+    choiceIndex: number
+  ) {
+    const ref = this.afs.doc(
+      `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
+    ).ref;
+    await this.afs.firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = (snap.exists ? snap.data() : {}) as any;
+      const answers: any[] = Array.isArray(data.answers)
+        ? [...data.answers]
+        : [];
+      answers[index] = choiceIndex; // number
+      tx.set(
+        ref,
+        {
+          ...data,
+          answers,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+  }
+
+  async toggleAnswerMulti(
+    classId: string,
+    assignmentId: string,
+    uid: string,
+    index: number,
+    choiceIndex: number
+  ) {
+    const ref = this.afs.doc(
+      `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
+    ).ref;
+    await this.afs.firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = (snap.exists ? snap.data() : {}) as any;
+      const answers: any[] = Array.isArray(data.answers)
+        ? [...data.answers]
+        : [];
+      const curr = Array.isArray(answers[index])
+        ? (answers[index] as number[])
+        : [];
+      const has = curr.includes(choiceIndex);
+      const next = has
+        ? curr.filter((n) => n !== choiceIndex)
+        : [...curr, choiceIndex].sort((a, b) => a - b);
+      answers[index] = next; // number[]
+      tx.set(
+        ref,
+        {
+          ...data,
+          answers,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+  }
+
+  async saveAnswerText(
+    classId: string,
+    assignmentId: string,
+    uid: string,
+    index: number,
+    text: string
+  ) {
+    const ref = this.afs.doc(
+      `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
+    ).ref;
+    await this.afs.firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = (snap.exists ? snap.data() : {}) as any;
+      const answers: any[] = Array.isArray(data.answers)
+        ? [...data.answers]
+        : [];
+      answers[index] = (text ?? '').toString();
+      tx.set(
+        ref,
+        {
+          ...data,
+          answers,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+  }
+
+  // --- SUBMIT + GRADE (supports all kinds) ---
+  async submitAndGrade(classId: string, assignmentId: string, uid: string) {
+    const aRef = this.afs.doc(
+      `classes/${classId}/assignments/${assignmentId}`
+    ).ref;
+    const tRef = this.afs.doc(
+      `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
+    ).ref;
+
+    await this.afs.firestore.runTransaction(async (tx) => {
+      const [aSnap, tSnap] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
+      if (!aSnap.exists) throw new Error('Quiz introuvable');
+
+      const a = aSnap.data() as any;
+      const pool: QuizQuestion[] = a.pool ?? [];
+      const attempts = tSnap.exists ? (tSnap.data() as any) : {};
+      const answers: any[] = Array.isArray(attempts.answers)
+        ? attempts.answers
+        : [];
+
+      let score = 0;
+      for (let i = 0; i < pool.length; i++) {
+        const q = pool[i];
+        const ans = answers[i];
+
+        if (q.kind === 'mcq-single') {
+          if (typeof ans === 'number' && ans === q.correct) score++;
+        } else if (q.kind === 'mcq-multi') {
+          const corr = (q.correctMulti ?? []).slice().sort((a, b) => a - b);
+          const got = Array.isArray(ans)
+            ? (ans as number[]).slice().sort((a, b) => a - b)
+            : [];
+          if (
+            corr.length === got.length &&
+            corr.every((v, idx) => v === got[idx])
+          )
+            score++;
+        } else if (q.kind === 'text') {
+          if (typeof ans === 'string' && norm(ans) === norm(q.correctText))
+            score++;
+        }
+      }
+
+      tx.set(
+        tRef,
+        {
+          ...attempts,
+          score,
+          finishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
   }
 }
 
