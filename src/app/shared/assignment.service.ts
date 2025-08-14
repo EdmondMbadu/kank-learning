@@ -247,6 +247,22 @@ export class AssignmentService {
       .doc(`classes/${classId}/assignments/${assignmentId}`)
       .delete();
   }
+  // Return all attempts under an assignment (doc id = uid)
+  attemptsForAssignment$(classId: string, assignmentId: string) {
+    return this.afs
+      .collection<QuizAttempt>(
+        `classes/${classId}/assignments/${assignmentId}/attempts`
+      )
+      .valueChanges({ idField: 'uid' })
+      .pipe(
+        // keep only people who actually started (any answer) or have a score
+        map((list) =>
+          (list ?? []).filter(
+            (a) => a?.score != null || (a?.answers ?? []).some((x) => x != null)
+          )
+        )
+      );
+  }
 }
 
 // --- util (file-local) ---

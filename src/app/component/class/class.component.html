@@ -325,6 +325,51 @@
           </ng-template>
         </ng-template>
       </div>
+      <!-- Instructor/TA scoreboard -->
+<ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
+  <ng-container *ngIf="(instructorAttemptRows$ | async) as rows">
+    <div class="mb-4 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 dark:bg-slate-800/40 dark:ring-slate-700">
+      <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+        Résultats des étudiants
+      </div>
+
+      <div *ngIf="rows.length; else noRows" class="divide-y divide-slate-200 dark:divide-slate-700">
+        <div *ngFor="let r of rows; trackBy: trackById" class="py-2 flex items-center justify-between">
+          <div class="min-w-0">
+            <div class="text-sm font-medium truncate">
+              {{ r.user?.firstName || '—' }} {{ r.user?.lastName || '' }}
+            </div>
+            <div class="text-[11px] text-slate-500 truncate">
+              {{ r.user?.email || r.uid }}
+            </div>
+          </div>
+
+          <div class="shrink-0 flex items-center gap-2">
+            <span *ngIf="r.score != null"
+                  class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                         bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                         dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+              {{ r.score }}/{{ current.numQuestions }}
+              • {{ (r.score / current.numQuestions * 100) | number:'1.0-0' }}%
+            </span>
+           <span *ngIf="r.score == null"
+                class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                      bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                      dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+            En cours • {{ answeredCount(r) }}/{{ current.numQuestions }}
+          </span>
+
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noRows>
+        <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
+      </ng-template>
+    </div>
+  </ng-container>
+</ng-container>
+
 
       <div class="text-sm font-semibold mb-2">Quiz</div>
 

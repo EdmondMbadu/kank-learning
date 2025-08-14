@@ -101,6 +101,31 @@ export class ClassComponent {
       return this.asgn.attempt$(classId, aid, me.uid);
     })
   );
+  // Attempts for the currently-open assignment (instructor/TA only)
+  instructorAttempts$ = combineLatest([
+    this.role$,
+    this.classId$,
+    this.openAssignmentId$,
+  ]).pipe(
+    switchMap(([role, classId, aid]) => {
+      if (!aid || !classId) return of([]);
+      if (role === 'instructor' || role === 'ta') {
+        return this.asgn.attemptsForAssignment$(classId, aid);
+      }
+      return of([]);
+    })
+  );
+
+  // Join attempts with member user info for pretty names/emails
+  instructorAttemptRows$ = combineLatest([
+    this.instructorAttempts$,
+    this.members$,
+  ]).pipe(
+    map(([atts, members]) => {
+      const userByUid = new Map(members.map((m) => [m.uid, m.user]));
+      return atts.map((a) => ({ ...a, user: userByUid.get(a.uid) || null }));
+    })
+  );
 
   constructor(
     private route: ActivatedRoute,
