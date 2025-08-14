@@ -149,3 +149,26 @@ export interface UserClassIndex {
   title?: string; // class title snapshot
   updatedAt?: FSDate;
 }
+// --- Quiz bits ---
+export interface QuizQuestion {
+  id: string; // unique within the pool
+  prompt: string;
+  choices: string[]; // 4 options typical
+  correctIndex: number; // 0..choices.length-1
+}
+
+export interface QuizAssignment extends Assignment {
+  type: 'quiz';
+  numQuestions: number; // e.g., 5
+  pool: QuizQuestion[]; // question bank for this assignment
+}
+
+export interface QuizAttempt {
+  id?: string;
+  uid: string; // student
+  selectedIds: string[]; // the 5 question IDs chosen for this user
+  answers: number[]; // -1 for unanswered, else 0..3
+  submittedAt?: FSDate;
+  score?: number; // 0..numQuestions
+  gradedAt?: FSDate;
+}

@@ -207,6 +207,113 @@
           </aside>
         </section>
 
+        <!-- Assignments (Quiz) -->
+<section class="mt-6 rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
+  <div class="flex items-center justify-between">
+    <h2 class="text-lg font-semibold">Devoirs / Quiz</h2>
+
+    <!-- Instructor: quick add -->
+   <!-- We are already inside: <ng-container *ngIf="(class$ | async) as cl"> -->
+      <button
+        *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+        (click)="addQuickQuiz(cl.id!)"
+        class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
+        + Quiz rapide (5 QCM)
+      </button>
+
+  </div>
+
+  <!-- List -->
+  <ng-container *ngIf="(assignments$ | async) as assigns; else aLoading">
+    <div *ngIf="assigns.length; else noAssigns" class="mt-3 space-y-2">
+      <div *ngFor="let a of assigns; trackBy: trackById"
+           class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 px-3 py-2">
+        <div class="min-w-0">
+          <div class="text-sm font-medium truncate">{{ a.title }}</div>
+          <div class="text-xs text-slate-500">
+            {{ a.type === 'quiz' ? (a.numQuestions + ' questions') : '—' }}
+            <span *ngIf="a.points">• {{ a.points }} pts</span>
+          </div>
+        </div>
+        <button (click)="openAssignment(a.id!)"
+                class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+          Ouvrir
+        </button>
+      </div>
+    </div>
+
+    <!-- Inline quiz view when one assignment is open -->
+    <div *ngIf="openAssignmentId as aid" class="mt-5 rounded-xl ring-1 ring-slate-200 p-4 dark:ring-slate-700">
+      <div class="text-sm font-semibold mb-2">Quiz</div>
+
+      <!-- Start / Continue -->
+      <div class="mb-2">
+       <button (click)="startAttempt(cl.id!)"
+        class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
+        Démarrer / Continuer
+      </button>
+
+      </div>
+
+      <!-- Render questions from attempt -->
+      <ng-container *ngIf="(assignments$ | async) as list">
+        <!-- <ng-container *ngIf="(list | async) === null"></ng-container> -->
+      </ng-container>
+
+      <ng-container *ngIf="(class$ | async) as cl">
+       <!-- You already have 'assigns' from the parent *ngIf="(assignments$ | async) as assigns" -->
+          <ng-container *ngIf="getById(assigns, aid) as current">
+
+              <ng-container *ngIf="(myAttempt$ | async) as att">
+                <div *ngIf="att?.selectedIds?.length; else notStarted" class="space-y-4">
+                  <div *ngFor="let qid of att.selectedIds; let i = index">
+                  <ng-container *ngIf="getById(current.pool, qid) as q">
+
+                      <div class="text-sm font-medium">{{ i+1 }}. {{ q.prompt }}</div>
+                      <div class="mt-1 grid gap-1">
+                        <label *ngFor="let opt of q.choices; let j = index"
+                               class="flex items-center gap-2 text-sm">
+                          <input type="radio"
+                                 name="q{{i}}"
+                                 [checked]="att.answers[i] === j"
+                                 (change)="selectAnswer(cl.id!, i, j)" />
+                          <span>{{ opt }}</span>
+                        </label>
+                      </div>
+                    </ng-container>
+                  </div>
+
+                  <div class="pt-2 flex items-center gap-3">
+                    <button (click)="submit(cl.id!)"
+                            class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+                      Envoyer
+                    </button>
+
+                   <div *ngIf="att.score != null" class="text-sm">
+                      Note: <span class="font-semibold">{{ att.score }}/{{ current.numQuestions }}</span>
+                    </div>
+
+                  </div>
+                </div>
+                <ng-template #notStarted>
+                  <div class="text-sm text-slate-500">Cliquez sur “Démarrer / Continuer” pour générer votre quiz (5 questions aléatoires).</div>
+                </ng-template>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+  
+    </div>
+  </ng-container>
+
+  <ng-template #aLoading>
+    <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+  </ng-template>
+  <ng-template #noAssigns>
+    <div class="mt-3 text-sm text-slate-500">Aucun devoir pour l’instant.</div>
+  </ng-template>
+</section>
+
+
     </ng-container>
 
     <ng-template #loading>

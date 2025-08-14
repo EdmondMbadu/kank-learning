@@ -1,12 +1,13 @@
 // src/app/component/class-view/class-view.component.ts
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { combineLatest, firstValueFrom, of } from 'rxjs';
+import { BehaviorSubject, combineLatest, firstValueFrom, of } from 'rxjs';
 import { switchMap, map } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { ClassService } from 'src/app/shared/class.service';
 import { ClassSection, CourseModule } from 'src/app/model/user';
 import { CourseService } from 'src/app/shared/course.service';
+import { AssignmentService } from 'src/app/shared/assignment.service';
 
 @Component({
   selector: 'app-class',
@@ -58,12 +59,33 @@ export class ClassComponent {
   // remove state
   removing: Record<string, boolean> = {};
   canceling: Record<string, boolean> = {}; // NEW: cancel pending invite
+  // QUIZ state/streams
+  // --- QUIZ streams/state ---
+  assignments$ = this.classId$.pipe(
+    switchMap((id) => this.asgn.assignments$(id))
+  );
+
+  // use a BehaviorSubject so the stream re-computes when you open another assignment
+  openAssignmentId$ = new BehaviorSubject<string | null>(null);
+  openAssignmentId: string | null = null; // keep for template if you use it
+
+  myAttempt$ = combineLatest([
+    this.classId$,
+    this.me$,
+    this.openAssignmentId$,
+  ]).pipe(
+    switchMap(([classId, me, aid]) => {
+      if (!aid || !me?.uid) return of(null);
+      return this.asgn.attempt$(classId, aid, me.uid);
+    })
+  );
 
   constructor(
     private route: ActivatedRoute,
     private auth: AuthService,
     private classes: ClassService,
-    private courses: CourseService
+    private courses: CourseService,
+    private asgn: AssignmentService // QUIZ
   ) {}
 
   async inviteMember(classId: string) {
@@ -119,5 +141,47 @@ export class ClassComponent {
 
   trackById(_: number, x: any) {
     return x?.id || x?.uid;
+  }
+
+  // --- handlers ---
+  async addQuickQuiz(clId: string) {
+    const me = await firstValueFrom(this.me$);
+    if (!me?.uid) return;
+    await this.asgn.createQuickQuiz(clId, me.uid);
+  }
+
+  openAssignment(aid: string) {
+    this.openAssignmentId = aid;
+    this.openAssignmentId$.next(aid); // <-- trigger myAttempt$ updates
+  }
+
+  async startAttempt(classId: string) {
+    const me = await firstValueFrom(this.me$);
+    const aid = this.openAssignmentId;
+    if (!me?.uid || !aid) return;
+    await this.asgn.startAttemptIfNeeded(classId, aid, me.uid);
+  }
+
+  async selectAnswer(classId: string, idx: number, choice: number) {
+    const me = await firstValueFrom(this.me$);
+    const aid = this.openAssignmentId;
+    if (!me?.uid || !aid) return;
+    await this.asgn.saveAnswer(classId, aid, me.uid, idx, choice);
+  }
+
+  async submit(classId: string) {
+    const me = await firstValueFrom(this.me$);
+    const aid = this.openAssignmentId;
+    if (!me?.uid || !aid) return;
+    await this.asgn.submitAndGrade(classId, aid, me.uid);
+    alert('Soumis. Note enregistrée.');
+  }
+  // class.component.ts (inside ClassComponent)
+  getById<T extends { id: string }>(
+    arr: T[] | null | undefined,
+    id: string | null | undefined
+  ): T | null {
+    if (!arr || !id) return null;
+    return arr.find((x) => x.id === id) ?? null;
   }
 }
