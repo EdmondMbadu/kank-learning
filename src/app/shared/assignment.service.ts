@@ -247,7 +247,6 @@ export class AssignmentService {
       .doc(`classes/${classId}/assignments/${assignmentId}`)
       .delete();
   }
-  // Return all attempts under an assignment (doc id = uid)
   attemptsForAssignment$(classId: string, assignmentId: string) {
     return this.afs
       .collection<QuizAttempt>(
@@ -255,10 +254,11 @@ export class AssignmentService {
       )
       .valueChanges({ idField: 'uid' })
       .pipe(
-        // keep only people who actually started (any answer) or have a score
         map((list) =>
           (list ?? []).filter(
-            (a) => a?.score != null || (a?.answers ?? []).some((x) => x != null)
+            (a) =>
+              a?.score != null ||
+              (a?.answers ?? []).some((x) => x != null && x >= 0)
           )
         )
       );

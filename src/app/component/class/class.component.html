@@ -232,6 +232,14 @@
             <div class="text-xs text-slate-500">
               {{ a.type === 'quiz' ? (a.numQuestions + ' questions') : '—' }}
               <span *ngIf="a.points">• {{ a.points }} pts</span>
+               <!-- Teacher-only: attempts badge + show assignment id to avoid mixups -->
+                <ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
+                  <span class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
+                              bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                    Tentatives: {{ (attemptCounts$ | async)?.[a.id!] || 0 }}
+                  </span>
+                  <span class="ml-2 text-[10px] text-slate-400 select-all">ID: {{ a.id }}</span>
+                </ng-container>
             </div>
           </div>
 

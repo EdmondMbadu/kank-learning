@@ -102,18 +102,18 @@ export class ClassComponent {
     })
   );
   // Attempts for the currently-open assignment (instructor/TA only)
+  isTeacher$ = this.role$.pipe(map((r) => r === 'instructor' || r === 'ta'));
+
   instructorAttempts$ = combineLatest([
-    this.role$,
+    this.isTeacher$,
     this.classId$,
     this.openAssignmentId$,
   ]).pipe(
-    switchMap(([role, classId, aid]) => {
-      if (!aid || !classId) return of([]);
-      if (role === 'instructor' || role === 'ta') {
-        return this.asgn.attemptsForAssignment$(classId, aid);
-      }
-      return of([]);
-    })
+    switchMap(([ok, classId, aid]) =>
+      ok && classId && aid
+        ? this.asgn.attemptsForAssignment$(classId, aid)
+        : of([])
+    )
   );
 
   // Join attempts with member user info for pretty names/emails
@@ -124,6 +124,29 @@ export class ClassComponent {
     map(([atts, members]) => {
       const userByUid = new Map(members.map((m) => [m.uid, m.user]));
       return atts.map((a) => ({ ...a, user: userByUid.get(a.uid) || null }));
+    })
+  );
+
+  attemptCounts$ = combineLatest([
+    this.isTeacher$,
+    this.classId$,
+    this.assignments$,
+  ]).pipe(
+    switchMap(([ok, classId, assigns]) => {
+      if (!ok || !classId || !assigns?.length)
+        return of({} as Record<string, number>);
+      const streams = assigns.map((a) =>
+        this.asgn
+          .attemptsForAssignment$(classId, a.id!)
+          .pipe(map((list) => list.length))
+      );
+      return combineLatest(streams).pipe(
+        map((counts) => {
+          const m: Record<string, number> = {};
+          assigns.forEach((a, i) => (m[a.id!] = counts[i] || 0));
+          return m;
+        })
+      );
     })
   );
 
