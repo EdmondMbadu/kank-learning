@@ -239,6 +239,21 @@
                 class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
           Ouvrir
         </button>
+        <!-- Delete (instructor or TA only) -->
+          <button
+            *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+            (click)="confirmDeleteAssignment(cl.id!, a.id!)"
+            [disabled]="deleting[a.id!]"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-60">
+            <span *ngIf="!deleting[a.id!]">Supprimer</span>
+            <span *ngIf="deleting[a.id!]" class="inline-flex items-center gap-1">
+              <svg class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+              </svg>
+              …
+            </span>
+          </button>
       </div>
     </div>
 

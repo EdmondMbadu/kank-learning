@@ -222,6 +222,31 @@ export class AssignmentService {
       });
     });
   }
+
+  async deleteAssignment(classId: string, assignmentId: string) {
+    const db = this.afs.firestore;
+
+    // 1) Delete attempts in chunks (<=500 per batch)
+    while (true) {
+      const snap = await db
+        .collection(`classes/${classId}/assignments/${assignmentId}/attempts`)
+        .limit(500)
+        .get();
+
+      if (snap.empty) break;
+
+      const b = db.batch();
+      snap.docs.forEach((d) => b.delete(d.ref));
+      await b.commit();
+
+      if (snap.size < 500) break;
+    }
+
+    // 2) Delete the assignment document
+    await this.afs
+      .doc(`classes/${classId}/assignments/${assignmentId}`)
+      .delete();
+  }
 }
 
 // --- util (file-local) ---

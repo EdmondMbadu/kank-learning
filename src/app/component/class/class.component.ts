@@ -15,6 +15,7 @@ import { AssignmentService } from 'src/app/shared/assignment.service';
   styleUrls: ['./class.component.css'],
 })
 export class ClassComponent {
+  deleting: Record<string, boolean> = {};
   classId$ = this.route.paramMap.pipe(map((p) => p.get('id')!));
 
   me$ = this.auth.user$;
@@ -183,5 +184,21 @@ export class ClassComponent {
   ): T | null {
     if (!arr || !id) return null;
     return arr.find((x) => x.id === id) ?? null;
+  }
+  async confirmDeleteAssignment(classId: string, assignmentId: string) {
+    const ok = confirm('Supprimer ce quiz ? Cette action est définitive.');
+    if (!ok) return;
+
+    this.deleting[assignmentId] = true;
+    try {
+      // Close the panel if we're deleting the open one
+      if (this.openAssignmentId === assignmentId) {
+        this.openAssignmentId = null;
+        this.openAssignmentId$.next(null);
+      }
+      await this.asgn.deleteAssignment(classId, assignmentId);
+    } finally {
+      delete this.deleting[assignmentId];
+    }
   }
 }
