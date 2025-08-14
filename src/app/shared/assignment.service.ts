@@ -432,43 +432,71 @@ export class AssignmentService {
     await this.afs.firestore.runTransaction(async (tx) => {
       const [aSnap, tSnap] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
       if (!aSnap.exists) throw new Error('Quiz introuvable');
+      if (!tSnap.exists) throw new Error('Aucune tentative');
 
       const a = aSnap.data() as any;
-      const pool: QuizQuestion[] = a.pool ?? [];
-      const attempts = tSnap.exists ? (tSnap.data() as any) : {};
-      const answers: any[] = Array.isArray(attempts.answers)
-        ? attempts.answers
+      const pool: QuizQuestion[] = Array.isArray(a?.pool) ? a.pool : [];
+
+      // Build a lookup by question id
+      const byId = new Map(pool.map((q) => [q.id, q]));
+
+      const t = tSnap.data() as any;
+      const selectedIds: string[] = Array.isArray(t?.selectedIds)
+        ? t.selectedIds
         : [];
+      const answers: any[] = Array.isArray(t?.answers) ? t.answers : [];
 
       let score = 0;
-      for (let i = 0; i < pool.length; i++) {
-        const q = pool[i];
+
+      for (let i = 0; i < selectedIds.length; i++) {
+        const qid = selectedIds[i];
+        const q = byId.get(qid);
         const ans = answers[i];
 
-        if (q.kind === 'mcq-single') {
-          if (typeof ans === 'number' && ans === q.correct) score++;
-        } else if (q.kind === 'mcq-multi') {
-          const corr = (q.correctMulti ?? []).slice().sort((a, b) => a - b);
+        if (!q) continue; // safety
+
+        // Normalize kind: legacy quick-quiz had no 'kind' and used 'correctIndex'
+        const kind: 'mcq-single' | 'mcq-multi' | 'text' =
+          (q.kind as any) ?? (Array.isArray(q.choices) ? 'mcq-single' : 'text');
+
+        if (kind === 'mcq-single') {
+          // new builder uses q.correct; legacy uses q.correctIndex
+          const expected = (q as any).correct ?? (q as any).correctIndex;
+          if (
+            typeof ans === 'number' &&
+            typeof expected === 'number' &&
+            ans === expected
+          ) {
+            score++;
+          }
+        } else if (kind === 'mcq-multi') {
+          const corr = ((q as any).correctMulti ?? [])
+            .slice()
+            .sort((a: number, b: number) => a - b);
           const got = Array.isArray(ans)
             ? (ans as number[]).slice().sort((a, b) => a - b)
             : [];
           if (
             corr.length === got.length &&
-            corr.every((v, idx) => v === got[idx])
-          )
+            corr.every((v: number, idx: number) => v === got[idx])
+          ) {
             score++;
-        } else if (q.kind === 'text') {
-          if (typeof ans === 'string' && norm(ans) === norm(q.correctText))
-            score++;
+          }
+        } else if (kind === 'text') {
+          const ok =
+            typeof ans === 'string' &&
+            norm(ans) === norm((q as any).correctText ?? '');
+          if (ok) score++;
         }
       }
 
       tx.set(
         tRef,
         {
-          ...attempts,
+          ...t,
           score,
-          finishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          gradedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true }
