@@ -5,7 +5,7 @@ import { BehaviorSubject, combineLatest, firstValueFrom, of } from 'rxjs';
 import { switchMap, map } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { ClassService } from 'src/app/shared/class.service';
-import { ClassSection, CourseModule } from 'src/app/model/user';
+import { ClassSection, CourseModule, QuizAttempt } from 'src/app/model/user';
 import { CourseService } from 'src/app/shared/course.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
 
@@ -69,6 +69,27 @@ export class ClassComponent {
   // use a BehaviorSubject so the stream re-computes when you open another assignment
   openAssignmentId$ = new BehaviorSubject<string | null>(null);
   openAssignmentId: string | null = null; // keep for template if you use it
+
+  attemptsMap$ = combineLatest([
+    this.classId$,
+    this.me$,
+    this.assignments$,
+  ]).pipe(
+    switchMap(([classId, me, assigns]) => {
+      if (!me?.uid || !assigns?.length)
+        return of({} as Record<string, QuizAttempt | null>);
+      const calls = assigns.map((a) =>
+        this.asgn.attempt$(classId, a.id!, me.uid!)
+      );
+      return combineLatest(calls).pipe(
+        map((atts) => {
+          const map: Record<string, QuizAttempt | null> = {};
+          assigns.forEach((a, i) => (map[a.id!] = atts[i] ?? null));
+          return map;
+        })
+      );
+    })
+  );
 
   myAttempt$ = combineLatest([
     this.classId$,
@@ -200,5 +221,16 @@ export class ClassComponent {
     } finally {
       delete this.deleting[assignmentId];
     }
+  }
+  answeredCount(att: QuizAttempt | null | undefined): number {
+    if (!att?.answers?.length) return 0;
+    return att.answers.filter((n) => n != null && n >= 0).length;
+  }
+  scorePct(
+    att: QuizAttempt | null | undefined,
+    total: number | undefined
+  ): number {
+    if (att?.score == null || !total) return 0;
+    return Math.round((att.score / total) * 100);
   }
 }
