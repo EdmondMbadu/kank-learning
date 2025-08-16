@@ -77,65 +77,114 @@
   
     </div>
 
-   <!-- Right: account dropdown -->
-<div class="relative flex items-center md:block hidden">
-  <ng-container *ngIf="me$ | async as me; else chipLoading">
-    <!-- Chip / Toggle -->
-    <button type="button"
-            (click)="toggleAccountMenu()"
-            aria-haspopup="menu"
-            [attr.aria-expanded]="accountMenuOpen"
-            class="flex items-center gap-2 rounded-2xl bg-white/90 px-2.5 py-1 ring-1 ring-slate-200 shadow-sm
-                   hover:bg-white dark:bg-slate-800/70 dark:ring-slate-700">
-      <div class="grid h-7 w-7 place-items-center rounded-full
-                  bg-gradient-to-tr from-indigo-600 to-cyan-600 text-[11px] font-bold text-white shadow">
-        {{ initials(me) }}
-      </div>
-      <div class="leading-tight hidden md:block min-w-0">
-        <!-- <div class="text-xs text-slate-500 dark:text-slate-400">Connecté en tant que</div> -->
-        <div class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate max-w-[32ch]">
-          {{ label(me) }}
-        </div>
-      </div>
-      <svg class="ml-1 h-4 w-4 text-slate-500 dark:text-slate-300" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M7 10l5 5 5-5z"/>
-      </svg>
-      <span class="sr-only">Ouvrir le menu du compte</span>
-    </button>
+    <!-- Right: account dropdown -->
+    <div class="relative hidden md:flex items-center ml-auto pr-2">
+      <ng-container *ngIf="me$ | async as me; else chipLoading">
+        <!-- Chip / Toggle -->
+        <button type="button"
+                (click)="toggleAccountMenu()"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="accountMenuOpen"
+                class="flex items-center gap-2 rounded-2xl bg-white/90 px-2.5 py-1 ring-1 ring-slate-200 shadow-sm
+                      hover:bg-white hover:shadow dark:bg-slate-800/70 dark:ring-slate-700">
+          <!-- Avatar (photo -> fallback initials) -->
+          <ng-container *ngIf="me?.photoURL; else initialsAvatar">
+            <img [src]="me.photoURL"
+                alt="Avatar"
+                class="h-7 w-7 rounded-full object-cover ring-2 ring-indigo-300/50" />
+          </ng-container>
+          <ng-template #initialsAvatar>
+            <div class="grid h-7 w-7 place-items-center rounded-full
+                        bg-gradient-to-tr from-indigo-600 to-cyan-600 text-[11px] font-bold text-white shadow">
+              {{ initials(me) }}
+            </div>
+          </ng-template>
 
-    <!-- Click-outside overlay -->
-    <div *ngIf="accountMenuOpen" class="fixed inset-0 z-40" (click)="closeAccountMenu()"></div>
+          <div class="leading-tight hidden md:block min-w-0">
+            <div class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate max-w-[28ch]">
+              {{ label(me) }}
+            </div>
+          </div>
 
-    <!-- Dropdown -->
-    <div *ngIf="accountMenuOpen"
-         class="absolute right-0 top-full z-50 mt-2 w-72 max-w-[90vw]
-                rounded-xl bg-white/95 backdrop-blur shadow-xl ring-1 ring-black/5
-                dark:bg-slate-900/95 dark:ring-slate-700">
-      <div class="p-3 border-b border-slate-100/70 dark:border-slate-800">
-        <!-- <div class="text-sm font-semibold text-slate-900 dark:text-white truncate">
-          {{ (me.firstName || me.lastName) ? (me.firstName + ' ' + me.lastName) : (me.email || 'Compte') }}
-        </div> -->
-        <div class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ me.email }}</div>
-      </div>
-
-      <div class="p-1">
-        <button (click)="logout(); closeAccountMenu()"
-                class="w-full text-left rounded-lg px-3 py-2 text-sm font-medium
-                       text-rose-600 hover:bg-rose-50
-                       dark:text-rose-300 dark:hover:bg-rose-900/20">
-          Déconnexion
+          <svg [class.rotate-180]="accountMenuOpen"
+              class="ml-1 h-4 w-4 text-slate-500 dark:text-slate-300 transition-transform duration-150"
+              viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 10l5 5 5-5z"/>
+          </svg>
+          <span class="sr-only">Ouvrir le menu du compte</span>
         </button>
-      </div>
-    </div>
-  </ng-container>
 
-  <ng-template #chipLoading>
-    <div class="hidden md:flex items-center gap-2">
-      <div class="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
-      <div class="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+        <!-- Click-outside overlay -->
+        <div *ngIf="accountMenuOpen" class="fixed inset-0 z-40" (click)="closeAccountMenu()"></div>
+
+        <!-- Dropdown -->
+        <div *ngIf="accountMenuOpen"
+            class="absolute right-0 top-full z-50 mt-2 w-80 max-w-[92vw]
+                    rounded-xl bg-white/95 backdrop-blur shadow-xl ring-1 ring-black/5
+                    dark:bg-slate-900/95 dark:ring-slate-700 origin-top-right">
+          <!-- Header -->
+          <div class="p-3 border-b border-slate-100/70 dark:border-slate-800 flex items-center gap-3">
+            <ng-container *ngIf="me?.photoURL; else initialsLarge">
+              <img [src]="me.photoURL" alt="" class="h-9 w-9 rounded-full object-cover ring-2 ring-indigo-300/50" />
+            </ng-container>
+            <ng-template #initialsLarge>
+              <div class="h-9 w-9 grid place-items-center rounded-full text-sm font-bold text-white
+                          bg-gradient-to-tr from-indigo-600 to-cyan-600 ring-2 ring-indigo-300/50">
+                {{ initials(me) }}
+              </div>
+            </ng-template>
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                {{ (me.firstName || me.lastName) ? (me.firstName + ' ' + me.lastName) : (me.email || 'Compte') }}
+              </div>
+              <div class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ me.email }}</div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="p-1">
+            <a routerLink="/profile"
+              (click)="closeAccountMenu()"
+              class="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium
+                      text-slate-700 hover:bg-slate-50
+                      dark:text-slate-200 dark:hover:bg-slate-800/60">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/>
+              </svg>
+              Mon profil
+            </a>
+
+            <!-- (Optional) Settings link
+            <a routerLink="/settings" (click)="closeAccountMenu()"
+              class="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium
+                      text-slate-700 hover:bg-slate-50
+                      dark:text-slate-200 dark:hover:bg-slate-800/60">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14..."/></svg>
+              Paramètres
+            </a>
+            -->
+
+            <button (click)="logout(); closeAccountMenu()"
+                    class="flex items-center gap-2 w-full text-left rounded-lg px-3 py-2 text-sm font-medium
+                          text-rose-600 hover:bg-rose-50
+                          dark:text-rose-300 dark:hover:bg-rose-900/20">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm3 7H11a2 2 0 0 1-2-2v-3h2v3h8V6h-8v3H9V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z"/>
+              </svg>
+              Déconnexion
+            </button>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #chipLoading>
+        <div class="hidden md:flex items-center gap-2">
+          <div class="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+          <div class="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+        </div>
+      </ng-template>
     </div>
-  </ng-template>
-</div>
+
 
   </div>
 </header>
