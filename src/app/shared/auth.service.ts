@@ -6,8 +6,9 @@ import {
   AngularFirestore,
   AngularFirestoreDocument,
 } from '@angular/fire/compat/firestore';
-import { Observable, of } from 'rxjs';
+import { firstValueFrom, Observable, of } from 'rxjs';
 import { map, shareReplay, switchMap, take } from 'rxjs/operators';
+import { AngularFireStorage } from '@angular/fire/compat/storage'; // ✅ NEW
 import { User } from '../model/user';
 // { uid?, email?, firstName?, lastName? }
 
@@ -19,7 +20,8 @@ export class AuthService {
   constructor(
     private afAuth: AngularFireAuth,
     private afs: AngularFirestore,
-    private router: Router
+    private router: Router,
+    private storage: AngularFireStorage
   ) {
     // Read Firestore user doc when auth state changes
     this.user$ = this.afAuth.authState.pipe(
@@ -149,5 +151,48 @@ export class AuthService {
     // Avoid undefined
     if (value === undefined) return;
     await ref.set({ [field]: value } as Partial<User> as User, { merge: true });
+  }
+
+  /**
+   * Upload an avatar to Firebase Storage and return a public download URL.
+   */
+  async uploadAvatar(uid: string, file: File): Promise<string> {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `users/${uid}/avatar_${Date.now()}.${ext}`; // cache-busting filename
+    const task = await this.storage.upload(path, file, {
+      contentType: file.type,
+    });
+    const ref = this.storage.ref(task.ref.fullPath);
+    const url = await firstValueFrom(ref.getDownloadURL());
+    return url;
+  }
+
+  /**
+   * Merge profile fields into Firestore user doc and (optionally) sync Firebase Auth profile.
+   * Pass only the fields you intend to change.
+   *
+   * Example patch: { firstName: 'Ada', lastName: 'Lovelace', displayName: 'Ada Lovelace', photoURL: 'https://...' }
+   */
+  async updateUserProfile(
+    uid: string,
+    patch: Partial<User> & { displayName?: string; photoURL?: string | null }
+  ): Promise<void> {
+    // 1) Merge into Firestore
+    const ref = this.afs.doc<User>(`users/${uid}`);
+    await ref.set(patch as any, { merge: true });
+
+    // 2) If relevant fields are included, sync Firebase Auth profile too
+    const authUser = await this.afAuth.currentUser;
+    if (authUser && authUser.uid === uid) {
+      const changes: any = {};
+      if ('displayName' in patch)
+        changes.displayName = patch.displayName ?? null;
+      if ('photoURL' in patch) changes.photoURL = patch.photoURL ?? null;
+
+      if (Object.keys(changes).length) {
+        // compat user has updateProfile
+        await authUser.updateProfile(changes);
+      }
+    }
   }
 }

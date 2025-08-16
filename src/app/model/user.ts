@@ -7,6 +7,7 @@ export class User {
   firstName?: string;
   lastName?: string;
   photoURL?: string;
+  displayName?: string; // ✅ add
   emailLower?: string;
   schoolId?: string;
   platformRole?: 'user' | 'instructor' | 'admin'; // optional, lightweight

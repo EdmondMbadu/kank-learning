@@ -8,6 +8,7 @@ import { ForgotPasswordComponent } from './component/forgot-password/forgot-pass
 import { LandingPageComponent } from './component/landing-page/landing-page.component';
 import { AuthGuard } from './shared/auth.guard';
 import { ClassComponent } from './component/class/class.component';
+import { ProfileComponent } from './component/profile/profile.component';
 
 const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -23,6 +24,8 @@ const routes: Routes = [
   { path: 'register', component: RegisterComponent },
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
+  // app-routing.module.ts
+  { path: 'profile', component: ProfileComponent }, // e.g., /me
 ];
 
 @NgModule({

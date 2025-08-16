@@ -18,6 +18,7 @@ import { VerifyEmailComponent } from './component/verify-email/verify-email.comp
 import { LandingPageComponent } from './component/landing-page/landing-page.component';
 import { NavbarComponent } from './component/navbar/navbar.component';
 import { ClassComponent } from './component/class/class.component';
+import { ProfileComponent } from './component/profile/profile.component';
 
 @NgModule({
   declarations: [
@@ -30,6 +31,7 @@ import { ClassComponent } from './component/class/class.component';
     LandingPageComponent,
     NavbarComponent,
     ClassComponent,
+    ProfileComponent,
   ],
   imports: [
     BrowserModule,
