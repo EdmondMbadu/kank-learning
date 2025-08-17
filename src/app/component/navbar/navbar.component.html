@@ -1,208 +1,244 @@
-<!-- Fixed top bar (lighter than sticky+heavy blur) -->
+<!-- Fixed top bar -->
 <header
-  class="fixed inset-x-0 top-0 z-50 bg-white/90 dark:bg-slate-900/85 ring-1 ring-black/5
-         md:supports-[backdrop-filter]:bg-white/70 md:supports-[backdrop-filter]:backdrop-blur-sm"
-  style="will-change: transform; transform: translateZ(0);">
-
-  <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-    <!-- Left: brand + nav -->
-    <div class="flex items-center gap-3">
-      <!-- mobile burger -->
-      <button class="lg:hidden rounded-md p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
-              (click)="toggleMenu()" aria-label="Ouvrir le menu">
-        <svg class="h-6 w-6 text-slate-700 dark:text-slate-200" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 6h18v2H3M3 11h18v2H3m0 5h18v2H3"/>
-        </svg>
-      </button>
-
-      <img src="assets/img/fondation-gervais-logo.jpeg" alt="Fondation Gervais"
-           class="h-8 w-8 rounded-full object-cover ring-2 ring-indigo-300/60 shadow-sm">
-      <span class="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-        Fondation Gervais <span class="text-indigo-600 dark:text-indigo-400">ABC</span>
-      </span>
-<!-- Desktop nav (single) -->
-<nav class="ml-6 hidden items-center gap-1 lg:flex">
-  <a routerLink="/dashboard" [routerLinkActiveOptions]="{exact:true}"
-     routerLinkActive="bg-slate-900 text-white dark:bg-white dark:text-slate-900"
-     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
-    Accueil
-  </a>
-
-  <!-- Classes dropdown -->
-  <div class="relative">
-    <button type="button" (click)="toggleClassesMenu()"
-            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100
-                   dark:text-slate-200 dark:hover:bg-slate-800 inline-flex items-center gap-1">
-      Classes
-      <svg class="h-4 w-4 opacity-70" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
-    </button>
-
-    <div *ngIf="classesMenuOpen"
-         class="absolute left-0 mt-2 w-72 max-h-[70vh] overflow-auto rounded-xl bg-white/95 p-2 shadow-xl ring-1 ring-black/5
-                dark:bg-slate-900/95 dark:ring-slate-700">
-      <ng-container *ngIf="myClassesIndex$ | async as cls; else clsLoading">
-        <a *ngFor="let c of cls | slice:0:8"
-           [routerLink]="['/class', c.classId]"
-           (click)="classesMenuOpen = false"
-           class="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800">
-          <div class="truncate font-medium">{{ c.title || c.classId }}</div>
-          <div class="text-xs text-slate-500">Rôle : {{ c.role }}</div>
-        </a>
-        <div *ngIf="!cls.length" class="px-3 py-2 text-sm text-slate-500">Aucune classe</div>
-      </ng-container>
-      <ng-template #clsLoading>
-        <div class="h-7 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
-      </ng-template>
-    </div>
-  </div>
-
-  <a routerLink="/modules"
-     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
-    Modules
-  </a>
-  <a routerLink="/messages"
-     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
-    Messages
-  </a>
-  <a routerLink="/calendar"
-     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
-    Calendrier
-  </a>
-   <a routerLink="/profile"
-     class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
-    Mon Profile
-  </a>
-</nav>
-
-  
-    </div>
-
-    <!-- Right: account dropdown -->
-    <div class="relative hidden md:flex items-center ml-auto pr-2">
-      <ng-container *ngIf="me$ | async as me; else chipLoading">
-        <!-- Chip / Toggle -->
-        <button type="button"
-                (click)="toggleAccountMenu()"
-                aria-haspopup="menu"
-                [attr.aria-expanded]="accountMenuOpen"
-                class="flex items-center gap-2 rounded-2xl bg-white/90 px-2.5 py-1 ring-1 ring-slate-200 shadow-sm
-                      hover:bg-white hover:shadow dark:bg-slate-800/70 dark:ring-slate-700">
-          <!-- Avatar (photo -> fallback initials) -->
-          <ng-container *ngIf="me?.photoURL; else initialsAvatar">
-            <img [src]="me.photoURL"
-                alt="Avatar"
-                class="h-7 w-7 rounded-full object-cover ring-2 ring-indigo-300/50" />
-          </ng-container>
-          <ng-template #initialsAvatar>
-            <div class="grid h-7 w-7 place-items-center rounded-full
-                        bg-gradient-to-tr from-indigo-600 to-cyan-600 text-[11px] font-bold text-white shadow">
-              {{ initials(me) }}
-            </div>
-          </ng-template>
-
-          <div class="leading-tight hidden md:block min-w-0">
-            <div class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate max-w-[28ch]">
-              {{ label(me) }}
-            </div>
-          </div>
-
-          <svg [class.rotate-180]="accountMenuOpen"
-              class="ml-1 h-4 w-4 text-slate-500 dark:text-slate-300 transition-transform duration-150"
-              viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M7 10l5 5 5-5z"/>
+  class="fixed inset-x-0 top-0 z-50"
+  style="will-change: transform; transform: translateZ(0);"
+>
+  <!-- Subtle gradient border shell -->
+  <div class="bg-gradient-to-br from-indigo-500/10 via-cyan-500/10 to-fuchsia-500/10">
+    <div
+      class="mx-auto max-w-7xl px-4 py-3
+             rounded-b-3xl border-b border-black/5
+             bg-white/85 backdrop-blur supports-[backdrop-filter]:bg-white/70
+             dark:bg-slate-900/80 dark:border-white/10"
+    >
+      <div class="flex items-center gap-3">
+        <!-- Mobile burger -->
+        <button
+          class="lg:hidden rounded-lg p-2 ring-1 ring-slate-200/70 hover:bg-slate-100 dark:ring-slate-700 dark:hover:bg-slate-800"
+          (click)="toggleMenu()"
+          aria-label="Ouvrir le menu"
+        >
+          <svg class="h-6 w-6 text-slate-700 dark:text-slate-200" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 6h18v2H3M3 11h18v2H3m0 5h18v2H3"/>
           </svg>
-          <span class="sr-only">Ouvrir le menu du compte</span>
         </button>
 
-        <!-- Click-outside overlay -->
-        <div *ngIf="accountMenuOpen" class="fixed inset-0 z-40" (click)="closeAccountMenu()"></div>
+        <!-- Brand -->
+        <img
+          src="assets/img/fondation-gervais-logo.jpeg"
+          alt="Fondation Gervais"
+          class="h-9 w-9 rounded-xl object-cover ring-2 ring-indigo-300/60 shadow-sm"
+        />
+        <span class="text-[17px] sm:text-lg font-extrabold tracking-tight text-slate-900 dark:text-white">
+          Fondation Gervais <span class="bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">ABC</span>
+        </span>
 
-        <!-- Dropdown -->
-        <div *ngIf="accountMenuOpen"
-            class="absolute right-0 top-full z-50 mt-2 w-80 max-w-[92vw]
-                    rounded-xl bg-white/95 backdrop-blur shadow-xl ring-1 ring-black/5
-                    dark:bg-slate-900/95 dark:ring-slate-700 origin-top-right">
-          <!-- Header -->
-          <div class="p-3 border-b border-slate-100/70 dark:border-slate-800 flex items-center gap-3">
-            <ng-container *ngIf="me?.photoURL; else initialsLarge">
-              <img [src]="me.photoURL" alt="" class="h-9 w-9 rounded-full object-cover ring-2 ring-indigo-300/50" />
-            </ng-container>
-            <ng-template #initialsLarge>
-              <div class="h-9 w-9 grid place-items-center rounded-full text-sm font-bold text-white
-                          bg-gradient-to-tr from-indigo-600 to-cyan-600 ring-2 ring-indigo-300/50">
-                {{ initials(me) }}
-              </div>
-            </ng-template>
-            <div class="min-w-0">
-              <div class="text-sm font-semibold text-slate-900 dark:text-white truncate">
-                {{ (me.firstName || me.lastName) ? (me.firstName + ' ' + me.lastName) : (me.email || 'Compte') }}
-              </div>
-              <div class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ me.email }}</div>
+        <!-- Desktop nav -->
+        <nav class="ml-4 hidden items-center gap-1 lg:flex">
+          <a
+            routerLink="/dashboard"
+            [routerLinkActiveOptions]="{ exact: true }"
+            routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white"
+            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+            >Accueil</a
+          >
+
+          <!-- Classes dropdown -->
+          <div class="relative">
+            <button
+              type="button"
+              (click)="toggleClassesMenu()"
+              class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100
+                     dark:text-slate-200 dark:hover:bg-slate-800 inline-flex items-center gap-1 transition"
+            >
+              Classes
+              <svg class="h-4 w-4 opacity-70 transition-transform" [class.rotate-180]="classesMenuOpen" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 10l5 5 5-5z"/>
+              </svg>
+            </button>
+
+            <!-- Flyout -->
+            <div
+              *ngIf="classesMenuOpen"
+              class="absolute left-0 mt-2 w-72 max-h-[70vh] overflow-auto rounded-xl p-2
+                     bg-white/95 backdrop-blur shadow-xl ring-1 ring-black/5
+                     dark:bg-slate-900/95 dark:ring-slate-700"
+            >
+              <ng-container *ngIf="myClassesIndex$ | async as cls; else clsLoading">
+                <a
+                  *ngFor="let c of cls | slice:0:8"
+                  [routerLink]="['/class', c.classId]"
+                  (click)="classesMenuOpen = false"
+                  class="block rounded-lg px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <div class="truncate font-medium text-slate-900 dark:text-white">{{ c.title || c.classId }}</div>
+                  <div class="text-xs text-slate-500">Rôle : {{ c.role }}</div>
+                </a>
+                <div *ngIf="!cls.length" class="px-3 py-2 text-sm text-slate-500">Aucune classe</div>
+              </ng-container>
+              <ng-template #clsLoading>
+                <div class="h-7 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
+              </ng-template>
             </div>
           </div>
 
-          <!-- Actions -->
-          <div class="p-1">
-            <a routerLink="/profile"
-              (click)="closeAccountMenu()"
-              class="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium
-                      text-slate-700 hover:bg-slate-50
-                      dark:text-slate-200 dark:hover:bg-slate-800/60">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/>
-              </svg>
-              Mon profil
-            </a>
+          <a
+            routerLink="/modules"
+            routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white"
+            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+            >Modules</a
+          >
+          <a
+            routerLink="/messages"
+            routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white"
+            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+            >Messages</a
+          >
+          <a
+            routerLink="/calendar"
+            routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white"
+            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+            >Calendrier</a
+          >
+          <a
+            routerLink="/profile"
+            routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white"
+            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
+            >Mon profil</a
+          >
+        </nav>
 
-            <!-- (Optional) Settings link
-            <a routerLink="/settings" (click)="closeAccountMenu()"
-              class="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium
-                      text-slate-700 hover:bg-slate-50
-                      dark:text-slate-200 dark:hover:bg-slate-800/60">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.14..."/></svg>
-              Paramètres
-            </a>
-            -->
+        <!-- Right: account dropdown -->
+        <div class="relative hidden md:flex items-center ml-auto">
+          <ng-container *ngIf="me$ | async as me; else chipLoading">
+            <button
+              type="button"
+              (click)="toggleAccountMenu()"
+              aria-haspopup="menu"
+              [attr.aria-expanded]="accountMenuOpen"
+              class="flex items-center gap-2 rounded-2xl bg-white/90 px-2.5 py-1 ring-1 ring-slate-200 shadow-sm
+                     hover:bg-white hover:shadow transition dark:bg-slate-800/70 dark:ring-slate-700"
+            >
+              <ng-container *ngIf="me?.photoURL; else initialsAvatar">
+                <img
+                  [src]="me.photoURL"
+                  alt="Avatar"
+                  class="h-7 w-7 rounded-full object-cover ring-2 ring-indigo-300/50"
+                />
+              </ng-container>
+              <ng-template #initialsAvatar>
+                <div
+                  class="grid h-7 w-7 place-items-center rounded-full
+                         bg-gradient-to-tr from-indigo-600 to-cyan-600 text-[11px] font-bold text-white shadow"
+                >
+                  {{ initials(me) }}
+                </div>
+              </ng-template>
 
-            <button (click)="logout(); closeAccountMenu()"
-                    class="flex items-center gap-2 w-full text-left rounded-lg px-3 py-2 text-sm font-medium
-                          text-rose-600 hover:bg-rose-50
-                          dark:text-rose-300 dark:hover:bg-rose-900/20">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm3 7H11a2 2 0 0 1-2-2v-3h2v3h8V6h-8v3H9V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z"/>
+              <div class="leading-tight hidden md:block min-w-0">
+                <div class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate max-w-[28ch]">
+                  {{ label(me) }}
+                </div>
+              </div>
+
+              <svg
+                [class.rotate-180]="accountMenuOpen"
+                class="ml-1 h-4 w-4 text-slate-500 dark:text-slate-300 transition-transform duration-150"
+                viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"
+              >
+                <path d="M7 10l5 5 5-5z"/>
               </svg>
-              Déconnexion
+              <span class="sr-only">Ouvrir le menu du compte</span>
             </button>
-          </div>
-        </div>
-      </ng-container>
 
-      <ng-template #chipLoading>
-        <div class="hidden md:flex items-center gap-2">
-          <div class="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
-          <div class="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+            <!-- Click-outside overlay -->
+            <div *ngIf="accountMenuOpen" class="fixed inset-0 z-40" (click)="closeAccountMenu()"></div>
+
+            <!-- Dropdown -->
+            <div
+              *ngIf="accountMenuOpen"
+              class="absolute right-0 top-full z-50 mt-2 w-80 max-w-[92vw]
+                     rounded-xl bg-white/95 backdrop-blur shadow-xl ring-1 ring-black/5
+                     dark:bg-slate-900/95 dark:ring-slate-700 origin-top-right"
+            >
+              <div class="p-3 border-b border-slate-100/70 dark:border-slate-800 flex items-center gap-3">
+                <ng-container *ngIf="me?.photoURL; else initialsLarge">
+                  <img [src]="me.photoURL" alt="" class="h-9 w-9 rounded-full object-cover ring-2 ring-indigo-300/50" />
+                </ng-container>
+                <ng-template #initialsLarge>
+                  <div
+                    class="h-9 w-9 grid place-items-center rounded-full text-sm font-bold text-white
+                           bg-gradient-to-tr from-indigo-600 to-cyan-600 ring-2 ring-indigo-300/50"
+                  >
+                    {{ initials(me) }}
+                  </div>
+                </ng-template>
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                    {{ (me.firstName || me.lastName) ? (me.firstName + ' ' + me.lastName) : (me.email || 'Compte') }}
+                  </div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {{ me.email }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-1">
+                <a
+                  routerLink="/profile"
+                  (click)="closeAccountMenu()"
+                  class="flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium
+                         text-slate-700 hover:bg-slate-50 transition
+                         dark:text-slate-200 dark:hover:bg-slate-800/60"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/>
+                  </svg>
+                  Mon profil
+                </a>
+
+                <button
+                  (click)="logout(); closeAccountMenu()"
+                  class="flex items-center gap-2 w-full text-left rounded-lg px-3 py-2 text-sm font-medium
+                         text-rose-600 hover:bg-rose-50 transition
+                         dark:text-rose-300 dark:hover:bg-rose-900/20"
+                >
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M16 13v-2H7V8l-5 4 5 4v-3h9zm3 7H11a2 2 0 0 1-2-2v-3h2v3h8V6h-8v3H9V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2z"/>
+                  </svg>
+                  Déconnexion
+                </button>
+              </div>
+            </div>
+          </ng-container>
+
+          <ng-template #chipLoading>
+            <div class="hidden md:flex items-center gap-2">
+              <div class="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+              <div class="h-3 w-28 rounded bg-slate-200 dark:bg-slate-700 animate-pulse"></div>
+            </div>
+          </ng-template>
         </div>
-      </ng-template>
+      </div>
     </div>
-
-
   </div>
 </header>
 
 <!-- Mobile Drawer -->
-<!-- Mobile Drawer -->
 <ng-container *ngIf="menuOpen">
   <div class="fixed inset-0 z-40 bg-black/40" (click)="closeMenu()"></div>
 
-  <aside class="fixed top-0 left-0 z-50 h-full w-72 transform-gpu transition-transform duration-200
-                bg-slate-900 text-slate-200 shadow-2xl translate-x-0">
+  <aside
+    class="fixed top-0 left-0 z-50 h-full w-72 translate-x-0 transform-gpu transition-transform duration-200
+           bg-gradient-to-b from-slate-900 to-slate-950 text-slate-200 shadow-2xl"
+  >
     <div class="flex items-center gap-3 px-4 py-4 border-b border-white/10">
-      <img src="assets/img/fondation-gervais-logo.jpeg" class="h-9 w-9 rounded-full ring-2 ring-indigo-300/50" alt="">
+      <img src="assets/img/fondation-gervais-logo.jpeg" class="h-9 w-9 rounded-xl ring-2 ring-indigo-300/50" alt="">
       <div class="text-sm">
         <div class="font-semibold">Fondation Gervais ABC</div>
-        <div class="text-slate-400">Espace interne</div>
+        <div class="text-white/60">Espace interne</div>
       </div>
-      <button class="ml-auto rounded p-1 hover:bg-white/10" (click)="closeMenu()">
+      <button class="ml-auto rounded p-1 hover:bg-white/10" (click)="closeMenu()" aria-label="Fermer le menu">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.4 17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4z"/></svg>
       </button>
     </div>
@@ -210,7 +246,7 @@
     <div class="px-4 py-3">
       <ng-container *ngIf="me$ | async as me; else mloading">
         <div class="flex items-center gap-2 rounded-xl bg-white/10 px-2.5 py-1">
-          <div class="grid h-6 w-6 place-items-center rounded-full bg-indigo-500 text-[11px] font-bold text-white">
+          <div class="grid h-6 w-6 place-items-center rounded-lg bg-indigo-500 text-[11px] font-bold text-white">
             {{ initials(me) }}
           </div>
           <div class="text-sm break-all">{{ label(me) }}</div>
@@ -222,32 +258,39 @@
     </div>
 
     <nav class="px-2 py-2 space-y-1">
-      <a routerLink="/dashboard" [routerLinkActiveOptions]="{exact:true}" routerLinkActive="bg-white/10"
-         class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+      <a
+        routerLink="/dashboard"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive="bg-white/10"
+        class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10"
+      >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h8V3H3zm0 10h8v-8H3zm10 0h8v-6h-8zm0-12h8V3h-8z"/></svg>
         Accueil
       </a>
-      
-      <a routerLink="/modules" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+
+      <a routerLink="/modules" routerLinkActive="bg-white/10" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h12a2 2 0 012 2v14l-6-3-6 3V5a2 2 0 012-2z"/></svg>
         Modules
       </a>
-      <a routerLink="/messages" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+      <a routerLink="/messages" routerLinkActive="bg-white/10" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg>
         Messages
       </a>
-      <a routerLink="/calendar" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+      <a routerLink="/calendar" routerLinkActive="bg-white/10" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2zm13 8H4v10h16V10z"/></svg>
         Calendrier
       </a>
-      <!-- NEW: Mes classes list -->
+
+      <!-- Mes classes -->
       <div class="mt-2 border-t border-white/10 pt-2">
         <div class="px-3 pb-1 text-[11px] uppercase tracking-wide text-white/70">Mes classes</div>
         <ng-container *ngIf="myClassesIndex$ | async as cls; else mclsLoading">
-          <a *ngFor="let c of cls | slice:0:10"
+          <a
+            *ngFor="let c of cls | slice:0:10"
             [routerLink]="['/class', c.classId]"
             (click)="closeMenu()"
-            class="block rounded-lg px-3 py-2 text-sm hover:bg-white/10 truncate">
+            class="block rounded-lg px-3 py-2 text-sm hover:bg-white/10 truncate"
+          >
             {{ c.title || c.classId }}
             <span class="ml-1 text-[11px] text-white/60">({{ c.role }})</span>
           </a>
