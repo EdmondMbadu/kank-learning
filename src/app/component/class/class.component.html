@@ -1,85 +1,121 @@
 <app-navbar></app-navbar>
 
-<div class="pt-16 min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-  <div class="mx-auto max-w-5xl px-4 py-6">
+<!-- Page -->
+<div
+  class="pt-16 min-h-screen antialiased selection:bg-indigo-600/20 selection:text-indigo-900 dark:selection:text-indigo-200
+         bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+
+  <!-- soft blobs (desktop only) -->
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -top-24 -left-24 hidden md:block h-80 w-80 rounded-full
+              bg-gradient-to-tr from-indigo-500 to-cyan-400 opacity-20 blur-3xl"></div>
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -bottom-28 -right-28 hidden md:block h-[28rem] w-[28rem] rounded-full
+              bg-gradient-to-tr from-fuchsia-500 to-indigo-500 opacity-20 blur-3xl"></div>
+
+  <div class="mx-auto max-w-6xl px-4 sm:px-5 lg:px-6 py-6">
+
     <ng-container *ngIf="(class$ | async) as cl; else loading">
-      <header class="rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
-        <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-          <div class="min-w-0">
-            <h1 class="text-xl font-bold text-slate-900 dark:text-white line-clamp-2">{{ cl.title }}</h1>
-            <div class="text-xs text-slate-500 mt-1 break-all">
-              Classe ID: {{ cl.id }} • Cours ID: {{ cl.courseId }} • Version: {{ cl.contentVersion }}
+      <!-- Header -->
+      <header class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
+        <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 p-5 md:p-6">
+          <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+            <div class="min-w-0">
+              <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white line-clamp-2">
+                {{ cl.title }}
+              </h1>
+              <div class="mt-1 text-[11px] sm:text-xs text-slate-500 break-all">
+                Classe ID: {{ cl.id }} • Cours ID: {{ cl.courseId }} • Version: {{ cl.contentVersion }}
+              </div>
             </div>
+            <span
+              class="mt-1 sm:mt-0 inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium
+                     bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                     dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+              {{ (role$ | async) || 'visiteur' }}
+            </span>
           </div>
-          <span class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-full px-3 py-1 text-xs font-medium
-                        bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-            {{ (role$ | async) || 'visiteur' }}
-          </span>
         </div>
       </header>
 
       <!-- Course summary + modules -->
       <section class="mt-6 grid gap-6 md:grid-cols-3">
-        <div class="md:col-span-2 rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
-          <h2 class="text-lg font-semibold mb-3">Modules</h2>
-          <ng-container *ngIf="(modules$ | async) as modules; else modulesLoading">
-            <div *ngIf="modules.length; else noModules" class="space-y-2">
-              <div *ngFor="let m of modules; trackBy: trackById"
-                   class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 px-3 py-2">
-                <div class="min-w-0">
-                  <div class="text-sm font-medium truncate">{{ m.title }}</div>
-                  <div class="text-xs text-slate-500">Durée ~ {{ m.durationMin || 10 }} min</div>
+        <!-- Modules -->
+        <div class="md:col-span-2 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+            <h2 class="text-lg font-semibold mb-3 text-slate-900 dark:text-white">Modules</h2>
+
+            <ng-container *ngIf="(modules$ | async) as modules; else modulesLoading">
+              <div *ngIf="modules.length; else noModules" class="space-y-2">
+                <div *ngFor="let m of modules; trackBy: trackById"
+                     class="flex items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
+                            bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 transition
+                            hover:shadow-md hover:ring-indigo-300/60">
+                  <div class="min-w-0 flex items-center gap-3">
+                    <div class="h-8 w-8 shrink-0 grid place-items-center rounded-lg ring-1 ring-slate-200 dark:ring-slate-700
+                                bg-gradient-to-br from-indigo-500/15 to-cyan-500/15 text-slate-600 dark:text-slate-300">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 7h11v2H8zM8 11h11v2H8zM8 15h11v2H8zM5 7h1v2H5zM5 11h1v2H5zM5 15h1v2H5z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{{ m.title }}</div>
+                      <div class="text-[11px] text-slate-500">Durée ~ {{ m.durationMin || 10 }} min</div>
+                    </div>
+                  </div>
+                  <button
+                    class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white shadow
+                           hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                    Ouvrir
+                  </button>
                 </div>
-                <button class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
-                  Ouvrir
-                </button>
               </div>
-            </div>
-            <ng-template #noModules>
-              <div class="text-sm text-slate-500">Aucun module pour l’instant.</div>
+              <ng-template #noModules>
+                <div class="text-sm text-slate-500">Aucun module pour l’instant.</div>
+              </ng-template>
+            </ng-container>
+
+            <ng-template #modulesLoading>
+              <div class="h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
             </ng-template>
-          </ng-container>
-          <ng-template #modulesLoading>
-            <div class="h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
-          </ng-template>
+          </div>
         </div>
 
-        <aside class="rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
-          <h3 class="text-lg font-semibold mb-3">Résumé du cours</h3>
-          <div *ngIf="(course$ | async) as course; else courseLoading">
-            <div class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">
+        <!-- Summary -->
+        <aside class="md:sticky md:top-6 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+            <h3 class="text-lg font-semibold mb-3 text-slate-900 dark:text-white">Résumé du cours</h3>
+            <div *ngIf="(course$ | async) as course; else courseLoading"
+                 class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">
               {{ course?.description || '—' }}
             </div>
+            <ng-template #courseLoading>
+              <div class="h-20 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+            </ng-template>
           </div>
-          <ng-template #courseLoading>
-            <div class="h-20 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
-          </ng-template>
         </aside>
       </section>
 
-<!-- People + Instructor tools -->
-        <section class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3 w-full">
-          <!-- Left: participants + invites -->
-          <div class="md:col-span-2 rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
-            <h2 class="text-xl font-semibold mb-3">Participants</h2>
+      <!-- People + Instructor tools -->
+      <section class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3 w-full">
+        <!-- Participants -->
+        <div class="md:col-span-2 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+            <h2 class="text-xl font-semibold mb-1.5 text-slate-900 dark:text-white">Participants</h2>
 
-            <!-- Pending Invites -->
-            <div class="mt-6">
-              <div class="text-sm font-semibold mb-2">Invitations en attente</div>
+            <!-- Invites -->
+            <div class="mt-4">
+              <div class="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Invitations en attente</div>
 
               <ng-container *ngIf="(invites$ | async) as invites">
                 <div *ngIf="invites.length; else noInvites"
-                    class="rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                     class="rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
                     <li *ngFor="let inv of invites; trackBy: trackById"
-                        class="flex items-center justify-between gap-3 px-3 py-2 max-w-full">
-                      <!-- Left side grows, can truncate -->
+                        class="flex items-center justify-between gap-3 px-3 py-2">
                       <div class="min-w-0 flex-1">
-                        <div class="text-xs font-medium truncate">{{ inv.email }}</div>
+                        <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ inv.email }}</div>
                         <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
                       </div>
 
-                      <!-- Right side never shrinks -->
                       <div class="flex items-center gap-2 shrink-0">
                         <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200
                                     whitespace-nowrap dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
@@ -90,9 +126,9 @@
                                 (click)="removeInvite(cl.id!, inv.id)"
                                 [disabled]="canceling[inv.id!]"
                                 class="inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium
-                                      text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200 whitespace-nowrap
-                                      disabled:opacity-60 disabled:cursor-not-allowed
-                                      dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                                       text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200 whitespace-nowrap
+                                       disabled:opacity-60 disabled:cursor-not-allowed
+                                       dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
                           <svg *ngIf="canceling[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
                             <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
                             <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
@@ -103,29 +139,27 @@
                     </li>
                   </ul>
                 </div>
-
                 <ng-template #noInvites>
                   <div class="text-sm text-slate-500">Aucune invitation en attente.</div>
                 </ng-template>
               </ng-container>
             </div>
 
-            <h2 class="text-lg font-semibold my-3">En cours</h2>
+            <h2 class="text-lg font-semibold my-3 text-slate-900 dark:text-white">En cours</h2>
 
             <!-- Members -->
             <ng-container *ngIf="(members$ | async) as members; else peopleLoading">
               <div *ngIf="members.length; else noPeople"
-                  class="rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
+                   class="rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
                   <li *ngFor="let m of members; trackBy: trackById"
-                      class="flex items-center justify-between gap-3 px-3 py-2 max-w-full">
-                    <!-- Left cluster grows and truncates properly -->
+                      class="flex items-center justify-between gap-3 px-3 py-2">
                     <div class="flex items-center gap-3 min-w-0 flex-1">
-                      <div class="h-7 w-7 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase shrink-0">
+                      <div class="h-8 w-8 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase shrink-0">
                         {{ (m.user?.email || m.uid) | slice:0:2 }}
                       </div>
                       <div class="min-w-0">
-                        <div class="text-xs font-medium">{{ m.role | titlecase }}</div>
+                        <div class="text-xs font-medium text-slate-900 dark:text-slate-100">{{ m.role | titlecase }}</div>
                         <div class="text-[11px] text-slate-500 truncate">
                           {{ m.user?.firstName }} {{ m.user?.lastName }}
                           <span *ngIf="m.user?.email">• {{ m.user?.email }}</span>
@@ -134,17 +168,16 @@
                       </div>
                     </div>
 
-                    <!-- Action never shrinks -->
                     <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
                             (click)="removeMember(cl.id!, m.uid)"
                             [disabled]="removing[m.uid]"
                             class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
-                                  text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200 whitespace-nowrap shrink-0
-                                  disabled:opacity-60 disabled:cursor-not-allowed
-                                  dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                                   text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200 whitespace-nowrap shrink-0
+                                   disabled:opacity-60 disabled:cursor-not-allowed
+                                   dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
                       <svg *ngIf="removing[m.uid]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/>
-                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/>
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
                       </svg>
                       <span>Retirer</span>
                     </button>
@@ -161,16 +194,17 @@
               <div class="h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
             </ng-template>
           </div>
+        </div>
 
-          <!-- Right: instructor tools -->
-          <aside
-            *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
-            class="rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5 w-full"
-          >
-            <h3 class="text-lg font-semibold mb-3">Outils formateur</h3>
+        <!-- Instructor tools -->
+        <aside
+          *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+          class="md:sticky md:top-6 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg w-full">
+          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+            <h3 class="text-lg font-semibold mb-3 text-slate-900 dark:text-white">Outils formateur</h3>
 
             <div class="rounded-xl bg-slate-50/70 ring-1 ring-slate-200 p-4 dark:bg-slate-800/40 dark:ring-slate-700">
-              <div class="text-sm font-medium mb-2">Inviter un membre</div>
+              <div class="text-sm font-medium mb-2 text-slate-900 dark:text-white">Inviter un membre</div>
 
               <div class="flex flex-col gap-2">
                 <input
@@ -178,14 +212,14 @@
                   type="email" inputmode="email" autocomplete="email"
                   placeholder="email@domaine.com"
                   class="block w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base
-                        text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                        dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+                         text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                         dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
 
                 <select
                   [(ngModel)]="invite.role" name="inviteRole"
                   class="block w-full h-11 rounded-lg border border-slate-300 bg-white px-2 text-sm
-                        text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                        dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+                         text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500
+                         dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
                   <option value="student">Étudiant</option>
                   <option value="instructor">Formateur</option>
                   <option value="ta">Assistant</option>
@@ -195,7 +229,7 @@
                   (click)="inviteMember(cl.id!)"
                   [disabled]="inviting || !invite.email"
                   class="block w-full h-11 rounded-lg px-4 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700
-                        disabled:opacity-60 disabled:cursor-not-allowed">
+                         disabled:opacity-60 disabled:cursor-not-allowed">
                   {{ inviting ? 'Envoi…' : 'Inviter' }}
                 </button>
               </div>
@@ -204,322 +238,307 @@
                 Entrez l’e-mail du membre et choisissez un rôle.
               </p>
             </div>
-            <!-- QUIZ BUILDER (admin-only) – trigger only -->
-          <div class="mt-6">
-            <button (click)="builderOpen = true"
-                    class="w-full sm:w-auto rounded-lg px-4 py-2 text-sm font-semibold
-                          bg-indigo-600 text-white hover:bg-indigo-700">
-              Créer un quiz personnalisé
+
+            <div class="mt-6">
+              <button (click)="builderOpen = true"
+                      class="w-full sm:w-auto rounded-lg px-4 py-2 text-sm font-semibold
+                             bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                Créer un quiz personnalisé
+              </button>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- Assignments (Quiz) -->
+      <section class="mt-6 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+        <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Devoirs / Quiz</h2>
+            <button
+              *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+              (click)="addQuickQuiz(cl.id!)"
+              class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+              + Quiz rapide (5 QCM)
             </button>
           </div>
 
-          </aside>
-        </section>
-
-<!-- Assignments (Quiz) -->
-<section class="mt-6 rounded-3xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 shadow p-5">
-  <div class="flex items-center justify-between">
-    <h2 class="text-lg font-semibold">Devoirs / Quiz</h2>
-
-    <!-- Instructor: quick add -->
-    <button
-      *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
-      (click)="addQuickQuiz(cl.id!)"
-      class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
-      + Quiz rapide (5 QCM)
-    </button>
-  </div>
-
-  <!-- List with score/status -->
-  <ng-container *ngIf="(assignments$ | async) as assigns; else aLoading">
-    <!-- Quick selector to open/close a quiz -->
-        <div class="mt-3 flex items-center gap-2">
-          <label class="text-xs text-slate-500">Afficher un quiz:</label>
-          <select
-            [ngModel]="openAssignmentId"
-            (ngModelChange)="onOpenSelect($event)"
-            class="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm
-                  text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500
-                  dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
-            <option [ngValue]="null">(aucun)</option>
-            <option *ngFor="let a of assigns" [ngValue]="a.id">{{ a.title }}</option>
-          </select>
-        </div>
-
-    <ng-container *ngIf="(attemptsMap$ | async) as attempts">
-      <div *ngIf="assigns.length; else noAssigns" class="mt-3 space-y-2">
-        <div *ngFor="let a of assigns; trackBy: trackById"
-             class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 px-3 py-2">
-          <div class="min-w-0">
-            <div class="text-sm font-medium truncate">{{ a.title }}</div>
-            <div class="text-xs text-slate-500">
-              {{ a.type === 'quiz' ? (a.numQuestions + ' questions') : '—' }}
-              <span *ngIf="a.points">• {{ a.points }} pts</span>
-               <!-- Teacher-only: attempts badge + show assignment id to avoid mixups -->
-                <ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
-                  <span class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
-                              bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                    Tentatives: {{ (attemptCounts$ | async)?.[a.id!] || 0 }}
-                  </span>
-                  <span class="ml-2 text-[10px] text-slate-400 select-all">ID: {{ a.id }}</span>
-                </ng-container>
+          <ng-container *ngIf="(assignments$ | async) as assigns; else aLoading">
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <label class="text-xs text-slate-500">Afficher un quiz&nbsp;:</label>
+              <select
+                [ngModel]="openAssignmentId"
+                (ngModelChange)="onOpenSelect($event)"
+                class="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm
+                       text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                       dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+                <option [ngValue]="null">(aucun)</option>
+                <option *ngFor="let a of assigns" [ngValue]="a.id">{{ a.title }}</option>
+              </select>
             </div>
-          </div>
 
-          <div class="flex items-center gap-2 shrink-0">
-              <!-- Score/status pill (unchanged) -->
-              <ng-container *ngIf="attempts[a.id!] as att">
-                <span *ngIf="att?.score != null"
-                      class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                            bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                            dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-                  {{ att.score }}/{{ a.numQuestions }} • {{ scorePct(att, a.numQuestions) }}%
-                </span>
-                <span *ngIf="att?.score == null && answeredCount(att) > 0"
-                      class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                            bg-amber-50 text-amber-700 ring-1 ring-amber-200
-                            dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                  En cours • {{ answeredCount(att) }}/{{ a.numQuestions }}
-                </span>
-                <span *ngIf="!att || (att.answers?.length ?? 0) === 0"
-                      class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                            bg-slate-100 text-slate-600 ring-1 ring-slate-200
-                            dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                  Non commencé
-                </span>
-              </ng-container>
+            <ng-container *ngIf="(attemptsMap$ | async) as attempts">
+              <div *ngIf="assigns.length; else noAssigns" class="mt-3 space-y-2">
+                <div *ngFor="let a of assigns; trackBy: trackById"
+                     class="flex items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
+                            bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 transition
+                            hover:shadow-md hover:ring-indigo-300/60">
+                  <div class="min-w-0">
+                    <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{{ a.title }}</div>
+                    <div class="text-xs text-slate-500">
+                      {{ a.type === 'quiz' ? (a.numQuestions + ' questions') : '—' }}
+                      <span *ngIf="a.points">• {{ a.points }} pts</span>
 
-              <!-- Desktop actions -->
-              <div class="hidden sm:flex items-center gap-2">
-                <button (click)="toggleAssignment(a.id!)"
-                        [attr.aria-expanded]="openAssignmentId === a.id"
-                        class="rounded-lg px-3 py-1.5 text-xs font-semibold
-                              bg-indigo-600 text-white hover:bg-indigo-700">
-                  {{ openAssignmentId === a.id ? 'Fermer' : 'Ouvrir' }}
-                </button>
+                      <ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
+                        <span class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
+                                    bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                          Tentatives: {{ (attemptCounts$ | async)?.[a.id!] || 0 }}
+                        </span>
+                        <span class="ml-2 text-[10px] text-slate-400 select-all">ID: {{ a.id }}</span>
+                      </ng-container>
+                    </div>
+                  </div>
 
-                <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
-                        (click)="confirmDeleteAssignment(cl.id!, a.id!)"
-                        [disabled]="deleting[a.id!]"
-                        class="rounded-lg px-3 py-1.5 text-xs font-semibold
-                              bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-60">
-                  <span *ngIf="!deleting[a.id!]">Supprimer</span>
-                  <span *ngIf="deleting[a.id!]" class="inline-flex items-center gap-1">
-                    <svg class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                    </svg> …
-                  </span>
-                </button>
+                  <div class="flex items-center gap-2 shrink-0">
+                    <ng-container *ngIf="attempts[a.id!] as att">
+                      <span *ngIf="att?.score != null"
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                   bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                   dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                        {{ att.score }}/{{ a.numQuestions }} • {{ scorePct(att, a.numQuestions) }}%
+                      </span>
+                      <span *ngIf="att?.score == null && answeredCount(att) > 0"
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                   bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                                   dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                        En cours • {{ answeredCount(att) }}/{{ a.numQuestions }}
+                      </span>
+                      <span *ngIf="!att || (att.answers?.length ?? 0) === 0"
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                   bg-slate-100 text-slate-600 ring-1 ring-slate-200
+                                   dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                        Non commencé
+                      </span>
+                    </ng-container>
+
+                    <!-- Desktop actions -->
+                    <div class="hidden sm:flex items-center gap-2">
+                      <button (click)="toggleAssignment(a.id!)"
+                              [attr.aria-expanded]="openAssignmentId === a.id"
+                              class="rounded-lg px-3 py-1.5 text-xs font-semibold
+                                     bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                        {{ openAssignmentId === a.id ? 'Fermer' : 'Ouvrir' }}
+                      </button>
+
+                      <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                              (click)="confirmDeleteAssignment(cl.id!, a.id!)"
+                              [disabled]="deleting[a.id!]"
+                              class="rounded-lg px-3 py-1.5 text-xs font-semibold
+                                     bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                        <span *ngIf="!deleting[a.id!]">Supprimer</span>
+                        <span *ngIf="deleting[a.id!]" class="inline-flex items-center gap-1">
+                          <svg class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                          </svg> …
+                        </span>
+                      </button>
+                    </div>
+
+                    <!-- Mobile actions -->
+                    <div class="relative sm:hidden">
+                      <details class="group">
+                        <summary class="list-none inline-flex items-center justify-center
+                                        rounded-lg p-1.5 ring-1 ring-slate-200 dark:ring-slate-700
+                                        hover:bg-slate-100 dark:hover:bg-slate-800">
+                          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                            <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
+                          </svg>
+                        </summary>
+                        <div class="absolute right-0 mt-1 w-44 rounded-xl overflow-hidden
+                                    bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-xl">
+                          <button (click)="toggleAssignment(a.id!)"
+                                  class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                            {{ openAssignmentId === a.id ? 'Fermer' : 'Ouvrir' }}
+                          </button>
+                          <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                                  (click)="confirmDeleteAssignment(cl.id!, a.id!)"
+                                  [disabled]="deleting[a.id!]"
+                                  class="w-full text-left px-3 py-2 text-sm text-rose-600
+                                         hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-60">
+                            Supprimer
+                          </button>
+                        </div>
+                      </details>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </ng-container>
 
-              <!-- Mobile actions: compact menu -->
-              <div class="relative sm:hidden">
-                <details class="group">
-                  <summary class="list-none inline-flex items-center justify-center
-                                  rounded-lg p-1.5 ring-1 ring-slate-200 dark:ring-slate-700
-                                  hover:bg-slate-100 dark:hover:bg-slate-800">
-                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-                      <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
-                    </svg>
-                  </summary>
-                  <div class="absolute right-0 mt-1 w-44 rounded-xl overflow-hidden
-                              bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-xl">
-                    <button (click)="toggleAssignment(a.id!)"
-                            class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                      {{ openAssignmentId === a.id ? 'Fermer' : 'Ouvrir' }}
-                    </button>
-                    <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
-                            (click)="confirmDeleteAssignment(cl.id!, a.id!)"
-                            [disabled]="deleting[a.id!]"
-                            class="w-full text-left px-3 py-2 text-sm text-rose-600
-                                  hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-60">
-                      Supprimer
+            <!-- Open quiz panel -->
+            <div *ngIf="openAssignmentId as aid" class="mt-5 rounded-xl ring-1 ring-slate-200 p-4 dark:ring-slate-700">
+              <ng-container *ngIf="getById(assigns, aid) as current">
+                <ng-container *ngIf="{ att: (myAttempt$ | async) } as vm">
+
+                  <!-- Status banner -->
+                  <div class="mb-3">
+                    <div *ngIf="vm.att?.score != null; else bannerNotDone"
+                         class="inline-flex items-center gap-2 rounded-lg px-3 py-2
+                                bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/></svg>
+                      <span>Votre score&nbsp;: <b>{{ vm.att!.score }}/{{ current.numQuestions }}</b>
+                        ({{ (vm.att!.score!/ current.numQuestions * 100) | number:'1.0-0' }}%)</span>
+                    </div>
+
+                    <ng-template #bannerNotDone>
+                      <div *ngIf="answeredCount(vm.att) > 0; else bannerNotStarted"
+                           class="inline-flex items-center gap-2 rounded-lg px-3 py-2
+                                  bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                                  dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm1-15h-2v6h6v-2h-4V7z"/></svg>
+                        <span>En cours&nbsp;: {{ answeredCount(vm.att) }}/{{ current.numQuestions }}</span>
+                      </div>
+                      <ng-template #bannerNotStarted>
+                        <div class="inline-flex items-center gap-2 rounded-lg px-3 py-2
+                                    bg-slate-100 text-slate-700 ring-1 ring-slate-200
+                                    dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                          <span>Non commencé</span>
+                        </div>
+                      </ng-template>
+                    </ng-template>
+                  </div>
+
+                  <div class="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Quiz</div>
+
+                  <div class="mb-2">
+                    <button (click)="startAttempt(cl.id!)"
+                            class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                      Démarrer / Continuer
                     </button>
                   </div>
-                </details>
-              </div>
-          </div>
 
-        </div>
-      </div>
+                  <!-- Questions -->
+                  <div *ngIf="vm.att?.selectedIds?.length; else notStarted" class="space-y-4">
+                    <div *ngFor="let qid of vm.att!.selectedIds; let i = index">
+                      <ng-container *ngIf="getById(current.pool, qid) as q">
+                        <div class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ i+1 }}. {{ q.prompt }}</div>
 
- <!-- Inline quiz view when one assignment is open -->
-<div *ngIf="openAssignmentId as aid" class="mt-5 rounded-xl ring-1 ring-slate-200 p-4 dark:ring-slate-700">
-  <!-- Resolve current assignment once -->
-  <ng-container *ngIf="getById(assigns, aid) as current">
+                        <!-- MCQ (single) -->
+                        <div *ngIf="q.kind === 'mcq-single'" class="mt-1 grid gap-1">
+                          <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
+                            <input type="radio"
+                                   [attr.name]="'q' + aid + '-' + i"
+                                   (change)="selectAnswerSingle_New(cl.id!, i, j)" />
+                            <span>{{ opt }}</span>
+                          </label>
+                        </div>
 
-    <!-- Make 'att' available even when it's null -->
-    <ng-container *ngIf="{ att: (myAttempt$ | async) } as vm">
+                        <!-- MCQ (multiple) -->
+                        <div *ngIf="q.kind === 'mcq-multi'" class="mt-1 grid gap-1">
+                          <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
+                            <input type="checkbox" (change)="toggleAnswerMulti_New(cl.id!, i, j)" />
+                            <span>{{ opt }}</span>
+                          </label>
+                        </div>
 
-      <!-- Score/status banner -->
-      <div class="mb-3">
-        <!-- Completed -->
-        <div *ngIf="vm.att?.score != null; else bannerNotDone"
-             class="inline-flex items-center gap-2 rounded-lg px-3 py-2
-                    bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                    dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/></svg>
-          <span>Votre score&nbsp;: <b>{{ vm.att!.score }}/{{ current.numQuestions }}</b>
-            ({{ (vm.att!.score!/ current.numQuestions * 100) | number:'1.0-0' }}%)</span>
-        </div>
+                        <!-- Text answer -->
+                        <div *ngIf="q.kind === 'text'" class="mt-1">
+                          <input type="text"
+                                 (input)="saveAnswerText_New(cl.id!, i, $any($event.target).value)"
+                                 placeholder="Votre réponse"
+                                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                                        dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+                        </div>
+                      </ng-container>
+                    </div>
 
-        <!-- In progress / Not started -->
-        <ng-template #bannerNotDone>
-          <div *ngIf="answeredCount(vm.att) > 0; else bannerNotStarted"
-               class="inline-flex items-center gap-2 rounded-lg px-3 py-2
-                      bg-amber-50 text-amber-700 ring-1 ring-amber-200
-                      dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm1-15h-2v6h6v-2h-4V7z"/></svg>
-            <span>En cours&nbsp;: {{ answeredCount(vm.att) }}/{{ current.numQuestions }}</span>
-          </div>
-          <ng-template #bannerNotStarted>
-            <div class="inline-flex items-center gap-2 rounded-lg px-3 py-2
-                        bg-slate-100 text-slate-700 ring-1 ring-slate-200
-                        dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-              <span>Non commencé</span>
-            </div>
-          </ng-template>
-        </ng-template>
-      </div>
-      <!-- Instructor/TA scoreboard -->
-<ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
-  <ng-container *ngIf="(instructorAttemptRows$ | async) as rows">
-    <div class="mb-4 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 dark:bg-slate-800/40 dark:ring-slate-700">
-      <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
-        Résultats des étudiants
-      </div>
+                    <div class="pt-2 flex items-center gap-3">
+                      <button (click)="submit(cl.id!)"
+                              class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                        Envoyer
+                      </button>
 
-      <div *ngIf="rows.length; else noRows" class="divide-y divide-slate-200 dark:divide-slate-700">
-        <div *ngFor="let r of rows; trackBy: trackById" class="py-2 flex items-center justify-between">
-          <div class="min-w-0">
-            <div class="text-sm font-medium truncate">
-              {{ r.user?.firstName || '—' }} {{ r.user?.lastName || '' }}
-            </div>
-            <div class="text-[11px] text-slate-500 truncate">
-              {{ r.user?.email || r.uid }}
-            </div>
-          </div>
+                      <div *ngIf="vm.att!.score != null" class="text-sm text-slate-700 dark:text-slate-300">
+                        Note: <span class="font-semibold">{{ vm.att!.score }}/{{ current.numQuestions }}</span>
+                      </div>
+                    </div>
+                  </div>
 
-          <div class="shrink-0 flex items-center gap-2">
-            <span *ngIf="r.score != null"
-                  class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                         bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                         dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-              {{ r.score }}/{{ current.numQuestions }}
-              • {{ (r.score / current.numQuestions * 100) | number:'1.0-0' }}%
-            </span>
-           <span *ngIf="r.score == null"
-                class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                      bg-amber-50 text-amber-700 ring-1 ring-amber-200
-                      dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-            En cours • {{ answeredCount(r) }}/{{ current.numQuestions }}
-          </span>
+                  <ng-template #notStarted>
+                    <div class="text-sm text-slate-500">
+                      Cliquez sur “Démarrer / Continuer” pour générer votre quiz ({{ current.numQuestions }} questions aléatoires).
+                    </div>
+                  </ng-template>
 
-          </div>
-        </div>
-      </div>
+                  <!-- Instructor/TA scoreboard -->
+                  <ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
+                    <ng-container *ngIf="(instructorAttemptRows$ | async) as rows">
+                      <div class="mt-4 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 dark:bg-slate-800/40 dark:ring-slate-700">
+                        <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                          Résultats des étudiants
+                        </div>
 
-      <ng-template #noRows>
-        <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
-      </ng-template>
-    </div>
-  </ng-container>
-</ng-container>
+                        <div *ngIf="rows.length; else noRows" class="divide-y divide-slate-200 dark:divide-slate-700">
+                          <div *ngFor="let r of rows; trackBy: trackById" class="py-2 flex items-center justify-between">
+                            <div class="min-w-0">
+                              <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
+                                {{ r.user?.firstName || '—' }} {{ r.user?.lastName || '' }}
+                              </div>
+                              <div class="text-[11px] text-slate-500 truncate">
+                                {{ r.user?.email || r.uid }}
+                              </div>
+                            </div>
 
+                            <div class="shrink-0 flex items-center gap-2">
+                              <span *ngIf="r.score != null"
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                           bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                           dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                                {{ r.score }}/{{ current.numQuestions }}
+                                • {{ (r.score / current.numQuestions * 100) | number:'1.0-0' }}%
+                              </span>
+                              <span *ngIf="r.score == null"
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                           bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                                           dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                                En cours • {{ answeredCount(r) }}/{{ current.numQuestions }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-      <div class="text-sm font-semibold mb-2">Quiz</div>
+                        <ng-template #noRows>
+                          <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
+                        </ng-template>
+                      </div>
+                    </ng-container>
+                  </ng-container>
 
-      <!-- Start / Continue (visible even when vm.att is null) -->
-      <div class="mb-2">
-        <button (click)="startAttempt(cl.id!)"
-                class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
-          Démarrer / Continuer
-        </button>
-      </div>
-
-      <!-- Questions -->
-      <div *ngIf="vm.att?.selectedIds?.length; else notStarted" class="space-y-4">
-        <div *ngFor="let qid of vm.att!.selectedIds; let i = index">
-          <ng-container *ngIf="getById(current.pool, qid) as q">
-            <div class="text-sm font-medium">{{ i+1 }}. {{ q.prompt }}</div>
-
-            <!-- MCQ (single) -->
-            <div *ngIf="q.kind === 'mcq-single'" class="mt-1 grid gap-1">
-              <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
-                <input type="radio"
-                      [attr.name]="'q' + aid + '-' + i"
-                      (change)="selectAnswerSingle_New(cl.id!, i, j)" />
-                <span>{{ opt }}</span>
-              </label>
+                </ng-container>
+              </ng-container>
             </div>
 
-            <!-- MCQ (multiple) -->
-            <div *ngIf="q.kind === 'mcq-multi'" class="mt-1 grid gap-1">
-              <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
-                <input type="checkbox"
-                      (change)="toggleAnswerMulti_New(cl.id!, i, j)" />
-                <span>{{ opt }}</span>
-              </label>
-            </div>
-
-            <!-- Text answer -->
-            <div *ngIf="q.kind === 'text'" class="mt-1">
-              <input type="text"
-                    (input)="saveAnswerText_New(cl.id!, i, $any($event.target).value)"
-                    placeholder="Votre réponse"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                            dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
-
-            </div>
           </ng-container>
+
+          <ng-template #aLoading>
+            <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+          </ng-template>
+          <ng-template #noAssigns>
+            <div class="mt-3 text-sm text-slate-500">Aucun devoir pour l’instant.</div>
+          </ng-template>
         </div>
-
-        <div class="pt-2 flex items-center gap-3">
-          <button (click)="submit(cl.id!)"
-                  class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
-            Envoyer
-          </button>
-
-          <div *ngIf="vm.att!.score != null" class="text-sm">
-            Note: <span class="font-semibold">{{ vm.att!.score }}/{{ current.numQuestions }}</span>
-          </div>
-        </div>
-      </div>
-
-
-      <ng-template #notStarted>
-        <div class="text-sm text-slate-500">
-          Cliquez sur “Démarrer / Continuer” pour générer votre quiz ({{ current.numQuestions }} questions aléatoires).
-        </div>
-      </ng-template>
-
-    </ng-container>
-  </ng-container>
-</div>
-
-    </ng-container>
-  </ng-container>
-
-  <ng-template #aLoading>
-    <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
-  </ng-template>
-  <ng-template #noAssigns>
-    <div class="mt-3 text-sm text-slate-500">Aucun devoir pour l’instant.</div>
-  </ng-template>
-</section>
-
-
-
+      </section>
     </ng-container>
 
     <ng-template #loading>
       <div class="rounded-3xl h-40 bg-slate-200 animate-pulse dark:bg-slate-800"></div>
     </ng-template>
+
   </div>
 </div>
-
 
 <!-- Quiz Builder Modal -->
 <div *ngIf="builderOpen"
@@ -527,14 +546,11 @@
      role="dialog" aria-modal="true"
      (keydown.escape)="builderOpen = false">
 
-  <!-- Backdrop -->
   <div class="absolute inset-0 bg-black/50" (click)="builderOpen = false"></div>
 
-  <!-- Modal surface -->
   <div class="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto
               rounded-2xl bg-white dark:bg-slate-900
               ring-1 ring-black/10 dark:ring-white/10 shadow-2xl">
-    <!-- Header -->
     <div class="sticky top-0 z-10 flex items-center justify-between gap-3
                 p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800
                 bg-white/90 dark:bg-slate-900/80 backdrop-blur">
@@ -548,28 +564,31 @@
       </button>
     </div>
 
-    <!-- Body: put your existing builder content here -->
+    <!-- Body: keep your existing builder fields -->
     <div class="p-4 sm:p-5 space-y-4">
       <div class="grid gap-2 md:grid-cols-3">
         <input [(ngModel)]="builderTitle" placeholder="Titre du quiz"
                class="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500
                       dark:bg-slate-900 dark:border-slate-700"/>
         <input [(ngModel)]="builderPoints" type="number" min="0" placeholder="Points totaux (optionnel)"
                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500
                       dark:bg-slate-900 dark:border-slate-700"/>
       </div>
 
-      <!-- Draft question composer -->
       <div class="rounded-lg bg-white ring-1 ring-slate-200 p-3 dark:bg-slate-900 dark:ring-slate-700">
         <div class="grid gap-2">
           <textarea [(ngModel)]="draft.prompt" rows="2" placeholder="Énoncé de la question"
                     class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-indigo-500
                            dark:bg-slate-900 dark:border-slate-700"></textarea>
 
           <div class="flex items-center gap-2">
             <label class="text-xs text-slate-500">Type:</label>
             <select [(ngModel)]="draft.kind"
                     class="h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-indigo-500
                            dark:bg-slate-900 dark:border-slate-700">
               <option value="mcq-single">Choix multiples (1 réponse)</option>
               <option value="mcq-multi">Choix multiples (plusieurs réponses)</option>
@@ -577,14 +596,13 @@
             </select>
           </div>
 
-          <!-- Text answer -->
           <div *ngIf="draft.kind === 'text'" class="grid gap-2">
             <input [(ngModel)]="draft.correctText" placeholder="Réponse exacte attendue"
                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                          focus:outline-none focus:ring-2 focus:ring-indigo-500
                           dark:bg-slate-900 dark:border-slate-700"/>
           </div>
 
-          <!-- MCQ choices -->
           <div *ngIf="draft.kind !== 'text'" class="grid gap-2">
             <div class="flex items-center justify-between">
               <div class="text-xs text-slate-500">Choix de réponses</div>
@@ -596,32 +614,27 @@
             </div>
 
             <div class="space-y-2">
-              <div *ngFor="let c of draft.choices; let i = index; trackBy: trackByIndex"
-                  class="flex items-center gap-2">
+              <div *ngFor="let c of draft.choices; let i = index; trackBy: trackByIndex" class="flex items-center gap-2">
                 <ng-container [ngSwitch]="draft.kind">
-                  <input *ngSwitchCase="'mcq-single'" type="radio"
-                        name="draft-correct" [checked]="draft.correctSingle === i"
-                        (change)="draft.correctSingle = i" />
-                  <input *ngSwitchCase="'mcq-multi'" type="checkbox"
-                        [checked]="draft.correctMulti.has(i)"
-                        (change)="toggleCorrectMulti(i)" />
+                  <input *ngSwitchCase="'mcq-single'" type="radio" name="draft-correct" [checked]="draft.correctSingle === i"
+                         (change)="draft.correctSingle = i" />
+                  <input *ngSwitchCase="'mcq-multi'" type="checkbox" [checked]="draft.correctMulti.has(i)"
+                         (change)="toggleCorrectMulti(i)" />
                 </ng-container>
 
-                <!-- use one-way binding + change handler to avoid recreations -->
-                <input [ngModel]="draft.choices[i]"
-                      (ngModelChange)="onChoiceChange(i, $event)"
-                      placeholder="Réponse {{ i+1 }}"
-                      class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm
+                <input [ngModel]="draft.choices[i]" (ngModelChange)="onChoiceChange(i, $event)"
+                       placeholder="Réponse {{ i+1 }}"
+                       class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm
+                              focus:outline-none focus:ring-2 focus:ring-indigo-500
                               dark:bg-slate-900 dark:border-slate-700"/>
 
                 <button (click)="removeChoice(i)"
-                        class="rounded px-2 py-1 text-xs font-medium bg-rose-50 text-rose-700 ring-1 ring-rose-200
-                              hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-200 dark:ring-rose-800">
+                        class="rounded px-2 py-1 text-[11px] font-medium bg-rose-50 text-rose-700 ring-1 ring-rose-200
+                               hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-200 dark:ring-rose-800">
                   Suppr
                 </button>
               </div>
             </div>
-
           </div>
 
           <div class="pt-1 flex items-center justify-between">
@@ -629,21 +642,20 @@
               {{ draft.kind === 'text' ? 'Réponse exacte requise.' : 'Cochez la/les bonne(s) réponse(s).' }}
             </div>
             <button (click)="pushDraftToQuiz()"
-                    class="rounded-md px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
+                    class="rounded-md px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
               Ajouter la question
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Preview / list -->
       <div *ngIf="builderQuestions.length"
            class="rounded-lg bg-white ring-1 ring-slate-200 p-3 dark:bg-slate-900 dark:ring-slate-700">
         <div class="text-xs font-semibold mb-2">Questions ajoutées ({{ builderQuestions.length }})</div>
         <div class="space-y-2">
           <div *ngFor="let q of builderQuestions; trackBy: trackById" class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <div class="text-sm font-medium truncate">{{ q.prompt }}</div>
+              <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{{ q.prompt }}</div>
               <div class="text-[11px] text-slate-500">
                 {{ q.kind }} <ng-container *ngIf="q.kind !== 'text'">• {{ q.choices?.length }} choix</ng-container>
               </div>
@@ -659,12 +671,11 @@
         <div class="pt-3 text-right">
           <ng-container *ngIf="(classId$ | async) as classId">
             <button (click)="saveCustomQuiz(classId)"
-                    class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+                    class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
               Enregistrer le quiz
             </button>
           </ng-container>
         </div>
-
       </div>
     </div>
   </div>
