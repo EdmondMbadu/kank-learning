@@ -36,6 +36,7 @@ export interface CourseDoc {
   id?: string;
   title: string;
   description?: string;
+  coverUrl?: string;
 }
 export interface CourseModule {
   id?: string;
