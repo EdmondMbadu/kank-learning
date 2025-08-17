@@ -80,11 +80,13 @@
 
                   <!-- NEW: Course cover image -->
                   <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
-                    <img
-                      [src]="'../../../assets/img/course.jpg'"
-                      [alt]="c.title || 'Couverture du cours'"
-                      class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
-                      loading="lazy" />
+                   <!-- in each course card -->
+                      <img
+                        [src]="c.coverUrl || 'assets/img/course.jpg'"
+                        [alt]="c.title || 'Couverture du cours'"
+                        class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
+                        loading="lazy"/>
+
                     <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
                   </div>
 
@@ -300,30 +302,72 @@
           <div class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white ring-1 ring-black/10 dark:bg-slate-900 dark:ring-slate-700 max-h-[85vh] overflow-y-auto">
             <div class="p-5">
               <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">{{ editCourse ? 'Modifier le cours' : 'Nouveau cours' }}</h3>
-              <form (ngSubmit)="saveCourse()" class="space-y-4" novalidate>
-                <div>
-                  <label class="block text-sm font-medium mb-1">Titre</label>
-                  <input [(ngModel)]="courseForm.title" name="title" required minlength="3"
-                         class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
-                         placeholder="Ex.: Introduction à la microfinance">
+          <form (ngSubmit)="saveCourse()" class="space-y-4" novalidate>
+              <div>
+                <label class="block text-sm font-medium mb-1">Titre</label>
+                <input [(ngModel)]="courseForm.title" name="title" required minlength="3"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                      placeholder="Ex.: Introduction à la microfinance">
+              </div>
+
+              <!-- NEW: Image de couverture (optionnel) -->
+              <div>
+                <label class="block text-sm font-medium mb-1">Image de couverture (optionnel)</label>
+
+                <div class="rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden bg-white/70 dark:bg-slate-800/40">
+                  <!-- Preview if selected or existing; else drop/empty state -->
+                  <ng-container *ngIf="courseCoverPreview; else emptyCover">
+                    <img [src]="courseCoverPreview" alt="Aperçu de la couverture"
+                        class="h-40 w-full object-cover">
+                  </ng-container>
+                  <ng-template #emptyCover>
+                    <div class="h-32 grid place-items-center text-center p-4 text-slate-500 dark:text-slate-400">
+                      <div class="text-xs">
+                        Aucune image sélectionnée. <br>
+                        L’image par défaut sera utilisée.
+                      </div>
+                    </div>
+                  </ng-template>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium mb-1">Description</label>
-                  <textarea [(ngModel)]="courseForm.description" name="description" rows="4"
-                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
-                            placeholder="Résumé du cours…"></textarea>
-                </div>
-                <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <button type="button" (click)="closeCourseDialog()"
-                          class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
-                    Annuler
+
+                <!-- Hidden input + actions -->
+                <input #coverInput type="file" accept="image/*" class="sr-only" (change)="onCourseCoverSelected($event)">
+
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button type="button" (click)="coverInput.click()"
+                          class="rounded-lg px-3 py-2 text-sm font-medium bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    Choisir une image
                   </button>
-                  <button type="submit" [disabled]="!courseForm.title || courseForm.title.length < 3"
-                          class="w-full sm:w-auto rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                    {{ editCourse ? 'Enregistrer' : 'Créer' }}
+                  <button *ngIf="courseCoverPreview" type="button" (click)="clearCourseCover()"
+                          class="rounded-lg px-3 py-2 text-sm font-medium text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50 dark:ring-rose-800 dark:hover:bg-rose-900/20">
+                    Retirer
                   </button>
                 </div>
-              </form>
+
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Formats recommandés : JPG/PNG, ~1600×900. (Optionnel)
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1">Description</label>
+                <textarea [(ngModel)]="courseForm.description" name="description" rows="4"
+                          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                          placeholder="Résumé du cours…"></textarea>
+              </div>
+
+              <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                <button type="button" (click)="closeCourseDialog()"
+                        class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
+                  Annuler
+                </button>
+                <button type="submit" [disabled]="!courseForm.title || courseForm.title.length < 3 || uploadingCover"
+                        class="w-full sm:w-auto rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  {{ editCourse ? 'Enregistrer' : 'Créer' }}
+                </button>
+              </div>
+          </form>
+
             </div>
           </div>
         </div>

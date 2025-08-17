@@ -11,6 +11,9 @@ import {
 import { AuthService } from 'src/app/shared/auth.service';
 import { CourseService } from 'src/app/shared/course.service';
 import { ClassService } from 'src/app/shared/class.service';
+// If you already use AngularFire, prefer the @angular/fire/storage imports.
+// This version uses the Firebase Web SDK directly:
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 @Component({
   selector: 'app-dashboard',
@@ -21,6 +24,11 @@ export class DashboardComponent implements OnInit {
   me$!: Observable<User | null>;
   myCourses$!: Observable<Course[]>;
   myClasses$!: Observable<ClassSection[]>;
+
+  DEFAULT_COURSE_COVER = 'assets/img/course.jpg';
+  courseCoverFile: File | null = null;
+  courseCoverPreview: string | null = null;
+  uploadingCover = false;
 
   // Course dialog
   showCourseDialog = false;
@@ -148,34 +156,62 @@ export class DashboardComponent implements OnInit {
   openCreateCourse() {
     this.editCourse = null;
     this.courseForm = { title: '', description: '' };
+    this.courseCoverFile = null;
+    this.courseCoverPreview = null;
     this.showCourseDialog = true;
   }
   openEditCourse(c: Course) {
     this.editCourse = c;
     this.courseForm = { title: c.title, description: c.description ?? '' };
+    this.courseCoverFile = null;
+    this.courseCoverPreview = c.coverUrl || null;
     this.showCourseDialog = true;
   }
+
   closeCourseDialog() {
     this.showCourseDialog = false;
+    this.courseCoverFile = null;
+    this.courseCoverPreview = null;
+    this.uploadingCover = false;
   }
   async saveCourse() {
-    if (!(await this.requireAdmin())) return; // admin only
+    if (!(await this.requireAdmin())) return;
     const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
     if (!me?.uid) return;
 
-    if (this.editCourse?.id) {
-      await this.courses.update(this.editCourse.id, {
-        title: this.courseForm.title.trim(),
-        description: this.courseForm.description.trim(),
-      });
-    } else {
-      await this.courses.create({
-        title: this.courseForm.title.trim(),
-        description: this.courseForm.description.trim(),
-        ownerId: me.uid,
-      });
+    try {
+      this.uploadingCover = true;
+
+      // 1) Upload cover if selected, else fallback (or keep existing on edit)
+      let coverUrl: string | undefined;
+
+      if (this.courseCoverFile) {
+        coverUrl = await this.uploadCourseCover(this.courseCoverFile, me.uid);
+      } else if (this.editCourse?.coverUrl) {
+        coverUrl = this.editCourse.coverUrl; // keep old on edit
+      } else {
+        coverUrl = this.DEFAULT_COURSE_COVER; // fallback on create
+      }
+
+      // 2) Create or update the document with coverUrl
+      if (this.editCourse?.id) {
+        await this.courses.update(this.editCourse.id, {
+          title: this.courseForm.title.trim(),
+          description: this.courseForm.description.trim(),
+          coverUrl,
+        });
+      } else {
+        await this.courses.create({
+          title: this.courseForm.title.trim(),
+          description: this.courseForm.description.trim(),
+          ownerId: me.uid,
+          coverUrl,
+        });
+      }
+    } finally {
+      this.uploadingCover = false;
+      this.showCourseDialog = false;
     }
-    this.showCourseDialog = false;
   }
 
   async deleteCourse(c: Course) {
@@ -313,5 +349,33 @@ export class DashboardComponent implements OnInit {
     } finally {
       delete this.deletingClass[cl.id!];
     }
+  }
+
+  onCourseCoverSelected(evt: Event) {
+    const input = evt.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    this.courseCoverFile = file;
+
+    const reader = new FileReader();
+    reader.onload = () => (this.courseCoverPreview = reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  clearCourseCover() {
+    this.courseCoverFile = null;
+    this.courseCoverPreview = null;
+  }
+
+  private async uploadCourseCover(
+    file: File,
+    ownerId: string
+  ): Promise<string> {
+    const storage = getStorage(); // uses default Firebase app
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `course-covers/${ownerId}/${Date.now()}-${safeName}`;
+    const r = ref(storage, path);
+    await uploadBytes(r, file);
+    return await getDownloadURL(r);
   }
 }

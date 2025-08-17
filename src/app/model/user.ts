@@ -57,6 +57,7 @@ export interface Course {
   lessonsCount: number;
   createdAt?: FSDate;
   updatedAt?: FSDate;
+  coverUrl?: string;
 }
 
 export interface Module {

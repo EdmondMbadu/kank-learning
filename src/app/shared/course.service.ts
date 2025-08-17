@@ -9,7 +9,12 @@ import { Course, CourseDoc, CourseModule } from '../model/user';
 export class CourseService {
   constructor(private afs: AngularFirestore) {}
 
-  create(data: { title: string; description?: string; ownerId: string }) {
+  create(data: {
+    title: string;
+    description?: string;
+    ownerId: string;
+    coverUrl?: string;
+  }) {
     const id = this.afs.createId();
     const now = firebase.firestore.FieldValue.serverTimestamp();
     const course: Course = {
@@ -23,6 +28,7 @@ export class CourseService {
       lessonsCount: 0,
       createdAt: now,
       updatedAt: now,
+      coverUrl: data.coverUrl,
     };
     return this.afs.doc(`courses/${id}`).set(course);
   }
