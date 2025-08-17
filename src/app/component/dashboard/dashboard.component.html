@@ -1,224 +1,196 @@
 <app-navbar></app-navbar>
 
 <div
-  class="relative min-h-screen w-full overflow-x-hidden pt-16 sm:pt-16
+  class="relative min-h-screen w-full overflow-x-hidden pt-16 sm:pt-16 antialiased selection:bg-indigo-600/20 selection:text-indigo-900 dark:selection:text-indigo-200
          bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950
          touch-pan-y">
 
   <!-- soft blobs (desktop only for perf) -->
   <div aria-hidden="true"
-       class="pointer-events-none fixed -top-20 -left-24 hidden md:block h-72 w-72 rounded-full
+       class="pointer-events-none fixed -top-24 -left-24 hidden md:block h-80 w-80 rounded-full
               bg-gradient-to-tr from-indigo-500 to-cyan-400 opacity-20 blur-3xl"></div>
   <div aria-hidden="true"
-       class="pointer-events-none fixed -bottom-24 -right-24 hidden md:block h-96 w-96 rounded-full
+       class="pointer-events-none fixed -bottom-28 -right-28 hidden md:block h-[28rem] w-[28rem] rounded-full
               bg-gradient-to-tr from-fuchsia-500 to-indigo-500 opacity-20 blur-3xl"></div>
 
-  <div class="mx-auto grid max-w-7xl ">
-    <!-- Sidebar -->
+  <div class="mx-auto grid max-w-7xl gap-6 px-4 lg:px-6">
+    <!-- Sidebar (reserved) -->
 
 
     <!-- Main -->
     <main class="min-h-screen">
       <!-- Welcome -->
-      <section class="px-4 pt-6">
-        <div class="rounded-3xl bg-white/80 dark:bg-slate-900/70 backdrop-blur ring-1 ring-black/5 shadow-md p-5 md:p-6">
-          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div class="flex items-center gap-4">
-              <div class="relative hidden md:block">
-                <img src="assets/img/fondation-gervais-logo.jpeg" class="md:h-12 md:w-12 h-8 w-8 rounded-2xl ring-2 ring-indigo-300/60" alt="">
-                <span class="absolute -right-1 -bottom-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
+      <section class="pt-6">
+        <div class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
+          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 p-5 md:p-6">
+            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div class="flex items-center gap-4">
+                <div class="relative hidden md:block">
+                  <img src="assets/img/fondation-gervais-logo.jpeg" class="md:h-12 md:w-12 h-8 w-8 rounded-2xl ring-2 ring-indigo-300/60" alt="">
+                  <span class="absolute -right-1 -bottom-1 h-3 w-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900"></span>
+                </div>
+                <div>
+                  <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
+                    <ng-container *ngIf="me$ | async as me; else friendlyLoading">
+                      Bonjour,
+                      <span class="bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+                        {{ friendlyName(me) }}
+                      </span>
+                    </ng-container>
+                    <ng-template #friendlyLoading>Bonjour, <span class="text-slate-400">…</span></ng-template>
+                  </h1>
+                  <p class="text-sm text-slate-600 dark:text-slate-300">Bienvenue sur l’espace de formation — Fondation Gervais ABC.</p>
+                </div>
               </div>
-              <div>
-                <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">
-                  <ng-container *ngIf="me$ | async as me; else friendlyLoading">
-                    Bonjour,
-                    <span class="bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
-                      {{ friendlyName(me) }}
-                    </span>
-                  </ng-container>
-                  <ng-template #friendlyLoading>Bonjour, <span class="text-slate-400">…</span></ng-template>
-                </h1>
-                <p class="text-sm text-slate-600 dark:text-slate-300">Bienvenue sur l’espace de formation — Fondation Gervais ABC.</p>
-              </div>
-            </div>
 
-            <!-- Actions: full-width on mobile -->
-            <div class="flex w-full flex-col gap-2 sm:flex-row sm:w-auto">
-              <button *ngIf="(isAdmin$ | async)" (click)="openCreateCourse()"
-                      class="w-full sm:w-auto rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-indigo-700">
-                + Nouveau cours
-              </button>
-              <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass()"
-                      class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-emerald-700">
-                + Nouvelle classe
-              </button>
+              <!-- Actions: full-width on mobile -->
+              <div class="flex w-full flex-col gap-2 sm:flex-row sm:w-auto">
+                <button *ngIf="(isAdmin$ | async)" (click)="openCreateCourse()"
+                        class="w-full sm:w-auto rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  + Nouveau cours
+                </button>
+                <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass()"
+                        class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                  + Nouvelle classe
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       <!-- My Courses -->
-      <section *ngIf="(isAdmin$ | async)" class="px-4 pt-6">
-        <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
-          <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-lg font-semibold">Mes cours</h2>
-            <button *ngIf="(isAdmin$ | async)" (click)="openCreateCourse()"
-                    class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-800">
-              Créer un cours
-            </button>
-          </div>
+      <section *ngIf="(isAdmin$ | async)" class="pt-2">
+        <div class="rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
+            <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Mes cours</h2>
+              <button *ngIf="(isAdmin$ | async)" (click)="openCreateCourse()"
+                      class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                Créer un cours
+              </button>
+            </div>
 
-          <ng-container *ngIf="myCourses$ | async as courses; else coursesLoading">
-            <div *ngIf="courses.length; else noCourses"
-                 class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <div *ngFor="let c of courses"
-                   class="group rounded-2xl border border-slate-200/80 p-4 hover:shadow-lg transition dark:border-slate-800">
-                <div class="font-medium line-clamp-1">{{ c.title }}</div>
-                <div class="text-sm text-slate-500 mt-1 line-clamp-2">{{ c.description || '—' }}</div>
-                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                  <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass(c)"
-                          class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm bg-emerald-600 text-white hover:bg-emerald-700">
-                    Ouvrir une classe
-                  </button>
-                  <button *ngIf="(isAdmin$ | async)" (click)="openEditCourse(c)"
-                          class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm ring-1 ring-slate-200 hover:bg-white/70 dark:ring-slate-700 dark:hover:bg-slate-800">
-                    Modifier
-                  </button>
-                  <button *ngIf="(isAdmin$ | async)" (click)="deleteCourse(c)"
-                          class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm bg-rose-600 text-white hover:bg-rose-700">
-                    Supprimer
-                  </button>
+            <ng-container *ngIf="myCourses$ | async as courses; else coursesLoading">
+              <div *ngIf="courses.length; else noCourses"
+                   class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div *ngFor="let c of courses"
+                     class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition
+                            hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
+                  <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-1">{{ c.title }}</div>
+                  <div class="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">{{ c.description || '—' }}</div>
+                  <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass(c)"
+                            class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                      Ouvrir une classe
+                    </button>
+                    <button *ngIf="(isAdmin$ | async)" (click)="openEditCourse(c)"
+                            class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40">
+                      Modifier
+                    </button>
+                    <button *ngIf="(isAdmin$ | async)" (click)="deleteCourse(c)"
+                            class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm bg-rose-600 text-white shadow hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                      Supprimer
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <ng-template #noCourses>
-              <div class="text-sm text-slate-500">
-                Aucun cours pour l’instant.
-                <button (click)="openCreateCourse()" class="text-indigo-600 hover:underline dark:text-indigo-400">Créer un cours</button>
+              <ng-template #noCourses>
+                <div class="text-sm text-slate-600 dark:text-slate-400">
+                  Aucun cours pour l’instant.
+                  <button (click)="openCreateCourse()" class="text-indigo-600 hover:underline dark:text-indigo-400">Créer un cours</button>
+                </div>
+              </ng-template>
+            </ng-container>
+
+            <ng-template #coursesLoading>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div *ngFor="let i of [1,2,3]" class="rounded-2xl ring-1 ring-slate-200/80 dark:ring-slate-800 p-4 h-24 animate-pulse bg-slate-100/60 dark:bg-slate-800/40"></div>
               </div>
             </ng-template>
-          </ng-container>
-
-          <ng-template #coursesLoading>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <div *ngFor="let i of [1,2,3]" class="rounded-2xl border border-slate-200/80 p-4 h-24 animate-pulse dark:border-slate-800"></div>
-            </div>
-          </ng-template>
+          </div>
         </div>
       </section>
 
-      <!-- My Classes -->
-<section class="px-4 pt-6 pb-8">
-  <div class="rounded-3xl bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70">
-    <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <h2 class="text-lg font-semibold">Mes classes</h2>
-      <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass()"
-              class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
-        Créer une classe
-      </button>
-    </div>
+<!-- My Classes -->
+<section class="pt-2 pb-8">
+  <div class="rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+    <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
+      <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Mes classes</h2>
+        <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass()"
+                class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm font-semibold bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+          Créer une classe
+        </button>
+      </div>
 
-    <ng-container *ngIf="myClasses$ | async as classes; else classesLoading">
-      <div *ngIf="classes.length; else noClasses"
-           class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <ng-container *ngIf="myClasses$ | async as classes; else classesLoading">
+        <div *ngIf="classes.length; else noClasses"
+             class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
-        <div *ngFor="let cl of classes; trackBy: byId"
-             class="group rounded-2xl border border-slate-200/80 p-4 hover:shadow-lg transition dark:border-slate-800">
+          <div *ngFor="let cl of classes; trackBy: byId"
+               class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
 
-          <!-- Header: stacks on mobile, side-by-side on ≥sm -->
-          <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-            <div class="min-w-0">
-              <div class="font-medium line-clamp-2">{{ cl.title }}</div>
-              <div class="text-xs text-slate-500 mt-1 break-all">
-                Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
-              </div>
+            <!-- NEW: Cover image -->
+            <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
+              <img
+                [src]=" '../../../assets/img/class.jpg'"
+                [alt]="cl.title || 'Couverture de la classe'"
+                class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
+                loading="lazy" />
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
             </div>
-            <a [routerLink]="['/class', cl.id]"
-              class="w-full sm:w-auto justify-center inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium
-                      bg-indigo-600 text-white hover:bg-indigo-700">
-              Ouvrir
-            </a>
 
-            <button *ngIf="(isAdmin$ | async)" (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
-                    class="w-full sm:w-auto justify-center inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium
-                           bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100
-                           disabled:opacity-60 disabled:cursor-not-allowed
-                           dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
-              <svg *ngIf="deletingClass[cl.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/>
-                <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/>
-              </svg>
-              <span class="hidden sm:inline">Supprimer</span>
-              <!-- <span class="sm:hidden">Suppr.</span> -->
-            </button>
-          </div>
-
-          <!-- Invite area -->
-          <!-- <div *ngIf="(isAdmin$ | async)" class="mt-4 rounded-xl bg-slate-50/70 p-3 ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700">
-            <div class="mb-2 text-sm font-medium">Ajouter un membre</div>
-
-            <div class="space-y-2">
-              <input
-                [value]="inviteForms[cl.id!].email || ''"
-                (input)="onInviteEmailChange(cl.id!, $any($event.target).value)"
-                type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false"
-                placeholder="email@domaine.com"
-                class="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-base
-                       text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                       dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
-
-              <div class="flex flex-col gap-2 xs:flex-row xs:items-center">
-                <select
-                  [value]="inviteForms[cl.id!].role || 'student'"
-                  (change)="onInviteRoleChange(cl.id!, $any($event.target).value)"
-                  class="h-11 w-full xs:w-40 rounded-lg border border-slate-300 bg-white px-2 text-sm
-                         text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500
-                         dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
-                  <option value="student">Étudiant</option>
-                  <option value="instructor">Formateur</option>
-                  <option value="ta">Assistant</option>
-                </select>
-
-                <button (click)="inviteByEmail(cl)"
-                        [disabled]="!(inviteForms[cl.id!].email)"
-                        class="h-11 w-full xs:w-auto rounded-lg px-4 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700
-                               disabled:opacity-60 disabled:cursor-not-allowed">
-                  Inviter
-                </button>
+            <!-- Header: stacks on mobile, side-by-side on ≥sm -->
+            <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+              <div class="min-w-0">
+                <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-2">{{ cl.title }}</div>
+                <div class="text-xs text-slate-500 mt-1 break-all">
+                  Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
+                </div>
               </div>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Entrez l’e-mail du membre et choisissez un rôle.</p>
+              <a [routerLink]="['/class', cl.id]"
+                class="w-full sm:w-auto justify-center inline-flex items-center rounded-lg px-3 py-2 text-xs font-medium
+                        bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                Ouvrir
+              </a>
+
+              <button *ngIf="(isAdmin$ | async)" (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
+                      class="w-full sm:w-auto justify-center inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium
+                             bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100
+                             disabled:opacity-60 disabled:cursor-not-allowed
+                             dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
+                <svg *ngIf="deletingClass[cl.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/>
+                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/>
+                </svg>
+                <span class="hidden sm:inline">Supprimer</span>
+              </button>
             </div>
-          </div> -->
-    <!-- Pending Invites -->
+
+            <!-- Pending Invites -->
             <div class="mt-3">
-              <div class="text-sm font-medium">Invitations en attente</div>
+              <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Invitations en attente</div>
               <ng-container *ngIf="invitesByClass[cl.id!] | async as invites">
                 <div *ngIf="invites.length; else noInvites"
                     class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
-                   <li *ngFor="let inv of invites"
-                        class="px-3 py-2">
+                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                    <li *ngFor="let inv of invites" class="px-3 py-2">
                       <div class="flex items-center gap-3">
-                        <!-- left: email + role -->
                         <div class="min-w-0 flex-1">
-                          <div class="text-xs font-medium truncate">{{ inv.email }}</div>
+                          <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ inv.email }}</div>
                           <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
                         </div>
-
-                        <!-- right: status + action -->
                         <div class="flex items-center gap-2 shrink-0">
                           <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200
-                                      dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                            En attente
-                          </span>
-
+                                      dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">En attente</span>
                           <button *ngIf="(isAdmin$ | async)" (click)="cancelInvite(cl, inv)"
                                   [disabled]="cancelingInvite[inv.id!]"
                                   class="inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium
-                                        text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
-                                        disabled:opacity-60 disabled:cursor-not-allowed
-                                        dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                                         text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                         disabled:opacity-60 disabled:cursor-not-allowed
+                                         dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
                             <svg *ngIf="cancelingInvite[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
                               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
                               <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
@@ -228,91 +200,79 @@
                         </div>
                       </div>
                     </li>
-
                   </ul>
-                  
                 </div>
                 <ng-template #noInvites>
                   <div class="mt-2 text-xs text-slate-500">Aucune invitation en attente.</div>
                 </ng-template>
               </ng-container>
             </div>
-          <!-- Members list -->
-          <div class="mt-4">
-          
-            <div class="text-sm font-medium">Membres</div>
-          
 
-
-            <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
-              <div *ngIf="members.length; else noMembers"
-                   class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
-                  <li *ngFor="let m of members; trackBy: trackMember"
-                      class="flex items-center justify-between gap-3 px-3 py-2 transition">
-                    <div class="flex items-center gap-3 min-w-0">
-                     <div class="h-7 w-7 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase">
-                      {{ (m.user?.email || m.uid) | slice:0:2 }}
-                    </div>
-
-                     <div class="min-w-0">
-                      <div class="text-xs font-medium">{{ m.role | titlecase }}</div>
-                      <div class="text-[11px] text-slate-500 truncate">
-                        {{ m.user?.firstName }} {{ m.user?.lastName }}
-                        <span *ngIf="m.user?.email">• {{ m.user?.email }}</span>
-                        <span *ngIf="!m.user">• {{ m.uid }}</span>
+            <!-- Members list -->
+            <div class="mt-4">
+              <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Membres</div>
+              <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
+                <div *ngIf="members.length; else noMembers"
+                     class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                    <li *ngFor="let m of members; trackBy: trackMember"
+                        class="flex items-center justify-between gap-3 px-3 py-2 transition">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <div class="h-7 w-7 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase">
+                          {{ (m.user?.email || m.uid) | slice:0:2 }}
+                        </div>
+                        <div class="min-w-0">
+                          <div class="text-xs font-medium text-slate-900 dark:text-slate-200">{{ m.role | titlecase }}</div>
+                          <div class="text-[11px] text-slate-500 truncate">
+                            {{ m.user?.firstName }} {{ m.user?.lastName }}
+                            <span *ngIf="m.user?.email">• {{ m.user?.email }}</span>
+                            <span *ngIf="!m.user">• {{ m.uid }}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-
-                    </div>
-
-                    <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
-                            [disabled]="isRemoving(cl.id!, m.uid)"
-                            class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
-                                   text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
-                                   disabled:opacity-60 disabled:cursor-not-allowed
-                                   dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
-                      <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/>
-                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/>
-                      </svg>
-                      <span>Retirer</span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-
-              <ng-template #noMembers>
-                <div class="mt-2 text-xs text-slate-500">Aucun membre pour l’instant.</div>
+                      <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
+                              [disabled]="isRemoving(cl.id!, m.uid)"
+                              class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
+                                     text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                     disabled:opacity-60 disabled:cursor-not-allowed
+                                     dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                        <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"/>
+                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/>
+                        </svg>
+                        <span>Retirer</span>
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+                <ng-template #noMembers>
+                  <div class="mt-2 text-xs text-slate-500">Aucun membre pour l’instant.</div>
+                </ng-template>
+              </ng-container>
+              <ng-template #membersLoading>
+                <div class="mt-2 h-10 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
               </ng-template>
-            </ng-container>
-
-            <ng-template #membersLoading>
-              <div class="mt-2 h-10 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
-            </ng-template>
+            </div>
           </div>
+
         </div>
 
-      </div>
+        <ng-template #noClasses>
+          <div class="text-sm text-slate-600 dark:text-slate-400">
+            Aucune classe pour l’instant.
+            <button (click)="openCreateClass()" class="text-emerald-600 hover:underline">Créer une classe</button>
+          </div>
+        </ng-template>
+      </ng-container>
 
-      <ng-template #noClasses>
-        <div class="text-sm text-slate-500">
-          Aucune classe pour l’instant.
-          <button (click)="openCreateClass()" class="text-emerald-600 hover:underline">Créer une classe</button>
+      <ng-template #classesLoading>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div *ngFor="let i of [1,2,3]" class="rounded-2xl ring-1 ring-slate-200/80 p-4 h-28 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
         </div>
       </ng-template>
-    </ng-container>
-
-    
-
-    <ng-template #classesLoading>
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div *ngFor="let i of [1,2,3]" class="rounded-2xl border border-slate-200/80 p-4 h-28 animate-pulse dark:border-slate-800"></div>
-      </div>
-    </ng-template>
+    </div>
   </div>
 </section>
-
 
 
 
@@ -322,32 +282,36 @@
       <div *ngIf="showCourseDialog" class="fixed inset-0 z-50 grid place-items-center">
         <div class="absolute inset-0 bg-black/40" (click)="closeCourseDialog()"></div>
         <div role="dialog" aria-modal="true"
-             class="relative w-full max-w-md mx-4 rounded-2xl bg-white p-5 ring-1 ring-black/10 shadow-xl dark:bg-slate-900 dark:ring-slate-700 max-h-[85vh] overflow-y-auto">
-          <h3 class="text-lg font-semibold mb-4">{{ editCourse ? 'Modifier le cours' : 'Nouveau cours' }}</h3>
-          <form (ngSubmit)="saveCourse()" class="space-y-4" novalidate>
-            <div>
-              <label class="block text-sm font-medium mb-1">Titre</label>
-              <input [(ngModel)]="courseForm.title" name="title" required minlength="3"
-                     class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700"
-                     placeholder="Ex.: Introduction à la microfinance">
+             class="relative w-full max-w-md mx-4 rounded-2xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-xl">
+          <div class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white ring-1 ring-black/10 dark:bg-slate-900 dark:ring-slate-700 max-h-[85vh] overflow-y-auto">
+            <div class="p-5">
+              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">{{ editCourse ? 'Modifier le cours' : 'Nouveau cours' }}</h3>
+              <form (ngSubmit)="saveCourse()" class="space-y-4" novalidate>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Titre</label>
+                  <input [(ngModel)]="courseForm.title" name="title" required minlength="3"
+                         class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                         placeholder="Ex.: Introduction à la microfinance">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Description</label>
+                  <textarea [(ngModel)]="courseForm.description" name="description" rows="4"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                            placeholder="Résumé du cours…"></textarea>
+                </div>
+                <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <button type="button" (click)="closeCourseDialog()"
+                          class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
+                    Annuler
+                  </button>
+                  <button type="submit" [disabled]="!courseForm.title || courseForm.title.length < 3"
+                          class="w-full sm:w-auto rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                    {{ editCourse ? 'Enregistrer' : 'Créer' }}
+                  </button>
+                </div>
+              </form>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Description</label>
-              <textarea [(ngModel)]="courseForm.description" name="description" rows="4"
-                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700"
-                        placeholder="Résumé du cours…"></textarea>
-            </div>
-            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <button type="button" (click)="closeCourseDialog()"
-                      class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
-                Annuler
-              </button>
-              <button type="submit" [disabled]="!courseForm.title || courseForm.title.length < 3"
-                      class="w-full sm:w-auto rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-700">
-                {{ editCourse ? 'Enregistrer' : 'Créer' }}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
 
@@ -355,38 +319,42 @@
       <div *ngIf="showClassDialog" class="fixed inset-0 z-50 grid place-items-center">
         <div class="absolute inset-0 bg-black/40" (click)="closeClassDialog()"></div>
         <div role="dialog" aria-modal="true"
-             class="relative w-full max-w-md mx-4 rounded-2xl bg-white p-5 ring-1 ring-black/10 shadow-xl dark:bg-slate-900 dark:ring-slate-700 max-h-[85vh] overflow-y-auto">
-          <h3 class="text-lg font-semibold mb-4">Nouvelle classe</h3>
-          <form (ngSubmit)="saveClass()" class="space-y-4" novalidate>
-            <div>
-              <label class="block text-sm font-medium mb-1">Cours</label>
-              <ng-container *ngIf="myCourses$ | async as courses">
-                <select
-                  [(ngModel)]="classForm.courseId" name="courseId"
-                  [disabled]="!!creatingFromCourse"
-                  class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700">
-                  <option value="" disabled>Choisir un cours…</option>
-                  <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
-                </select>
-              </ng-container>
+             class="relative w-full max-w-md mx-4 rounded-2xl p-[1px] bg-gradient-to-br from-emerald-500/30 via-cyan-500/20 to-indigo-500/20 shadow-xl">
+          <div class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white ring-1 ring-black/10 dark:bg-slate-900 dark:ring-slate-700 max-h-[85vh] overflow-y-auto">
+            <div class="p-5">
+              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Nouvelle classe</h3>
+              <form (ngSubmit)="saveClass()" class="space-y-4" novalidate>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Cours</label>
+                  <ng-container *ngIf="myCourses$ | async as courses">
+                    <select
+                      [(ngModel)]="classForm.courseId" name="courseId"
+                      [disabled]="!!creatingFromCourse"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                      <option value="" disabled>Choisir un cours…</option>
+                      <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
+                    </select>
+                  </ng-container>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium mb-1">Titre de la classe</label>
+                  <input [(ngModel)]="classForm.title" name="classTitle" required minlength="3"
+                         class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                         placeholder="Ex.: Intro Microfinance — Session A">
+                </div>
+                <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <button type="button" (click)="closeClassDialog()"
+                          class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
+                    Annuler
+                  </button>
+                  <button type="submit" [disabled]="!classForm.courseId || !classForm.title || classForm.title.length < 3"
+                          class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                    Créer la classe
+                  </button>
+                </div>
+              </form>
             </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Titre de la classe</label>
-              <input [(ngModel)]="classForm.title" name="classTitle" required minlength="3"
-                     class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700"
-                     placeholder="Ex.: Intro Microfinance — Session A">
-            </div>
-            <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <button type="button" (click)="closeClassDialog()"
-                      class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
-                Annuler
-              </button>
-              <button type="submit" [disabled]="!classForm.courseId || !classForm.title || classForm.title.length < 3"
-                      class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700">
-                Créer la classe
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
 
