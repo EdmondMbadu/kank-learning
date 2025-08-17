@@ -63,6 +63,7 @@ export class ClassService {
     courseId: string;
     title: string;
     instructorId: string;
+    coverUrl: string;
   }) {
     const { courseId, title, instructorId } = params;
     const id = this.afs.createId();
@@ -84,6 +85,7 @@ export class ClassService {
       counts: { students: 0, instructors: 1 },
       createdAt: now,
       updatedAt: now,
+      coverUrl: params.coverUrl,
     };
 
     const classRef = this.afs.doc(`classes/${id}`).ref;

@@ -151,12 +151,13 @@
                 <!-- NEW: Cover image -->
                 <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
                   <img
-                    [src]=" '../../../assets/img/class.jpg'"
+                    [src]="cl.coverUrl || 'assets/img/class.jpg'"
                     [alt]="cl.title || 'Couverture de la classe'"
                     class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
                     loading="lazy" />
                   <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
                 </div>
+
 
                 <!-- Header: stacks on mobile, side-by-side on ≥sm -->
                 <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
@@ -394,6 +395,45 @@
                     </select>
                   </ng-container>
                 </div>
+                  <!-- NEW: Image de couverture (optionnel) -->
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Image de couverture (optionnel)</label>
+
+                    <div class="rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 overflow-hidden bg-white/70 dark:bg-slate-800/40">
+                      <ng-container *ngIf="classCoverPreview; else emptyClassCover">
+                        <img [src]="classCoverPreview" alt="Aperçu de la couverture"
+                            class="h-40 w-full object-cover">
+                      </ng-container>
+                      <ng-template #emptyClassCover>
+                        <div class="h-32 grid place-items-center text-center p-4 text-slate-500 dark:text-slate-400">
+                          <div class="text-xs">
+                            Aucune image sélectionnée. <br>
+                            L’image par défaut sera utilisée.
+                          </div>
+                        </div>
+                      </ng-template>
+                    </div>
+
+                    <!-- Hidden input + actions -->
+                    <input #classCoverInput type="file" accept="image/*" class="sr-only" (change)="onClassCoverSelected($event)">
+
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <button type="button" (click)="classCoverInput.click()"
+                              class="rounded-lg px-3 py-2 text-sm font-medium bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                        Choisir une image
+                      </button>
+                      <button *ngIf="classCoverPreview" type="button" (click)="clearClassCover()"
+                              class="rounded-lg px-3 py-2 text-sm font-medium text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50 dark:ring-rose-800 dark:hover:bg-rose-900/20">
+                        Retirer
+                      </button>
+                    </div>
+
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Formats recommandés : JPG/PNG, ~1600×900. (Optionnel)
+                    </p>
+                  </div>
+
+
                 <div>
                   <label class="block text-sm font-medium mb-1">Titre de la classe</label>
                   <input [(ngModel)]="classForm.title" name="classTitle" required minlength="3"
@@ -405,10 +445,12 @@
                           class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
                     Annuler
                   </button>
-                  <button type="submit" [disabled]="!classForm.courseId || !classForm.title || classForm.title.length < 3"
-                          class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                    Créer la classe
-                  </button>
+                 <button type="submit"
+                        [disabled]="!classForm.courseId || !classForm.title || classForm.title.length < 3 || uploadingClassCover"
+                        class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                  Créer la classe
+                </button>
+
                 </div>
               </form>
             </div>

@@ -30,6 +30,11 @@ export class DashboardComponent implements OnInit {
   courseCoverPreview: string | null = null;
   uploadingCover = false;
 
+  DEFAULT_CLASS_COVER = 'assets/img/class.jpg';
+  classCoverFile: File | null = null;
+  classCoverPreview: string | null = null;
+  uploadingClassCover = false;
+
   // Course dialog
   showCourseDialog = false;
   editCourse: Course | null = null;
@@ -220,7 +225,6 @@ export class DashboardComponent implements OnInit {
   }
 
   openCreateClass(course?: Course) {
-    // Allow only admins to create classes (per your requirement)
     this.isAdmin$.pipe(take(1)).subscribe((isAdmin) => {
       if (!isAdmin) {
         alert('Action non autorisée.');
@@ -229,27 +233,51 @@ export class DashboardComponent implements OnInit {
       this.creatingFromCourse = course ?? null;
       this.classForm.courseId = course?.id ?? '';
       this.classForm.title = course ? `${course.title} — Session` : '';
+      this.classCoverFile = null; // NEW
+      this.classCoverPreview = null; // NEW
+      this.uploadingClassCover = false; // NEW
       this.showClassDialog = true;
     });
   }
+
   closeClassDialog() {
     this.showClassDialog = false;
     this.creatingFromCourse = null;
+    this.classCoverFile = null; // NEW
+    this.classCoverPreview = null; // NEW
+    this.uploadingClassCover = false; // NEW
   }
+
   async saveClass() {
     const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
     if (!me?.uid) return;
     const { courseId, title } = this.classForm;
     if (!courseId || !title.trim()) return;
 
-    await this.classes.createClass({
-      courseId,
-      title: title.trim(),
-      instructorId: me.uid,
-    });
-    this.showClassDialog = false;
-    this.creatingFromCourse = null;
-    this.classForm = { courseId: '', title: '' };
+    try {
+      this.uploadingClassCover = true;
+
+      let coverUrl: string | undefined;
+      if (this.classCoverFile) {
+        coverUrl = await this.uploadClassCover(this.classCoverFile, me.uid);
+      } else {
+        coverUrl = this.DEFAULT_CLASS_COVER; // fallback on create
+      }
+
+      await this.classes.createClass({
+        courseId,
+        title: title.trim(),
+        instructorId: me.uid,
+        coverUrl, // NEW
+      });
+    } finally {
+      this.uploadingClassCover = false;
+      this.showClassDialog = false;
+      this.creatingFromCourse = null;
+      this.classForm = { courseId: '', title: '' };
+      this.classCoverFile = null;
+      this.classCoverPreview = null;
+    }
   }
 
   // Ensure a form exists for a class id
@@ -374,6 +402,31 @@ export class DashboardComponent implements OnInit {
     const storage = getStorage(); // uses default Firebase app
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const path = `course-covers/${ownerId}/${Date.now()}-${safeName}`;
+    const r = ref(storage, path);
+    await uploadBytes(r, file);
+    return await getDownloadURL(r);
+  }
+
+  onClassCoverSelected(evt: Event) {
+    const input = evt.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    this.classCoverFile = file;
+
+    const reader = new FileReader();
+    reader.onload = () => (this.classCoverPreview = reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  clearClassCover() {
+    this.classCoverFile = null;
+    this.classCoverPreview = null;
+  }
+
+  private async uploadClassCover(file: File, ownerId: string): Promise<string> {
+    const storage = getStorage();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `class-covers/${ownerId}/${Date.now()}-${safeName}`;
     const r = ref(storage, path);
     await uploadBytes(r, file);
     return await getDownloadURL(r);

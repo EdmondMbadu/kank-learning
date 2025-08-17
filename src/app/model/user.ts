@@ -93,6 +93,7 @@ export interface ClassSection {
   counts?: { students: number; instructors: number };
   createdAt?: FSDate;
   updatedAt?: FSDate;
+  coverUrl?: string;
 }
 
 // Per-class membership / roles
