@@ -10,6 +10,7 @@ import { AuthGuard } from './shared/auth.guard';
 import { ClassComponent } from './component/class/class.component';
 import { ProfileComponent } from './component/profile/profile.component';
 import { GradesComponent } from './component/grades/grades.component';
+import { MessagesComponent } from './component/messages/messages.component';
 
 const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -28,6 +29,7 @@ const routes: Routes = [
   // app-routing.module.ts
   { path: 'profile', component: ProfileComponent }, // e.g., /me
   { path: 'grades', component: GradesComponent },
+  { path: 'messages', component: MessagesComponent },
 ];
 
 @NgModule({

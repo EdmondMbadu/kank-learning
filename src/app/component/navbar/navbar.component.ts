@@ -1,9 +1,10 @@
 import { Component, HostListener } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { combineLatest, Observable, of } from 'rxjs';
 import { map, switchMap, shareReplay } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { User, UserClassIndex } from 'src/app/model/user';
 import { ClassService } from 'src/app/shared/class.service';
+import { MessageService } from 'src/app/shared/message.service';
 
 @Component({
   selector: 'app-navbar',
@@ -17,12 +18,27 @@ export class NavbarComponent {
   me$: Observable<User | null> = this.auth.user$;
 
   myClassesIndex$!: Observable<UserClassIndex[]>;
+  unreadTotal$!: Observable<number>;
 
-  constructor(private auth: AuthService, private classes: ClassService) {
+  constructor(
+    private auth: AuthService,
+    private classes: ClassService,
+    private messages: MessageService
+  ) {
     this.me$ = this.auth.user$;
     this.myClassesIndex$ = this.auth.user$.pipe(
       switchMap((me) =>
         me?.uid ? this.classes.userClassIndex$(me.uid) : of([])
+      )
+    );
+    this.unreadTotal$ = combineLatest([this.me$, this.myClassesIndex$]).pipe(
+      switchMap(([me, idx]) =>
+        me?.uid && idx.length
+          ? this.messages.unreadTotal$(
+              me.uid,
+              idx.map((i) => i.classId)
+            )
+          : of(0)
       )
     );
   }

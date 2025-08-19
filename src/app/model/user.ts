@@ -97,6 +97,16 @@ export interface ClassSection {
   coverUrl?: string;
 }
 
+export interface ClassMessage {
+  id?: string;
+  classId: string;
+  text: string;
+  authorId: string;
+  authorName: string;
+  createdAt: any;
+  pinned?: boolean;
+}
+
 // Per-class membership / roles
 export interface ClassMember {
   uid: string;

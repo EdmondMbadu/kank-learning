@@ -88,12 +88,14 @@
             class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
             >Modules</a
           >
-          <a
-            routerLink="/messages"
-            routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white"
-            class="rounded-xl px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 transition"
-            >Messages</a
-          >
+         <a routerLink="/messages" routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+          <!-- <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg> -->
+          <span class="flex-1">Messages</span>
+          <ng-container *ngIf="(unreadTotal$ | async) as u">
+            <span *ngIf="u > 0" class="ml-2 rounded-full bg-rose-600 text-white text-[11px] px-2 py-0.5 ring-1 ring-rose-500">{{ u }}</span>
+          </ng-container>
+        </a>
+
           <a
             routerLink="/grades"
             routerLinkActive="text-white bg-slate-900 dark:text-slate-900 dark:bg-white"
@@ -134,6 +136,15 @@
                   {{ initials(me) }}
                 </div>
               </ng-template>
+              <!-- inside the button, after avatar/initials block -->
+              <ng-container *ngIf="(unreadTotal$ | async) as u">
+                <span *ngIf="u > 0"
+                      class="absolute -top-1 -right-1 grid place-items-center h-5 min-w-5 px-1 rounded-full
+                            bg-rose-600 text-white text-[11px] font-semibold ring-2 ring-white dark:ring-slate-900">
+                  {{ u }}
+                </span>
+              </ng-container>
+
 
               <div class="leading-tight hidden md:block min-w-0">
                 <div class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate max-w-[28ch]">
@@ -272,10 +283,14 @@
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h12a2 2 0 012 2v14l-6-3-6 3V5a2 2 0 012-2z"/></svg>
         Modules
       </a>
-      <a routerLink="/messages" routerLinkActive="bg-white/10" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
+     <a routerLink="/messages" routerLinkActive="bg-white/10" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4a2 2 0 00-2 2v14l4-4h14a2 2 0 002-2V4a2 2 0 00-2-2z"/></svg>
-        Messages
+        <span class="flex-1">Messages</span>
+        <ng-container *ngIf="(unreadTotal$ | async) as u">
+          <span *ngIf="u > 0" class="ml-2 rounded-full bg-rose-600 text-white text-[11px] px-2 py-0.5 ring-1 ring-rose-500">{{ u }}</span>
+        </ng-container>
       </a>
+
       <a routerLink="/grades" routerLinkActive="bg-white/10" class="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/10">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h2v2h6V2h2v2h3v18H4V4h3V2zm13 8H4v10h16V10z"/></svg>
         Notes

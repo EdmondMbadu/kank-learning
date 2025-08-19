@@ -20,6 +20,7 @@ import { NavbarComponent } from './component/navbar/navbar.component';
 import { ClassComponent } from './component/class/class.component';
 import { ProfileComponent } from './component/profile/profile.component';
 import { GradesComponent } from './component/grades/grades.component';
+import { MessagesComponent } from './component/messages/messages.component';
 
 @NgModule({
   declarations: [
@@ -34,6 +35,7 @@ import { GradesComponent } from './component/grades/grades.component';
     ClassComponent,
     ProfileComponent,
     GradesComponent,
+    MessagesComponent,
   ],
   imports: [
     BrowserModule,
