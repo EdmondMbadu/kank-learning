@@ -13,7 +13,15 @@ import {
 } from 'src/app/model/user';
 import { CourseService } from 'src/app/shared/course.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
-
+// 1) Add these types + helpers at the top of the class (after existing fields)
+type AvgStats = {
+  pct: number | null;
+  gradedCount: number; // number of graded items considered
+  assignmentsCount?: number; // total assignments (for "your" average)
+  attemptsCount?: number; // total attempts (for class average)
+  totalCorrect: number;
+  totalQuestions: number;
+};
 @Component({
   selector: 'app-class',
   templateUrl: './class.component.html',
@@ -504,4 +512,119 @@ export class ClassComponent {
       text
     );
   }
+  private pct(totalCorrect: number, totalQuestions: number): number | null {
+    return totalQuestions > 0
+      ? Math.round((totalCorrect / totalQuestions) * 100)
+      : null;
+  }
+
+  /** Pretty conic ring for the donut */
+  conic(pct: number | null) {
+    if (pct == null || isNaN(pct)) {
+      return `conic-gradient(rgb(226 232 240) 0% 100%)`;
+    }
+    const p = Math.max(0, Math.min(100, pct));
+    return `conic-gradient(
+    rgb(79 70 229) 0% ${p}%,
+    rgb(203 213 225) ${p}% 100%
+  )`;
+  }
+  barWidth(pct: number | null) {
+    const p = Math.max(0, Math.min(100, pct ?? 0));
+    return `${p}%`;
+  }
+
+  // 2) Your (current user) average for this class
+  myClassAvg$ = combineLatest([
+    this.classId$,
+    this.me$,
+    this.assignments$,
+  ]).pipe(
+    switchMap(([classId, me, assigns]) => {
+      if (!me?.uid || !assigns?.length) {
+        return of<AvgStats>({
+          pct: null,
+          gradedCount: 0,
+          assignmentsCount: assigns?.length ?? 0,
+          totalCorrect: 0,
+          totalQuestions: 0,
+        });
+      }
+      const streams = assigns.map((a) =>
+        this.asgn.attempt$(classId, a.id!, me.uid!)
+      );
+      return combineLatest(streams).pipe(
+        map((atts) => {
+          let totalCorrect = 0;
+          let totalQuestions = 0;
+          let gradedCount = 0;
+
+          assigns.forEach((a, i) => {
+            const att = atts[i];
+            const qTotal =
+              (a as any)?.numQuestions ??
+              (Array.isArray(att?.answers) ? att!.answers.length : 0);
+            if (att?.score != null && qTotal > 0) {
+              totalCorrect += att.score;
+              totalQuestions += qTotal;
+              gradedCount++;
+            }
+          });
+
+          return {
+            pct: this.pct(totalCorrect, totalQuestions),
+            gradedCount,
+            assignmentsCount: assigns.length,
+            totalCorrect,
+            totalQuestions,
+          } as AvgStats;
+        })
+      );
+    })
+  );
+
+  // 3) Class average (instructor/TA only)
+  classAvg$ = combineLatest([
+    this.isTeacher$,
+    this.classId$,
+    this.assignments$,
+  ]).pipe(
+    switchMap(([ok, classId, assigns]) => {
+      if (!ok || !assigns?.length) {
+        return of<AvgStats | null>(null);
+      }
+      const streams = assigns.map((a) =>
+        this.asgn.attemptsForAssignment$(classId, a.id!)
+      );
+      return combineLatest(streams).pipe(
+        map((listPerAssignment) => {
+          let totalCorrect = 0;
+          let totalQuestions = 0;
+          let gradedCount = 0; // number of graded attempts
+          let attemptsCount = 0; // total attempts (graded + not graded)
+
+          assigns.forEach((a, i) => {
+            const attempts = listPerAssignment[i] || [];
+            const qTotal = (a as any)?.numQuestions ?? 0;
+            attemptsCount += attempts.length;
+            attempts.forEach((att) => {
+              if (att?.score != null && qTotal > 0) {
+                totalCorrect += att.score;
+                totalQuestions += qTotal;
+                gradedCount++;
+              }
+            });
+          });
+
+          return {
+            pct: this.pct(totalCorrect, totalQuestions),
+            gradedCount,
+            attemptsCount,
+            totalCorrect,
+            totalQuestions,
+          } as AvgStats;
+        })
+      );
+    })
+  );
 }
