@@ -105,5 +105,62 @@
         Astuce : cliquez sur l’avatar pour téléverser une photo. Sans photo, un avatar avec vos initiales s’affiche.
       </div>
     </div>
+
+
+    <!-- Admin-only child user management -->
+<ng-container *ngIf="isAdmin$ | async">
+  <div class="mt-8 rounded-2xl bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-lg font-semibold">Comptes rattachés</h2>
+      <span class="text-xs text-slate-500">Créer des utilisateurs avec nom d’utilisateur + code</span>
+    </div>
+
+    <!-- Create child user form -->
+    <form (ngSubmit)="createChild()" class="grid gap-2 sm:grid-cols-2">
+      <input [(ngModel)]="child.firstName" name="cFirst" placeholder="Prénom" class="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" />
+      <input [(ngModel)]="child.lastName"  name="cLast"  placeholder="Nom"    class="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700" />
+      <input [(ngModel)]="child.username"  name="cUser"  required placeholder="Nom d’utilisateur"
+             class="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 sm:col-span-2" />
+      <input [(ngModel)]="child.code"      name="cCode"  required placeholder="Code (mot de passe)" type="password"
+             class="rounded-xl border px-3 py-2 text-sm dark:bg-slate-800 dark:border-slate-700 sm:col-span-2" />
+
+      <div class="sm:col-span-2 flex gap-2">
+        <button type="submit" [disabled]="creating || !child.username || !child.code"
+                class="rounded-xl bg-indigo-600 text-white px-4 py-2 text-sm font-semibold">
+          {{ creating ? 'Création…' : 'Créer' }}
+        </button>
+        <a routerLink="/student-login" class="rounded-xl ring-1 ring-slate-300 px-4 py-2 text-sm">
+          Ouvrir la page “Connexion étudiant”
+        </a>
+      </div>
+      <p *ngIf="err" class="sm:col-span-2 text-xs text-rose-600">{{ err }}</p>
+    </form>
+
+    <!-- List child users -->
+    <div class="mt-5">
+      <div class="text-sm font-semibold mb-2">Utilisateurs existants</div>
+      <div *ngIf="childUsers$ | async as rows; else cLoading">
+        <div *ngIf="rows.length; else noRows" class="space-y-2">
+          <div *ngFor="let u of rows" class="flex items-center justify-between rounded-xl ring-1 ring-slate-200 px-3 py-2 dark:ring-slate-700">
+            <div class="min-w-0">
+              <div class="text-sm font-medium truncate">{{ u.displayName || (u.firstName + ' ' + u.lastName) || u.username }}</div>
+              <div class="text-[11px] text-slate-500 truncate">nom d’utilisateur: <b>{{ u.username }}</b> • uid: {{ u.uid }}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <!-- rename -->
+              <button (click)="promptRename(u)" class="rounded px-2 py-1 text-xs ring-1 ring-slate-300">Renommer</button>
+              <!-- change password (needs current) -->
+              <button (click)="promptChangePwd(u)" class="rounded px-2 py-1 text-xs ring-1 ring-slate-300">Changer code</button>
+            </div>
+          </div>
+        </div>
+        <ng-template #noRows><div class="text-sm text-slate-500">Aucun compte rattaché.</div></ng-template>
+      </div>
+      <ng-template #cLoading><div class="h-10 rounded bg-slate-200 animate-pulse dark:bg-slate-800"></div></ng-template>
+    </div>
+  </div>
+</ng-container>
   </div>
 </div>
+
+

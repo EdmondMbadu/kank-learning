@@ -10,6 +10,23 @@ import { firstValueFrom, Observable, of } from 'rxjs';
 import { map, shareReplay, switchMap, take } from 'rxjs/operators';
 import { AngularFireStorage } from '@angular/fire/compat/storage'; // ✅ NEW
 import { User } from '../model/user';
+import { getApps, initializeApp } from '@angular/fire/app';
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut,
+  updateEmail,
+  updatePassword,
+  updateProfile,
+} from '@angular/fire/auth';
+import {
+  doc,
+  getFirestore,
+  serverTimestamp,
+  setDoc,
+} from '@angular/fire/firestore';
+import { norm, sanitizeUsername } from './username.util';
 // { uid?, email?, firstName?, lastName? }
 
 @Injectable({ providedIn: 'root' })
@@ -193,6 +210,184 @@ export class AuthService {
         // compat user has updateProfile
         await authUser.updateProfile(changes);
       }
+    }
+  }
+
+  // ---- Student login with username + code
+  async loginWithUsername(username: string, code: string) {
+    const uname = sanitizeUsername(username);
+    if (!uname) throw new Error('Nom d’utilisateur requis.');
+    const snap = await this.afs
+      .doc<{ uid: string; authEmail: string; ownerUid: string }>(
+        `usernames/${uname}`
+      )
+      .ref.get();
+    if (!snap.exists) throw new Error('Utilisateur introuvable.');
+    const { authEmail } = snap.data()!;
+    const cred = await this.afAuth.signInWithEmailAndPassword(authEmail, code);
+    localStorage.setItem('token', 'true');
+    await this.router.navigate(['/dashboard']);
+  }
+
+  // ---- List my child users (for admin view on profile)
+  listMyChildUsers(ownerUid: string) {
+    return this.afs
+      .collection<User>('users', (ref) =>
+        ref
+          .where('ownerUid', '==', ownerUid)
+          .where('isManagedChild', '==', true)
+      )
+      .valueChanges({ idField: 'uid' });
+  }
+
+  // ---- Create child user with username+code (client-only via SECONDARY app)
+  async createChildUserForMe(params: {
+    ownerUid: string;
+    ownerEmail: string;
+    username: string;
+    code: string;
+    firstName?: string;
+    lastName?: string;
+  }) {
+    const db = this.afs.firestore;
+    const uname = sanitizeUsername(params.username);
+    if (!uname) throw new Error('Nom d’utilisateur invalide.');
+    // 1) ensure username free
+    const unameRef = this.afs.doc(`usernames/${uname}`).ref;
+    const unameSnap = await unameRef.get();
+    if (unameSnap.exists)
+      throw new Error('Ce nom d’utilisateur est déjà pris.');
+
+    // 2) spin up a secondary app so you don't log the admin out
+    const primary = getApps()[0];
+    const secondary = initializeApp(
+      primary.options,
+      'child-maker-' + Date.now()
+    );
+    const auth2 = getAuth(secondary);
+
+    try {
+      // temp email to create; becomes stable <uid>@users.local right after
+      const tempEmail = `${uname}.${Date.now()}@users.local`;
+      const cred = await createUserWithEmailAndPassword(
+        auth2,
+        tempEmail,
+        params.code
+      );
+      const child = cred.user;
+      const stableEmail = `${child.uid}@users.local`;
+      await updateEmail(child, stableEmail);
+      const displayName = `${params.firstName || ''} ${
+        params.lastName || ''
+      }`.trim();
+
+      if (displayName) await updateProfile(child, { displayName });
+
+      // 3) write user doc
+      await setDoc(
+        doc(getFirestore(secondary), 'users', child.uid),
+        {
+          uid: child.uid,
+          isManagedChild: true,
+          authEmail: stableEmail,
+          username: params.username,
+          usernameLower: uname,
+          ownerUid: params.ownerUid,
+          ownerEmailLower: norm(params.ownerEmail),
+          firstName: params.firstName || '',
+          lastName: params.lastName || '',
+          displayName: displayName || params.username,
+          status: 'active',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // 4) username index
+      await setDoc(doc(getFirestore(secondary), 'usernames', uname), {
+        uid: child.uid,
+        authEmail: stableEmail,
+        ownerUid: params.ownerUid,
+      });
+
+      // 5) mirror to your main app as well (same db instance really)
+      // (no-op; we wrote with the same backend)
+
+      return child.uid;
+    } finally {
+      await signOut(auth2).catch(() => {});
+    }
+  }
+
+  // ---- Change child username (no email changes needed)
+  async changeChildUsername(
+    ownerUid: string,
+    targetUid: string,
+    newUsername: string
+  ) {
+    const uname = sanitizeUsername(newUsername);
+    if (!uname) throw new Error('Nom d’utilisateur invalide.');
+    // ensure free
+    const idxRef = this.afs.doc(`usernames/${uname}`).ref;
+    if ((await idxRef.get()).exists) throw new Error('Nom déjà pris.');
+
+    const userRef = this.afs.doc<User>(`users/${targetUid}`).ref;
+    const snap = await userRef.get();
+    if (!snap.exists) throw new Error('Utilisateur introuvable.');
+    const cur = snap.data() as any;
+    if (cur.ownerUid !== ownerUid || !cur.isManagedChild)
+      throw new Error('Accès refusé.');
+
+    // swap index
+    const oldUname = cur.usernameLower;
+    await this.afs.firestore.runTransaction(async (tx) => {
+      tx.set(
+        userRef,
+        {
+          username: newUsername,
+          usernameLower: uname,
+          updatedAt: serverTimestamp(),
+        } as any,
+        { merge: true }
+      );
+      tx.set(
+        idxRef,
+        { uid: targetUid, authEmail: cur.authEmail, ownerUid },
+        { merge: true }
+      );
+      if (oldUname) tx.delete(this.afs.doc(`usernames/${oldUname}`).ref);
+    });
+  }
+
+  // ---- Change child password IF you know the current password
+  async changeChildPasswordWithCurrent(
+    targetUid: string,
+    currentPassword: string,
+    newPassword: string
+  ) {
+    // fetch authEmail for that uid
+    const userDoc = await this.afs.doc<User>(`users/${targetUid}`).ref.get();
+    if (!userDoc.exists) throw new Error('Utilisateur introuvable.');
+    const { authEmail } = userDoc.data() as any;
+    if (!authEmail) throw new Error('authEmail manquant.');
+
+    // secondary login AS the child, then update
+    const primary = getApps()[0];
+    const secondary = initializeApp(
+      primary.options,
+      'child-reset-' + Date.now()
+    );
+    const auth2 = getAuth(secondary);
+    try {
+      const cred = await signInWithEmailAndPassword(
+        auth2,
+        authEmail,
+        currentPassword
+      );
+      await updatePassword(cred.user, newPassword);
+    } finally {
+      await signOut(auth2).catch(() => {});
     }
   }
 }

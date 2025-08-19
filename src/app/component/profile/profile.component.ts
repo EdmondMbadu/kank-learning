@@ -5,7 +5,7 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { map, Observable, Subscription } from 'rxjs';
 import { AuthService } from 'src/app/shared/auth.service';
 import { User } from 'src/app/model/user';
 
@@ -40,6 +40,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
       this.form.firstName = u?.firstName ?? '';
       this.form.lastName = u?.lastName ?? '';
       this.form.photoURL = (u as any)?.photoURL ?? null; // ensure your User has 'photoURL'
+      if (u?.uid) this.childUsers$ = this.auth.listMyChildUsers(u.uid);
     });
   }
 
@@ -60,6 +61,15 @@ export class ProfileComponent implements OnInit, OnDestroy {
   triggerFile() {
     this.fileInput?.nativeElement.click();
   }
+  // ...
+  isAdmin$ = this.auth.user$.pipe(
+    map((u) => (u?.platformRole || '').toLowerCase() === 'admin')
+  );
+
+  child = { firstName: '', lastName: '', username: '', code: '' };
+  creating = false;
+  err = '';
+  childUsers$!: Observable<User[]>;
 
   async onFileSelected(ev: Event) {
     const input = ev.target as HTMLInputElement;
@@ -136,5 +146,53 @@ export class ProfileComponent implements OnInit, OnDestroy {
     // in case you want a manual refresh (if your AuthService exposes one)
     // otherwise this is optional since user$ is reactive
     this.status = 'Rechargé.';
+  }
+
+  async createChild() {
+    if (!this.me?.uid || !this.me.email) {
+      this.err = 'Compte admin requis.';
+      return;
+    }
+    this.err = '';
+    this.creating = true;
+    try {
+      await this.auth.createChildUserForMe({
+        ownerUid: this.me.uid,
+        ownerEmail: this.me.email,
+        username: this.child.username,
+        code: this.child.code,
+        firstName: this.child.firstName,
+        lastName: this.child.lastName,
+      });
+      this.child = { firstName: '', lastName: '', username: '', code: '' };
+    } catch (e: any) {
+      this.err = e?.message || 'Échec de création.';
+    } finally {
+      this.creating = false;
+    }
+  }
+
+  async promptRename(u: any) {
+    const v = prompt('Nouveau nom d’utilisateur', u.username || '');
+    if (!v || !this.me?.uid) return;
+    try {
+      await this.auth.changeChildUsername(this.me.uid, u.uid, v);
+      alert('Modifié ✅');
+    } catch (e: any) {
+      alert(e?.message || 'Échec');
+    }
+  }
+
+  async promptChangePwd(u: any) {
+    const cur = prompt('Code actuel (mot de passe) du compte');
+    if (!cur) return;
+    const nxt = prompt('Nouveau code');
+    if (!nxt) return;
+    try {
+      await this.auth.changeChildPasswordWithCurrent(u.uid, cur, nxt);
+      alert('Code mis à jour ✅');
+    } catch (e: any) {
+      alert(e?.message || 'Échec');
+    }
   }
 }

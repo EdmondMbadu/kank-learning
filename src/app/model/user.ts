@@ -4,12 +4,19 @@
 export class User {
   uid?: string;
   email?: string;
+  isManagedChild?: true;
+  authEmail?: string; // stable hidden email (uid@users.local)
+  username?: string;
+  usernameLower?: string;
+  ownerUid?: string;
+  ownerEmailLower?: string;
   firstName?: string;
   lastName?: string;
   photoURL?: string;
   displayName?: string; // ✅ add
   emailLower?: string;
   schoolId?: string;
+  status?: 'active' | 'disabled';
   platformRole?: 'user' | 'instructor' | 'admin'; // optional, lightweight
 }
 
