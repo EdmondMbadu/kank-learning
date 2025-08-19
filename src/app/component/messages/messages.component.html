@@ -16,33 +16,43 @@
         </div>
 
         <!-- Composer (admin/instructor) -->
+      
         <div class="px-5 pb-4">
-          <div class="rounded-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-white/80 dark:bg-slate-800/50 p-4">
+        <div class="rounded-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-white/80 dark:bg-slate-800/50 p-4">
             <div class="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
-              <textarea [(ngModel)]="newMessage" rows="3" placeholder="Écrire un message pour une classe…"
+            <textarea [(ngModel)]="newMessage" rows="3" placeholder="Écrire un message pour une classe…"
                         class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm
-                               focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900
-                               dark:border-slate-700 dark:text-slate-100"></textarea>
+                            focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900
+                            dark:border-slate-700 dark:text-slate-100"></textarea>
 
-              <div class="flex md:flex-col gap-2">
+            <div class="flex md:flex-col gap-2">
                 <!-- choose class -->
                 <select [(ngModel)]="selectedClassId"
                         class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm
-                               focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
-                  <option value="" disabled selected>Choisir la classe…</option>
-                  <ng-container *ngIf="myIndex$ | async as idx">
-                    <option *ngFor="let c of idx" [value]="c.classId">{{ c.title || c.classId }}</option>
-                  </ng-container>
+                            focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+                <!-- IMPORTANT: no 'selected' attribute (Angular controls selection) -->
+                <option [ngValue]="''" disabled>Choisir la classe…</option>
+                <ng-container *ngIf="myIndex$ | async as idx">
+                    <option *ngFor="let c of idx" [ngValue]="c.classId">{{ c.title || c.classId }}</option>
+                </ng-container>
                 </select>
 
                 <button (click)="send()"
-                        class="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                  Publier
+                        [disabled]="sending || !selectedClassId || !newMessage?.trim()"
+                        class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60">
+                <svg *ngIf="sending" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                </svg>
+                <span>{{ sending ? 'Publication…' : 'Publier' }}</span>
                 </button>
-              </div>
+            </div>
             </div>
             <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Seuls les administrateurs/instructeurs devraient publier.</p>
-          </div>
+
+            <!-- tiny error notice -->
+            <p *ngIf="errorMsg" class="mt-2 text-xs text-rose-600">{{ errorMsg }}</p>
+        </div>
         </div>
 
         <!-- Feed -->

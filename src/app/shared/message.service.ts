@@ -17,7 +17,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import { AuthService } from './auth.service';
-import { Observable } from 'rxjs';
+import { firstValueFrom, Observable, take } from 'rxjs';
 
 export interface ClassMessage {
   id?: string;
@@ -94,8 +94,10 @@ export class MessageService {
   }
 
   async sendMessage(classId: string, text: string) {
-    const me = await this.auth.user$.pipe().toPromise();
+    // OLD (hangs): const me = await this.auth.user$.pipe().toPromise();
+    const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
     if (!me?.uid) throw new Error('Not authenticated');
+
     const ref = collection(this.db, 'classMessages', classId, 'messages');
     await addDoc(ref, {
       text: text.trim(),
