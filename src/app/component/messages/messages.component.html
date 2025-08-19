@@ -38,7 +38,7 @@
                 </select>
 
                 <button (click)="send()"
-                        [disabled]="sending || !selectedClassId || !newMessage?.trim()"
+                        [disabled]="sending || !selectedClassId || !newMessage.trim()"
                         class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60">
                 <svg *ngIf="sending" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
