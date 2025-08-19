@@ -11,6 +11,7 @@ import { ClassComponent } from './component/class/class.component';
 import { ProfileComponent } from './component/profile/profile.component';
 import { GradesComponent } from './component/grades/grades.component';
 import { MessagesComponent } from './component/messages/messages.component';
+import { StudentLoginComponent } from './component/student-login/student-login.component';
 
 const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -30,6 +31,7 @@ const routes: Routes = [
   { path: 'profile', component: ProfileComponent }, // e.g., /me
   { path: 'grades', component: GradesComponent },
   { path: 'messages', component: MessagesComponent },
+  { path: 'student-login', component: StudentLoginComponent },
 ];
 
 @NgModule({

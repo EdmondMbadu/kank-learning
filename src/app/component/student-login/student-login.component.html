@@ -17,56 +17,57 @@
           class="mx-auto mb-3 h-14 w-14 rounded-full object-cover ring-2 ring-indigo-200 dark:ring-slate-700 shadow-md"
         />
         <h2 class="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Connexion</h2>
-        <p class="text-slate-500 dark:text-slate-400 mt-1">Ravi de vous revoir</p>
+        <p class="text-slate-500 dark:text-slate-400 mt-1">Avec nom d’utilisateur</p>
       </div>
 
       <!-- use ngSubmit so Enter works -->
       <form novalidate (ngSubmit)="login()">
-        <!-- email -->
+        <!-- username -->
         <div class="mb-4">
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">E-mail</label>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nom d’utilisateur</label>
           <input
-            type="email"
-            name="email"
+            type="text"
+            name="username"
             required
             [disabled]="loading"
-            [(ngModel)]="email"
-            placeholder="vous@exemple.com"
-            autocomplete="email"
+            [(ngModel)]="username"
+            placeholder="ex. jean.dupont"
+            autocomplete="username"
             class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
 
-        <!-- mot de passe -->
+        <!-- code -->
         <div class="mb-2">
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Mot de passe</label>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Code</label>
           <div class="relative">
             <input
-              [type]="showPassword ? 'text' : 'password'"
-              name="password"
+              [type]="showCode ? 'text' : 'password'"
+              name="code"
               required
               [disabled]="loading"
-              [(ngModel)]="password"
+              [(ngModel)]="code"
               placeholder="••••••••"
               autocomplete="current-password"
               class="w-full pr-28 px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button
               type="button"
-              (click)="showPassword = !showPassword"
+              (click)="showCode = !showCode"
               [disabled]="loading"
               class="absolute inset-y-0 right-0 my-1 mr-1 px-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
             >
-              {{ showPassword ? 'Masquer' : 'Afficher' }}
+              {{ showCode ? 'Masquer' : 'Afficher' }}
             </button>
           </div>
+          <p *ngIf="err" class="mt-2 text-sm text-rose-600">{{ err }}</p>
         </div>
 
         <!-- actions -->
         <div class="mt-5">
           <button
             type="submit"
-            [disabled]="!email || !password || loading"
+            [disabled]="!username || !code || loading"
             class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold shadow-lg hover:shadow-xl transition inline-flex items-center justify-center"
           >
             <span *ngIf="loading" class="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/60 border-t-white"></span>
@@ -75,22 +76,14 @@
         </div>
 
         <!-- liens -->
-       <!-- liens -->
         <div class="mt-4 flex items-center justify-between text-sm">
-          <a routerLink="/register" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-            Pas de compte ? <span class="font-semibold">Créer un compte</span>
+          <a routerLink="/login" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+            ← Retour à la connexion e-mail
           </a>
-
-          <div class="flex items-center gap-3">
-            <a routerLink="/student-login" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-              Connexion avec <span class="font-semibold">nom d’utilisateur</span>
-            </a>
-            <a routerLink="/forgot-password" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-              Mot de passe oublié ?
-            </a>
-          </div>
+          <a routerLink="/forgot-password" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+            Code oublié ?
+          </a>
         </div>
-
       </form>
     </div>
   </div>
