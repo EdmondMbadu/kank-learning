@@ -59,7 +59,14 @@
         <div class="px-5 pb-6">
           <ng-container *ngIf="messages$ | async as msgs; else loading">
             <div *ngIf="msgs.length; else empty" class="space-y-3">
-              <article *ngFor="let m of msgs" class="group rounded-2xl bg-white/80 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-800 p-4 hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow transition">
+            <article
+                *ngFor="let m of msgs"
+                [routerLink]="['/class', m.classId]"
+                [queryParams]="{ msg: m.id }"
+                fragment="messages"
+                class="cursor-pointer group rounded-2xl bg-white/80 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-800 p-4 hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+               
+                >
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
@@ -73,9 +80,23 @@
                       {{ m.text }}
                     </div>
                   </div>
-                  <div class="shrink-0 grid place-items-center h-8 w-8 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-600 text-[11px] font-bold text-white">
-                    {{ (m.authorName || '—') | slice:0:2 | uppercase }}
-                  </div>
+              
+                    <div class="shrink-0 flex flex-col items-center">
+                    <div
+                        class="grid place-items-center h-8 w-8 rounded-full
+                            bg-gradient-to-tr from-indigo-600 to-cyan-600
+                            text-[11px] font-bold text-white">
+                        {{ (m.authorName || '—') | slice:0:2 | uppercase }}
+                    </div>
+
+                    <!-- tiny label under the avatar -->
+                    <div class="mt-1 text-[10px] leading-none text-slate-500 dark:text-slate-400
+                                max-w-[8rem] text-center truncate"
+                        [title]="m.authorName">
+                        {{ m.authorName || '—' }}
+                    </div>
+                    </div>
+
                 </div>
               </article>
             </div>

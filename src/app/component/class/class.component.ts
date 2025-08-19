@@ -1,11 +1,18 @@
 // src/app/component/class-view/class-view.component.ts
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { BehaviorSubject, combineLatest, firstValueFrom, of } from 'rxjs';
+import {
+  BehaviorSubject,
+  combineLatest,
+  firstValueFrom,
+  of,
+  Subscription,
+} from 'rxjs';
 import { switchMap, map } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { ClassService } from 'src/app/shared/class.service';
 import {
+  ClassMessage,
   ClassSection,
   CourseModule,
   QuizAttempt,
@@ -13,6 +20,7 @@ import {
 } from 'src/app/model/user';
 import { CourseService } from 'src/app/shared/course.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
+import { MessageService } from 'src/app/shared/message.service';
 // 1) Add these types + helpers at the top of the class (after existing fields)
 type AvgStats = {
   pct: number | null;
@@ -27,7 +35,7 @@ type AvgStats = {
   templateUrl: './class.component.html',
   styleUrls: ['./class.component.css'],
 })
-export class ClassComponent {
+export class ClassComponent implements OnInit {
   builderOpen = false;
   builderTitle = '';
   builderPoints: number | null = null;
@@ -65,6 +73,22 @@ export class ClassComponent {
   role$ = combineLatest([this.classId$, this.auth.user$]).pipe(
     switchMap(([id, me]) => this.classes.memberRole$(id, me?.uid))
   );
+  messages$ = this.classId$.pipe(
+    switchMap((id) => this.msg.messagesForClass$(id, 100)),
+    map((list) =>
+      list.map((m) => ({
+        ...m,
+        createdAtDate: m.createdAt?.toDate ? m.createdAt.toDate() : new Date(0),
+      }))
+    )
+  );
+
+  newMessageTxt = '';
+  sendingMsg = false;
+  msgError = '';
+
+  highlightMsgId = '';
+  private msgNavSub?: Subscription;
 
   course$ = this.class$.pipe(
     switchMap((cl) =>
@@ -195,8 +219,38 @@ export class ClassComponent {
     private auth: AuthService,
     private classes: ClassService,
     private courses: CourseService,
-    private asgn: AssignmentService // QUIZ
+    private asgn: AssignmentService, // QUIZ,
+    private msg: MessageService
   ) {}
+  ngOnInit() {
+    combineLatest([this.classId$, this.me$]).subscribe(
+      async ([classId, me]) => {
+        if (classId && me?.uid) await this.msg.markClassSeen(me.uid, classId);
+      }
+    );
+    //  Deep-link handling: scroll to a specific message and highlight it
+    this.msgNavSub = this.route.queryParamMap.subscribe((params) => {
+      const mid = params.get('msg');
+      if (!mid) return;
+      this.highlightMsgId = mid;
+
+      const sub = this.messages$.subscribe((list) => {
+        if (!list.some((m) => m.id === mid)) return;
+        // wait a tick for DOM
+        setTimeout(() => {
+          document.getElementById('msg-' + mid)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }, 80);
+        setTimeout(() => (this.highlightMsgId = ''), 2000);
+        sub.unsubscribe();
+      });
+    });
+  }
+  ngOnDestroy() {
+    this.msgNavSub?.unsubscribe();
+  }
 
   async inviteMember(classId: string) {
     const email = this.invite.email?.trim();
@@ -627,4 +681,32 @@ export class ClassComponent {
       );
     })
   );
+
+  async sendClassMessage() {
+    this.msgError = '';
+    const text = this.newMessageTxt.trim();
+    if (!text) return;
+
+    this.sendingMsg = true;
+    try {
+      const classId = await firstValueFrom(this.classId$);
+      const me = await firstValueFrom(this.me$);
+      if (!classId || !me?.uid) {
+        this.msgError = 'Non authentifié.';
+        return;
+      }
+
+      await this.msg.sendMessage(classId, text);
+      this.newMessageTxt = '';
+      await this.msg.markClassSeen(me.uid, classId);
+    } catch (e: any) {
+      this.msgError = e?.message || 'Échec de l’envoi.';
+      console.error('[class] send message failed:', e);
+    } finally {
+      this.sendingMsg = false;
+    }
+  }
+}
+interface ClassMessageWithMeta extends ClassMessage {
+  createdAtDate: Date;
 }

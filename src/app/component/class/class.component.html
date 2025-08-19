@@ -198,6 +198,93 @@
 
       </section>
 
+      <!-- Class Messages -->
+      <section id="messages" class="mt-6 scroll-mt-24 rounded-3xl p-[1px]
+              bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70
+              dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+        <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Messages de la classe</h2>
+            <span class="text-[11px] text-slate-500">Les plus récents en premier</span>
+          </div>
+
+          <!-- Composer (instructor/TA only) -->
+          <div *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+              class="mt-3 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-white/80 dark:bg-slate-800/50 p-3">
+            <div class="grid gap-2 md:grid-cols-[minmax(0,1fr)_160px]">
+              <textarea [(ngModel)]="newMessageTxt" rows="2" placeholder="Écrire un message aux participants…"
+                        class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm
+                              focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900
+                              dark:border-slate-700 dark:text-slate-100"></textarea>
+              <button (click)="sendClassMessage()"
+                      [disabled]="sendingMsg || !newMessageTxt.trim()"
+                      class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60">
+                <svg *ngIf="sendingMsg" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle><path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"/></svg>
+                <span>{{ sendingMsg ? 'Publication…' : 'Publier' }}</span>
+              </button>
+            </div>
+            <p *ngIf="msgError" class="mt-1 text-xs text-rose-600">{{ msgError }}</p>
+          </div>
+
+          <!-- Feed -->
+          <div class="mt-4">
+            <ng-container *ngIf="(messages$ | async) as msgs; else msgsLoading">
+              <div *ngIf="msgs.length; else msgsEmpty" class="space-y-3">
+                <article *ngFor="let m of msgs; trackBy: trackById"
+                        [id]="'msg-' + m.id"
+                        class="group rounded-2xl bg-white/80 dark:bg-slate-800/60 ring-1 p-4 transition
+                                hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow
+                                ring-slate-200 dark:ring-slate-800"
+                        [class.ring-2]="highlightMsgId === m.id"
+                        [class.ring-indigo-400]="highlightMsgId === m.id">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="inline-flex items-center rounded-lg px-2 py-0.5 text-[11px] font-semibold ring-1 ring-indigo-200 text-indigo-700 bg-indigo-50
+                                    dark:ring-indigo-800 dark:text-indigo-200 dark:bg-indigo-900/20">
+                          {{ (class$ | async)?.title || 'Classe' }}
+                        </span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">• {{ m.createdAtDate | date:'medium' }}</span>
+                      </div>
+                      <div class="mt-1 text-sm text-slate-900 dark:text-slate-100 whitespace-pre-wrap break-words">
+                        {{ m.text }}
+                      </div>
+                    </div>
+                  
+                    <div class="shrink-0 flex flex-col items-center">
+                      <div
+                        class="grid place-items-center h-8 w-8 rounded-full
+                              bg-gradient-to-tr from-indigo-600 to-cyan-600
+                              text-[11px] font-bold text-white">
+                        {{ (m.authorName || '—') | slice:0:2 | uppercase }}
+                      </div>
+
+                      <!-- tiny label under the avatar -->
+                      <div class="mt-1 text-[10px] leading-none text-slate-500 dark:text-slate-400
+                                  max-w-[8rem] text-center truncate"
+                          [title]="m.authorName">
+                        {{ m.authorName || '—' }}
+                      </div>
+                    </div>
+
+                  </div>
+                </article>
+              </div>
+            </ng-container>
+
+            <ng-template #msgsEmpty>
+              <div class="text-sm text-slate-600 dark:text-slate-300">Aucun message pour l’instant.</div>
+            </ng-template>
+
+            <ng-template #msgsLoading>
+              <div class="space-y-3">
+                <div *ngFor="let i of [1,2,3]" class="h-20 rounded-2xl bg-slate-100/70 dark:bg-slate-800/40 animate-pulse ring-1 ring-slate-200/70 dark:ring-slate-800"></div>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </section>
+
       <!-- People + Instructor tools -->
       <section class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3 w-full">
         <!-- Participants -->
