@@ -1,0 +1,136 @@
+<app-navbar></app-navbar>
+
+<div
+  class="pt-16 min-h-screen antialiased selection:bg-indigo-600/20 selection:text-indigo-900 dark:selection:text-indigo-200
+         bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+
+  <!-- soft blobs -->
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -top-24 -left-24 hidden md:block h-80 w-80 rounded-full
+              bg-gradient-to-tr from-indigo-500 to-cyan-400 opacity-20 blur-3xl"></div>
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -bottom-28 -right-28 hidden md:block h-[28rem] w-[28rem] rounded-full
+              bg-gradient-to-tr from-fuchsia-500 to-indigo-500 opacity-20 blur-3xl"></div>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-5 lg:px-6 py-6">
+    <!-- Header / Overview -->
+    <section class="mb-6">
+      <div class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
+        <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 p-5 md:p-6">
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">Mes moyennes par classe</h1>
+              <p class="text-sm text-slate-600 dark:text-slate-300">Vue d’ensemble de vos performances.</p>
+            </div>
+
+            <ng-container *ngIf="overview$ | async as ov; else kpisLoading">
+              <div class="grid grid-cols-3 gap-3 w-full md:w-auto">
+                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700 p-3 text-center">
+                  <div class="text-xs text-slate-500">Classes</div>
+                  <div class="text-xl font-semibold text-slate-900 dark:text-white">{{ ov.totalClasses }}</div>
+                </div>
+                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700 p-3 text-center">
+                  <div class="text-xs text-slate-500">Avec notes</div>
+                  <div class="text-xl font-semibold text-slate-900 dark:text-white">{{ ov.gradedClasses }}</div>
+                </div>
+                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700 p-3 text-center">
+                  <div class="text-xs text-slate-500">Moyenne globale</div>
+                  <div class="text-xl font-semibold text-slate-900 dark:text-white">
+                    <ng-container *ngIf="ov.overall != null; else dash"> {{ ov.overall }}%</ng-container>
+                    <ng-template #dash>—</ng-template>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <ng-template #kpisLoading>
+              <div class="grid grid-cols-3 gap-3 w-full md:w-auto">
+                <div class="rounded-2xl h-14 bg-slate-200 animate-pulse dark:bg-slate-800/50"></div>
+                <div class="rounded-2xl h-14 bg-slate-200 animate-pulse dark:bg-slate-800/50"></div>
+                <div class="rounded-2xl h-14 bg-slate-200 animate-pulse dark:bg-slate-800/50"></div>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Class cards -->
+    <section class="rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+      <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5 md:p-6">
+        <ng-container *ngIf="cards$ | async as cards; else cardsLoading">
+          <div *ngIf="cards.length; else noClasses"
+               class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <article *ngFor="let c of cards; trackBy: trackByClassId"
+                     class="group relative overflow-hidden rounded-2xl ring-1 ring-slate-200/70 dark:ring-slate-800
+                            bg-white/90 dark:bg-slate-800/70 backdrop-blur transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
+
+              <!-- Cover -->
+              <div class="relative h-28 w-full overflow-hidden">
+                <img [src]="c.cl.coverUrl || 'assets/img/class.jpg'"
+                     [alt]="c.cl.title || 'Couverture de la classe'"
+                     class="h-full w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]" />
+                <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent"></div>
+              </div>
+
+              <!-- Content -->
+              <div class="p-4">
+                <div class="flex items-start gap-4">
+                  <!-- Donut -->
+                  <div class="relative h-16 w-16 shrink-0 rounded-full"
+                       [style.background]="conic(c.avgPct)">
+                    <div class="absolute inset-1 rounded-full bg-white/95 dark:bg-slate-900/90 grid place-items-center">
+                      <div class="text-sm font-bold text-slate-900 dark:text-white">
+                        <ng-container *ngIf="c.avgPct != null; else ndash">{{ c.avgPct }}%</ng-container>
+                        <ng-template #ndash>—</ng-template>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="font-medium text-slate-900 dark:text-slate-100 truncate">
+                      {{ c.cl.title || 'Classe' }}
+                    </div>
+                    <div class="mt-1 text-[11px] text-slate-500">
+                      {{ c.gradedCount }} / {{ c.assignmentsCount }} devoirs notés
+                    </div>
+
+                    <!-- Gradient bar -->
+                    <div class="mt-2 h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+                      <div class="h-full rounded-full bg-gradient-to-r from-indigo-600 via-cyan-500 to-emerald-500"
+                           [style.width]="barWidth(c.avgPct)"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between">
+                  <a [routerLink]="['/class', c.cl.id]"
+                     class="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold
+                            bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                    Ouvrir la classe
+                  </a>
+
+                  <span class="rounded-full px-2 py-0.5 text-[11px] ring-1
+                               bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                    ID: {{ c.cl.id }}
+                  </span>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <ng-template #noClasses>
+            <div class="text-sm text-slate-600 dark:text-slate-400">Aucune classe pour l’instant.</div>
+          </ng-template>
+        </ng-container>
+
+        <ng-template #cardsLoading>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div *ngFor="let i of [1,2,3,4,5,6]"
+                 class="rounded-2xl h-40 ring-1 ring-slate-200/80 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
+          </div>
+        </ng-template>
+      </div>
+    </section>
+  </div>
+</div>
+

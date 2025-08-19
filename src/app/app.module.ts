@@ -19,6 +19,7 @@ import { LandingPageComponent } from './component/landing-page/landing-page.comp
 import { NavbarComponent } from './component/navbar/navbar.component';
 import { ClassComponent } from './component/class/class.component';
 import { ProfileComponent } from './component/profile/profile.component';
+import { GradesComponent } from './component/grades/grades.component';
 
 @NgModule({
   declarations: [
@@ -32,6 +33,7 @@ import { ProfileComponent } from './component/profile/profile.component';
     NavbarComponent,
     ClassComponent,
     ProfileComponent,
+    GradesComponent,
   ],
   imports: [
     BrowserModule,

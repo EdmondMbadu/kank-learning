@@ -9,6 +9,7 @@ import { LandingPageComponent } from './component/landing-page/landing-page.comp
 import { AuthGuard } from './shared/auth.guard';
 import { ClassComponent } from './component/class/class.component';
 import { ProfileComponent } from './component/profile/profile.component';
+import { GradesComponent } from './component/grades/grades.component';
 
 const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -26,6 +27,7 @@ const routes: Routes = [
   { path: 'forgot-password', component: ForgotPasswordComponent },
   // app-routing.module.ts
   { path: 'profile', component: ProfileComponent }, // e.g., /me
+  { path: 'grades', component: GradesComponent },
 ];
 
 @NgModule({
