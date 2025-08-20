@@ -213,12 +213,19 @@
 
                     <!-- Desktop actions -->
                     <div class="hidden sm:flex items-center gap-2">
-                      <button (click)="toggleAssignment(a.id!)"
+                      <!-- <button (click)="toggleAssignment(a.id!)"
                               [attr.aria-expanded]="openAssignmentId === a.id"
                               class="rounded-lg px-3 py-1.5 text-xs font-semibold
                                      bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                         {{ openAssignmentId === a.id ? 'Fermer' : 'Ouvrir' }}
-                      </button>
+                      </button> -->
+                      <!-- inside the assignment row (desktop actions), replace the old open button -->
+                        <a [routerLink]="['/class', cl.id, 'quiz', a.id]"
+                          class="rounded-lg px-3 py-1.5 text-xs font-semibold
+                                  bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                          Ouvrir
+                        </a>
+
 
                       <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
                               (click)="confirmDeleteAssignment(cl.id!, a.id!)"
@@ -247,10 +254,17 @@
                         </summary>
                         <div class="absolute right-0 mt-1 w-44 rounded-xl overflow-hidden
                                     bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-xl">
-                          <button (click)="toggleAssignment(a.id!)"
+                          <!-- <button (click)="toggleAssignment(a.id!)"
                                   class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">
                             {{ openAssignmentId === a.id ? 'Fermer' : 'Ouvrir' }}
-                          </button>
+                          </button> -->
+                          <!-- inside the assignment row (desktop actions), replace the old open button -->
+                            <a [routerLink]="['/class', cl.id, 'quiz', a.id]"
+                              class="rounded-lg px-3 py-1.5 text-xs font-semibold
+                                      bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                              Ouvrir
+                            </a>
+
                           <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
                                   (click)="confirmDeleteAssignment(cl.id!, a.id!)"
                                   [disabled]="deleting[a.id!]"

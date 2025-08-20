@@ -1,0 +1,188 @@
+<app-navbar></app-navbar>
+
+<div class="pt-16 min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50
+            dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+  <div class="mx-auto max-w-3xl px-4 py-6">
+    <div class="mb-4 flex items-center gap-2 text-sm">
+      <a [routerLink]="['/class', (classId$ | async)!]"
+         class="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+        ← Retour à la classe
+      </a>
+    </div>
+
+    <div class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
+      <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+
+        <ng-container *ngIf="assignment$ | async as a; else loading">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">{{ a.title }}</h1>
+              <div class="text-xs text-slate-500 dark:text-slate-400">
+                {{ a.numQuestions }} questions
+                <span *ngIf="a.points">• {{ a.points }} pts</span>
+                <span *ngIf="a.timed && a.timeLimitSec" class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
+                             bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
+                  ⏱ {{ a.timeLimitSec / 60 | number:'1.0-0' }} min
+                </span>
+              </div>
+            </div>
+
+            <ng-container *ngIf="timeLeft$ | async as secs">
+              <div *ngIf="secs !== null"
+                   class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200
+                          dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 1H9v2h6V1zm-1 10h-2V8h2v3zm-2 2h2v6h-2v-6z"/><path d="M12 4a8 8 0 100 16 8 8 0 000-16z"/></svg>
+                <span>Temps : <b>{{ clock(secs) }}</b></span>
+              </div>
+            </ng-container>
+          </div>
+
+          <!-- status & start -->
+        <div class="mt-3">
+        <!-- This object is always truthy, even if att is null -->
+        <ng-container *ngIf="{ att: (myAttempt$ | async) } as vm">
+            <!-- Status banners -->
+            <div *ngIf="vm.att?.score != null; else notDone"
+                class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                        dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/></svg>
+            <span>Votre score : <b>{{ vm.att!.score }}/{{ a.numQuestions }}</b>
+                ({{ (vm.att!.score! / a.numQuestions * 100) | number:'1.0-0' }}%)</span>
+            </div>
+
+            <ng-template #notDone>
+            <div *ngIf="answeredCount(vm.att) > 0; else notStarted"
+                class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                        dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                <span>En cours : {{ answeredCount(vm.att) }}/{{ a.numQuestions }}</span>
+            </div>
+            <ng-template #notStarted>
+                <div class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-slate-100 text-slate-700 ring-1 ring-slate-200
+                            dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                <span>Non commencé</span>
+                </div>
+            </ng-template>
+            </ng-template>
+
+            <!-- The START/CONTINUE button must be visible even if att is null -->
+            <div class="mt-3">
+            <button
+                (click)="onStartClick(a, vm.att)"
+                [disabled]="lockTimed || vm.att?.status === 'submitted' || vm.att?.status === 'expired'"
+                class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60">
+                Démarrer / Continuer
+            </button>
+            </div>
+
+            <!-- Questions render only after an attempt exists -->
+        <div *ngIf="vm.att?.selectedIds as ids" class="mt-4 space-y-4">
+            <div *ngFor="let qid of ids; let i = index">
+                <ng-container *ngIf="getById(a.pool, qid) as q">
+                <img *ngIf="q.imageUrl"
+                    [src]="q.imageUrl"
+                    class="mb-2 w-full max-h-64 object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
+
+                <div class="text-sm font-medium text-slate-900 dark:text-slate-100">
+                    {{ i + 1 }}. {{ q.prompt }}
+                </div>
+
+                <!-- Single choice -->
+                <div *ngIf="q.kind === 'mcq-single'" class="mt-1 grid gap-1">
+                    <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
+                    <input type="radio"
+                            [attr.name]="'q-'+i"
+                            [checked]="isSingleSelected(vm.att, i, j)"
+                            (change)="selectSingle(i, j)" />
+                    <span>{{ opt }}</span>
+                    </label>
+                </div>
+
+                <!-- Multiple choice -->
+                <div *ngIf="q.kind === 'mcq-multi'" class="mt-1 grid gap-1">
+                    <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
+                    <input type="checkbox"
+                            [checked]="isMultiChecked(vm.att, i, j)"
+                            (change)="toggleMulti(i, j)" />
+                    <span>{{ opt }}</span>
+                    </label>
+                </div>
+
+                <!-- Text -->
+                <div *ngIf="q.kind === 'text'" class="mt-1">
+                    <input type="text"
+                        [value]="textAnswer(vm.att, i)"
+                        (input)="saveText(i, ($any($event.target).value || '').toString())"
+                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                                dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+                </div>
+                </ng-container>
+            </div>
+
+            <div class="pt-2 flex items-center gap-3">
+                <button (click)="submit()"
+                        class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700
+                            focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                Envoyer
+                </button>
+            </div>
+        </div>
+
+        </ng-container>
+        </div>
+
+
+          <!-- Instructor scoreboard -->
+          <ng-container *ngIf="isTeacher$ | async">
+            <ng-container *ngIf="instructorAttempts$ | async as rows">
+              <div class="mt-6 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 dark:bg-slate-800/40 dark:ring-slate-700">
+                <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                  Résultats des étudiants
+                </div>
+                <div *ngIf="rows.length; else noRows" class="divide-y divide-slate-200 dark:divide-slate-700">
+                  <div *ngFor="let r of rows" class="py-2 flex items-center justify-between">
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{{ r.uid }}</div>
+                    </div>
+                    <div class="shrink-0">
+                      <span *ngIf="r.score != null"
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                   bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                   dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                        {{ r.score }}/{{ (assignment$ | async)?.numQuestions }}
+                        • {{ (r.score / (assignment$ | async)!.numQuestions * 100) | number:'1.0-0' }}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <ng-template #noRows>
+                  <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
+                </ng-template>
+              </div>
+            </ng-container>
+          </ng-container>
+
+        </ng-container>
+
+        <ng-template #loading>
+          <div class="h-20 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- confirm start (timed) -->
+<div *ngIf="confirmStartOpen" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/50" (click)="confirmStartOpen=false"></div>
+  <div class="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-5">
+    <h4 class="text-base font-semibold mb-2">Démarrer le quiz chronométré ?</h4>
+    <p class="text-sm text-slate-600 dark:text-slate-300">
+      Une fois commencé, le minuteur tourne (<b>impossible de fermer</b> la page jusqu’à l’envoi ou la fin du temps).
+    </p>
+    <div class="mt-4 flex justify-end gap-2">
+      <button (click)="confirmStartOpen=false" class="rounded-md px-3 py-1.5 text-sm ring-1 ring-slate-200 dark:ring-slate-700">Annuler</button>
+      <button (click)="confirmStart()" class="rounded-md px-3 py-1.5 text-sm font-semibold bg-emerald-600 text-white">Commencer</button>
+    </div>
+  </div>
+</div>

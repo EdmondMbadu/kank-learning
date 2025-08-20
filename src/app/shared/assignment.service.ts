@@ -555,6 +555,11 @@ export class AssignmentService {
     const expired = expiresAt && Date.now() >= expiresAt.toMillis();
     return status !== 'submitted' && status !== 'expired' && !expired;
   }
+  assignment$(classId: string, assignmentId: string) {
+    return this.afs
+      .doc<QuizAssignment>(`classes/${classId}/assignments/${assignmentId}`)
+      .valueChanges({ idField: 'id' });
+  }
 }
 
 // --- util (file-local) ---
