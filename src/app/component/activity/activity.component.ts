@@ -10,9 +10,13 @@ type AnyClass = { id: string; title?: string; name?: string };
 
 interface Row {
   cl: AnyClass;
-  asg: QuizAssignment & { id?: string };
+  asg: QuizAssignment & { id?: string; createdAt?: any; updatedAt?: any };
   att: QuizAttempt | null;
 }
+
+type TimelineItem = Row & { kind: 'todo' | 'done'; date: Date };
+
+type DayGroup = { key: string; label: string; items: TimelineItem[] };
 
 @Component({
   selector: 'app-activity',
@@ -21,7 +25,7 @@ interface Row {
 export class ActivityComponent {
   me$ = this.auth.effectiveUser$;
 
-  // All classes for the user
+  // All classes for the user (map + subcollection; merged & de-duped)
   classes$ = this.me$.pipe(
     switchMap((me) => {
       if (!me?.uid) return of<AnyClass[]>([]);
@@ -42,10 +46,11 @@ export class ActivityComponent {
   // All assignments across all classes -> flatten
   assignments$ = this.classes$.pipe(
     switchMap((cls) => {
-      if (!cls.length)
+      if (!cls.length) {
         return of(
           [] as { cl: AnyClass; asg: QuizAssignment & { id?: string } }[]
         );
+      }
       return combineLatest(
         cls.map((cl) =>
           this.asgn
@@ -69,25 +74,39 @@ export class ActivityComponent {
         )
       );
     }),
-    // small quality-of-life: sort by class title then assignment title
-    map((rows) =>
-      rows.sort((a, b) => {
-        const ca = (a.cl.title || a.cl.name || '').localeCompare(
-          b.cl.title || b.cl.name || ''
-        );
-        if (ca !== 0) return ca;
-        return (a.asg.title || '').localeCompare(b.asg.title || '');
-      })
-    ),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
-  // Derived splits
-  todos$ = this.rows$.pipe(
-    map((rows) => rows.filter((r) => !this.isCompleted(r.att)))
+  // ===== Timeline logic =====
+
+  // “À faire” timeline groups (newest first by last activity/assignment update)
+  todoGroups$ = this.rows$.pipe(
+    map((rows) =>
+      rows
+        .filter((r) => !this.isCompleted(r.att))
+        .map((r) => ({
+          ...r,
+          kind: 'todo' as const,
+          date: this.todoDate(r),
+        }))
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+    ),
+    map((items) => this.groupByDay(items))
   );
-  dones$ = this.rows$.pipe(
-    map((rows) => rows.filter((r) => this.isCompleted(r.att)))
+
+  // “Terminé” timeline groups (newest first by submitted/graded time)
+  doneGroups$ = this.rows$.pipe(
+    map((rows) =>
+      rows
+        .filter((r) => this.isCompleted(r.att))
+        .map((r) => ({
+          ...r,
+          kind: 'done' as const,
+          date: this.doneDate(r),
+        }))
+        .sort((a, b) => b.date.getTime() - a.date.getTime())
+    ),
+    map((items) => this.groupByDay(items))
   );
 
   constructor(
@@ -96,7 +115,8 @@ export class ActivityComponent {
     private asgn: AssignmentService
   ) {}
 
-  // Helpers
+  // ===== Helpers =====
+
   isCompleted(att: QuizAttempt | null | undefined) {
     return (
       !!att &&
@@ -105,15 +125,94 @@ export class ActivityComponent {
         typeof att.score === 'number')
     );
   }
+
   answeredCount(att: QuizAttempt | null | undefined) {
     if (!att?.answers?.length) return 0;
     return att.answers.filter((n) => n != null && n >= 0).length;
   }
+
   scorePct(att: QuizAttempt | null | undefined, total: number) {
     if (!att || typeof att.score !== 'number' || !total) return null;
     return Math.round((att.score / total) * 100);
   }
+
   className(cl: AnyClass) {
     return cl.title || cl.name || 'Classe';
+  }
+
+  // Pick a good "last-activity" date for TODOS
+  private todoDate(r: Row): Date {
+    const att = r.att as any;
+    return (
+      this.toDate(att?.updatedAt) ||
+      this.toDate(att?.startedAt) ||
+      this.toDate((r.asg as any)?.updatedAt) ||
+      this.toDate((r.asg as any)?.createdAt) ||
+      new Date(0)
+    );
+  }
+
+  // Pick a good "completion" date for DONE
+  private doneDate(r: Row): Date {
+    const att = r.att as any;
+    return (
+      this.toDate(att?.submittedAt) ||
+      this.toDate(att?.gradedAt) ||
+      this.toDate(att?.updatedAt) ||
+      this.toDate(att?.startedAt) ||
+      new Date(0)
+    );
+  }
+
+  private toDate(v: any): Date | null {
+    if (!v) return null;
+    // Firestore Timestamp / compat / plain Date
+    if (typeof v?.toDate === 'function') return v.toDate();
+    if (v?.seconds) return new Date(v.seconds * 1000);
+    if (v instanceof Date) return v;
+    return null;
+  }
+
+  private groupByDay(items: TimelineItem[]): DayGroup[] {
+    const by: Record<string, TimelineItem[]> = {};
+    for (const it of items) {
+      const d = new Date(it.date);
+      const key = `${d.getFullYear()}-${(d.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+      (by[key] ||= []).push(it);
+    }
+    const entries = Object.entries(by).map(([key, arr]) => ({
+      key,
+      label: this.dayLabel(arr[0]?.date || new Date()),
+      items: arr.sort((a, b) => b.date.getTime() - a.date.getTime()),
+    }));
+    // newest day first
+    return entries.sort(
+      (a, b) =>
+        new Date(b.items[0].date).getTime() -
+        new Date(a.items[0].date).getTime()
+    );
+  }
+
+  private dayLabel(d: Date): string {
+    const today = new Date();
+    const yest = new Date();
+    yest.setDate(today.getDate() - 1);
+
+    const sameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate();
+
+    if (sameDay(d, today)) return 'Aujourd’hui';
+    if (sameDay(d, yest)) return 'Hier';
+
+    return d.toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+    });
   }
 }

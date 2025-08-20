@@ -5,113 +5,143 @@
   <div class="mx-auto max-w-4xl px-4 py-6">
     <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Activité</h1>
     <p class="text-sm text-slate-500 dark:text-slate-400">
-      Vos devoirs/quiz en un coup d’œil — à faire puis terminés.
+      Chronologie de vos devoirs/quiz — d’abord à faire, puis terminés.
     </p>
 
-    <!-- À faire -->
+    <!-- À FAIRE (timeline) -->
     <section class="mt-6 rounded-3xl p-[1px] bg-gradient-to-br from-amber-400/20 via-amber-300/10 to-amber-400/20 shadow-lg">
       <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-slate-900 dark:text-white">À faire</h2>
-          <div class="text-xs text-slate-500" *ngIf="(todos$ | async) as rows">({{ rows.length }})</div>
         </div>
 
-        <ng-container *ngIf="(todos$ | async) as rows; else todoLoading">
-          <div *ngIf="rows.length; else emptyTodo" class="mt-3 space-y-2">
-            <div *ngFor="let r of rows"
-                 class="flex items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
-                        bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 transition hover:shadow-md">
-              <div class="min-w-0">
-                <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
-                  {{ r.asg.title }}
-                </div>
-                <div class="text-xs text-slate-500 truncate">
-                  {{ className(r.cl) }} •
-                  <ng-container *ngIf="r.asg.type === 'quiz'">{{ r.asg.numQuestions }} questions</ng-container>
-                  <span *ngIf="r.asg.points"> • {{ r.asg.points }} pts</span>
-                  <span *ngIf="r.asg.timed" class="ml-1 rounded-full px-2 py-0.5 text-[11px] ring-1
-                        bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
-                    ⏱ {{ (r.asg.timeLimitSec || 0) / 60 | number:'1.0-0' }} min
-                  </span>
-                </div>
-                <div class="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5"
-                     *ngIf="r.att && answeredCount(r.att) > 0">
-                  En cours • {{ answeredCount(r.att) }}/{{ r.asg.numQuestions }}
-                </div>
-                <div class="text-[11px] text-slate-500 mt-0.5"
-                     *ngIf="!r.att || (r.att.answers?.length ?? 0) === 0">
-                  Non commencé
-                </div>
+        <ng-container *ngIf="(todoGroups$ | async) as groups; else loadingTodo">
+          <div *ngIf="groups.length; else emptyTodo" class="mt-3 space-y-6">
+            <div *ngFor="let g of groups">
+              <div class="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300 mb-2">
+                {{ g.label }}
               </div>
 
-              <a [routerLink]="['/class', r.cl.id, 'quiz', r.asg.id]"
-                 class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
-                        focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                Ouvrir
-              </a>
+              <ol class="relative border-l border-slate-200 dark:border-slate-700">
+                <li *ngFor="let r of g.items" class="mb-6 ml-6">
+                  <!-- Dot -->
+                  <span class="absolute -left-1.5 mt-1 h-3 w-3 rounded-full bg-amber-400 ring-4 ring-white dark:ring-slate-900"></span>
+
+                  <!-- Card -->
+                  <div class="flex items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
+                              bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 hover:shadow-md">
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
+                        {{ r.asg.title }}
+                      </div>
+                      <div class="text-xs text-slate-500 truncate">
+                        {{ className(r.cl) }} •
+                        <ng-container *ngIf="r.asg.type === 'quiz'">{{ r.asg.numQuestions }} questions</ng-container>
+                        <span *ngIf="r.asg.points"> • {{ r.asg.points }} pts</span>
+                        <span *ngIf="r.asg.timed" class="ml-1 rounded-full px-2 py-0.5 text-[11px] ring-1
+                          bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
+                          ⏱ {{ (r.asg.timeLimitSec || 0) / 60 | number:'1.0-0' }} min
+                        </span>
+                      </div>
+
+                      <div class="text-[11px] mt-0.5"
+                           [class.text-amber-700]="r.att && answeredCount(r.att) > 0"
+                           [class.dark:text-amber-300]="r.att && answeredCount(r.att) > 0"
+                           [class.text-slate-500]="!r.att || (r.att.answers?.length ?? 0) === 0">
+                        <ng-container *ngIf="r.att && answeredCount(r.att) > 0; else notStarted">
+                          En cours • {{ answeredCount(r.att) }}/{{ r.asg.numQuestions }}
+                        </ng-container>
+                        <ng-template #notStarted>Non commencé</ng-template>
+                      </div>
+                    </div>
+
+                    <a [routerLink]="['/class', r.cl.id, 'quiz', r.asg.id]"
+                       class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
+                              focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                      Ouvrir
+                    </a>
+                  </div>
+                </li>
+              </ol>
             </div>
           </div>
+
           <ng-template #emptyTodo>
             <div class="mt-3 text-sm text-slate-500">Rien à faire 🎉</div>
           </ng-template>
         </ng-container>
-        <ng-template #todoLoading>
+
+        <ng-template #loadingTodo>
           <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
         </ng-template>
       </div>
     </section>
 
-    <!-- Terminé -->
+    <!-- TERMINÉ (timeline) -->
     <section class="mt-6 rounded-3xl p-[1px] bg-gradient-to-br from-emerald-400/20 via-emerald-300/10 to-emerald-400/20 shadow-lg">
       <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
         <div class="flex items-center justify-between">
           <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Terminé</h2>
-          <div class="text-xs text-slate-500" *ngIf="(dones$ | async) as rows">({{ rows.length }})</div>
         </div>
 
-        <ng-container *ngIf="(dones$ | async) as rows; else doneLoading">
-          <div *ngIf="rows.length; else emptyDone" class="mt-3 space-y-2">
-            <div *ngFor="let r of rows"
-                 class="flex items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
-                        bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 transition hover:shadow-md">
-              <div class="min-w-0">
-                <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
-                  {{ r.asg.title }}
-                </div>
-                <div class="text-xs text-slate-500 truncate">
-                  {{ className(r.cl) }} • {{ r.asg.numQuestions }} questions
-                  <span *ngIf="r.asg.points"> • {{ r.asg.points }} pts</span>
-                </div>
+        <ng-container *ngIf="(doneGroups$ | async) as groups; else loadingDone">
+          <div *ngIf="groups.length; else emptyDone" class="mt-3 space-y-6">
+            <div *ngFor="let g of groups">
+              <div class="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300 mb-2">
+                {{ g.label }}
               </div>
 
-              <div class="shrink-0 flex items-center gap-2">
-                <span *ngIf="r.att?.score != null"
-                      class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                             bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                             dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-                  {{ r.att!.score }}/{{ r.asg.numQuestions }}
-                  <ng-container *ngIf="scorePct(r.att, r.asg.numQuestions) as p"> • {{ p }}%</ng-container>
-                </span>
-                <span *ngIf="r.att?.status === 'expired' && r.att?.score == null"
-                      class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                             bg-amber-50 text-amber-700 ring-1 ring-amber-200
-                             dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-800">
-                  Temps écoulé
-                </span>
+              <ol class="relative border-l border-slate-200 dark:border-slate-700">
+                <li *ngFor="let r of g.items" class="mb-6 ml-6">
+                  <!-- Dot -->
+                  <span class="absolute -left-1.5 mt-1 h-3 w-3 rounded-full bg-emerald-400 ring-4 ring-white dark:ring-slate-900"></span>
 
-                <a [routerLink]="['/class', r.cl.id, 'quiz', r.asg.id]"
-                   class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700
-                          focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                  Voir
-                </a>
-              </div>
+                  <!-- Card -->
+                  <div class="flex items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
+                              bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 hover:shadow-md">
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
+                        {{ r.asg.title }}
+                      </div>
+                      <div class="text-xs text-slate-500 truncate">
+                        {{ className(r.cl) }} • {{ r.asg.numQuestions }} questions
+                        <span *ngIf="r.asg.points"> • {{ r.asg.points }} pts</span>
+                      </div>
+                    </div>
+
+                    <div class="shrink-0 flex items-center gap-2">
+                      <span *ngIf="r.att?.score != null"
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                   bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                   dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                        {{ r.att!.score }}/{{ r.asg.numQuestions }}
+                        <ng-container *ngIf="scorePct(r.att, r.asg.numQuestions) as p"> • {{ p }}%</ng-container>
+                      </span>
+                      <span *ngIf="r.att?.status === 'expired' && r.att?.score == null"
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                   bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                                   dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-800">
+                        Temps écoulé
+                      </span>
+
+                      <a [routerLink]="['/class', r.cl.id, 'quiz', r.asg.id]"
+                         class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700
+                                focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                        Voir
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              </ol>
             </div>
           </div>
+
           <ng-template #emptyDone>
             <div class="mt-3 text-sm text-slate-500">Aucun devoir terminé pour l’instant.</div>
           </ng-template>
         </ng-container>
-        <ng-template #doneLoading>
+
+        <ng-template #loadingDone>
           <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
         </ng-template>
       </div>
