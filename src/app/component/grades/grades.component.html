@@ -24,29 +24,41 @@
             </div>
 
             <ng-container *ngIf="overview$ | async as ov; else kpisLoading">
-              <div class="grid grid-cols-3 gap-3 w-full md:w-auto">
-                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700 p-3 text-center">
-                  <div class="text-xs text-slate-500">Classes</div>
-                  <div class="text-xl font-semibold text-slate-900 dark:text-white">{{ ov.totalClasses }}</div>
+              <!-- responsive + equal-height tiles -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto items-stretch">
+                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700
+                            px-3 py-2 text-center flex flex-col items-center justify-center h-16 sm:h-20
+                            shadow-sm hover:shadow transition">
+                  <div class="text-[11px] sm:text-xs text-slate-500 leading-tight whitespace-nowrap">Classes</div>
+                  <div class="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">{{ ov.totalClasses }}</div>
                 </div>
-                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700 p-3 text-center">
-                  <div class="text-xs text-slate-500">Avec notes</div>
-                  <div class="text-xl font-semibold text-slate-900 dark:text-white">{{ ov.gradedClasses }}</div>
+
+                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700
+                            px-3 py-2 text-center flex flex-col items-center justify-center h-16 sm:h-20
+                            shadow-sm hover:shadow transition">
+                  <div class="text-[11px] sm:text-xs text-slate-500 leading-tight whitespace-nowrap">Avec notes</div>
+                  <div class="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">{{ ov.gradedClasses }}</div>
                 </div>
-                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700 p-3 text-center">
-                  <div class="text-xs text-slate-500">Moyenne globale</div>
-                  <div class="text-xl font-semibold text-slate-900 dark:text-white">
-                    <ng-container *ngIf="ov.overall != null; else dash"> {{ ov.overall }}%</ng-container>
+
+                <div class="rounded-2xl bg-white/90 dark:bg-slate-800/70 ring-1 ring-slate-200 dark:ring-slate-700
+                            px-3 py-2 text-center flex flex-col items-center justify-center h-16 sm:h-20
+                            shadow-sm hover:shadow transition">
+                  <div class="text-[11px] sm:text-xs text-slate-500 leading-tight whitespace-nowrap max-w-[10rem] truncate">
+                    Moyenne globale
+                  </div>
+                  <div class="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
+                    <ng-container *ngIf="ov.overall != null; else dash">{{ ov.overall }}%</ng-container>
                     <ng-template #dash>—</ng-template>
                   </div>
                 </div>
               </div>
             </ng-container>
+
             <ng-template #kpisLoading>
-              <div class="grid grid-cols-3 gap-3 w-full md:w-auto">
-                <div class="rounded-2xl h-14 bg-slate-200 animate-pulse dark:bg-slate-800/50"></div>
-                <div class="rounded-2xl h-14 bg-slate-200 animate-pulse dark:bg-slate-800/50"></div>
-                <div class="rounded-2xl h-14 bg-slate-200 animate-pulse dark:bg-slate-800/50"></div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
+                <div class="rounded-2xl h-16 sm:h-20 ring-1 ring-slate-200/80 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
+                <div class="rounded-2xl h-16 sm:h-20 ring-1 ring-slate-200/80 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
+                <div class="rounded-2xl h-16 sm:h-20 ring-1 ring-slate-200/80 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
               </div>
             </ng-template>
           </div>
@@ -59,25 +71,25 @@
       <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5 md:p-6">
         <ng-container *ngIf="cards$ | async as cards; else cardsLoading">
           <div *ngIf="cards.length; else noClasses"
-               class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 items-stretch">
             <article *ngFor="let c of cards; trackBy: trackByClassId"
-                     class="group relative overflow-hidden rounded-2xl ring-1 ring-slate-200/70 dark:ring-slate-800
-                            bg-white/90 dark:bg-slate-800/70 backdrop-blur transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
-
+                    class="group relative overflow-hidden rounded-2xl ring-1 ring-slate-200/70 dark:ring-slate-800
+                            bg-white/90 dark:bg-slate-800/70 backdrop-blur transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg
+                            flex flex-col h-full">
               <!-- Cover -->
               <div class="relative h-28 w-full overflow-hidden">
                 <img [src]="c.cl.coverUrl || 'assets/img/class.jpg'"
-                     [alt]="c.cl.title || 'Couverture de la classe'"
-                     class="h-full w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]" />
+                    [alt]="c.cl.title || 'Couverture de la classe'"
+                    class="h-full w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]" />
                 <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent"></div>
               </div>
 
               <!-- Content -->
-              <div class="p-4">
+              <div class="p-4 flex-1 flex flex-col">
                 <div class="flex items-start gap-4">
                   <!-- Donut -->
                   <div class="relative h-16 w-16 shrink-0 rounded-full"
-                       [style.background]="conic(c.avgPct)">
+                      [style.background]="conic(c.avgPct)">
                     <div class="absolute inset-1 rounded-full bg-white/95 dark:bg-slate-900/90 grid place-items-center">
                       <div class="text-sm font-bold text-slate-900 dark:text-white">
                         <ng-container *ngIf="c.avgPct != null; else ndash">{{ c.avgPct }}%</ng-container>
@@ -97,23 +109,43 @@
                     <!-- Gradient bar -->
                     <div class="mt-2 h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-1 ring-slate-200/70 dark:ring-slate-700/70">
                       <div class="h-full rounded-full bg-gradient-to-r from-indigo-600 via-cyan-500 to-emerald-500"
-                           [style.width]="barWidth(c.avgPct)"></div>
+                          [style.width]="barWidth(c.avgPct)"></div>
                     </div>
                   </div>
                 </div>
-
-                <div class="mt-4 flex items-center justify-between">
-                  <a [routerLink]="['/class', c.cl.id]"
-                     class="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold
-                            bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                    Ouvrir la classe
+           <!-- Actions (always stacked) -->
+                <div class="mt-4 flex flex-col gap-2">
+                  <a
+                    [routerLink]="['/class', c.cl.id]"
+                    aria-label="Ouvrir la classe"
+                    class="group w-full inline-flex items-center justify-center gap-1.5
+                          rounded-xl px-4 py-2 text-sm leading-none font-semibold
+                          bg-gradient-to-r from-indigo-600 to-indigo-500 text-white
+                          shadow-sm ring-1 ring-black/5
+                          hover:from-indigo-600 hover:to-indigo-600 hover:shadow-md
+                          focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
+                          active:translate-y-[1px] transition whitespace-nowrap"
+                  >
+                    <span>Ouvrir la classe</span>
+                    <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                    </svg>
                   </a>
 
-                  <span class="rounded-full px-2 py-0.5 text-[11px] ring-1
-                               bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                  <span
+                    class="inline-flex self-start items-center rounded-full px-2.5 py-1
+                          text-[11px] font-medium leading-none
+                          bg-slate-50/80 text-slate-600 ring-1 ring-slate-200
+                          dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
+                  >
                     ID: {{ c.cl.id }}
                   </span>
                 </div>
+
+
+
               </div>
             </article>
           </div>
@@ -126,11 +158,12 @@
         <ng-template #cardsLoading>
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <div *ngFor="let i of [1,2,3,4,5,6]"
-                 class="rounded-2xl h-40 ring-1 ring-slate-200/80 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
+                class="rounded-2xl h-40 ring-1 ring-slate-200/80 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
           </div>
         </ng-template>
       </div>
     </section>
+
   </div>
 </div>
 

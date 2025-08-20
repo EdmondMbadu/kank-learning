@@ -38,42 +38,63 @@ export class MessagesComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.me$ = this.auth.user$;
-    this.isAdmin$ = this.auth.user$.pipe(
+    // Always use effective identity
+    this.me$ = this.auth.effectiveUser$;
+
+    this.isAdmin$ = this.auth.effectiveUser$.pipe(
       map((u) => (u?.platformRole || '').toLowerCase() === 'admin')
     );
 
-    this.myIndex$ = this.auth.user$.pipe(
-      switchMap((me) =>
-        me?.uid ? this.classes.userClassIndex$(me.uid) : of([])
-      )
+    // Get my class index; if I'm a managed child with empty index, fallback to owner's index
+    this.myIndex$ = this.auth.effectiveUser$.pipe(
+      switchMap((me) => {
+        if (!me?.uid) return of([]);
+        return this.classes.userClassIndex$(me.uid).pipe(
+          switchMap((myIdx) => {
+            // If child has no own index, try owner's
+            if (
+              myIdx.length === 0 &&
+              (me as any).isManagedChild &&
+              (me as any).ownerUid
+            ) {
+              return this.classes.userClassIndex$((me as any).ownerUid).pipe(
+                // If your index items carry memberUid, keep only those for this child
+                map((ownerIdx) =>
+                  ownerIdx.filter(
+                    (x: any) => !('memberUid' in x) || x.memberUid === me.uid
+                  )
+                )
+              );
+            }
+            return of(myIdx);
+          })
+        );
+      })
     );
 
     this.classIds$ = this.myIndex$.pipe(
       map((list) => list.map((x) => x.classId))
     );
 
-    // Auto-select the first class if none is chosen yet
+    // Auto-select first class
     this.sub = this.myIndex$.subscribe((idx) => {
       if (!this.selectedClassId && idx?.length)
         this.selectedClassId = idx[0].classId;
     });
 
-    // title map
     const titleMap$ = this.myIndex$.pipe(
       map((list) =>
         Object.fromEntries(list.map((x) => [x.classId, x.title || x.classId]))
       )
     );
 
-    // 1) raw merged feed (no meta yet)
+    // Raw feed across classes (make sure your service chunks 'in' queries, see §2)
     this.messagesRaw$ = this.classIds$.pipe(
       switchMap((ids) =>
         ids.length ? this.msg.messagesAcrossClasses$(ids, 40) : of([])
       )
     );
 
-    // 2) enrich with titles + dates => final typed stream
     this.messages$ = combineLatest([this.messagesRaw$, titleMap$]).pipe(
       map(([msgs, titles]) =>
         msgs.map((m) => ({
@@ -86,13 +107,13 @@ export class MessagesComponent implements OnInit, OnDestroy {
       )
     );
 
-    // enrich
-
-    // mark all seen on enter
+    // Mark seen with effective UID
     this.sub.add(
-      combineLatest([this.me$, this.classIds$]).subscribe(async ([me, ids]) => {
-        if (me?.uid && ids.length) await this.msg.markAllSeen(me.uid, ids);
-      })
+      combineLatest([this.auth.effectiveUid$, this.classIds$]).subscribe(
+        async ([uid, ids]) => {
+          if (uid && ids.length) await this.msg.markAllSeen(uid, ids);
+        }
+      )
     );
   }
 
@@ -113,7 +134,7 @@ export class MessagesComponent implements OnInit, OnDestroy {
 
     this.sending = true;
     try {
-      const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
+      const me = await firstValueFrom(this.auth.effectiveUser$.pipe(take(1)));
       if (!me?.uid) {
         this.errorMsg = 'Non authentifié.';
         return;
