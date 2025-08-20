@@ -8,8 +8,9 @@ import {
   interval,
   of,
   Subscription,
+  timer,
 } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
+import { switchMap, map, shareReplay } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { ClassService } from 'src/app/shared/class.service';
 import {
@@ -277,35 +278,33 @@ export class ClassComponent implements OnInit {
       });
     });
 
-    this.tickerSub = interval(1000).subscribe(async () => {
-      const aid = this.openAssignmentId;
+    // One sub that drives lock + auto-submit using the live counter
+    this.tickerSub = combineLatest([
+      this.timeLeft$,
+      this.myAttempt$,
+      this.openAssignmentId$,
+      this.assignments$,
+      this.classId$,
+    ]).subscribe(async ([secs, att, aid, assigns, classId]) => {
       if (!aid) {
         this.lockTimed = false;
         return;
       }
 
-      const assigns = await firstValueFrom(this.assignments$);
       const current: any = this.getById(assigns, aid);
-      const att = await firstValueFrom(this.myAttempt$);
+      const isTimed = !!current?.timed && att?.score == null && secs !== null;
 
-      const expires = (att as any)?.expiresAt?.toDate?.() as Date | undefined;
-      const isTimed =
-        !!current?.timed && !!expires && (att as any)?.score == null;
+      this.lockTimed = isTimed && secs! > 0;
 
-      // lock panel while timed in-progress
-      this.lockTimed = isTimed && Date.now() < expires.getTime();
-
-      // auto-submit once when it hits 0
-      if (isTimed && Date.now() >= expires.getTime()) {
-        if (this.lastAutoSubmitAid !== aid) {
-          this.lastAutoSubmitAid = aid;
-          try {
-            await this.submit(await firstValueFrom(this.classId$));
-          } catch {}
-        }
+      // Auto-submit exactly once when it hits 0
+      if (isTimed && secs === 0 && this.lastAutoSubmitAid !== aid) {
+        this.lastAutoSubmitAid = aid;
+        try {
+          await this.submit(classId);
+        } catch {}
       }
     });
-    // Warn on page exit while timed attempt is running
+
     window.addEventListener('beforeunload', this.beforeUnloadHandler);
   }
   ngOnDestroy() {
@@ -900,21 +899,27 @@ export class ClassComponent implements OnInit {
   }
 
   lockTimed = false;
-
   timeLeft$ = combineLatest([
     this.myAttempt$,
     this.openAssignmentId$,
     this.assignments$,
   ]).pipe(
-    map(([att, aid, assigns]) => {
-      if (!aid) return null;
+    switchMap(([att, aid, assigns]) => {
+      if (!aid) return of(null);
       const current: any = this.getById(assigns, aid);
-      if (!current?.timed) return null;
+      if (!current?.timed) return of(null);
+
       const expires = (att as any)?.expiresAt?.toDate?.() as Date | undefined;
-      if (!expires) return null;
-      const s = Math.floor((expires.getTime() - Date.now()) / 1000);
-      return Math.max(0, s);
-    })
+      if (!expires) return of(null);
+
+      // Recompute every second
+      return timer(0, 1000).pipe(
+        map(() =>
+          Math.max(0, Math.floor((expires.getTime() - Date.now()) / 1000))
+        )
+      );
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
   );
 
   private tickerSub?: Subscription;
@@ -930,10 +935,23 @@ export class ClassComponent implements OnInit {
       : `${m}:${r.toString().padStart(2, '0')}`;
   }
   onStartClick(classId: string, current: any, att: QuizAttempt | null) {
-    if (!current?.timed || (att && (att as any)?.startedAt)) {
+    // Untimed: same behavior as before
+    if (!current?.timed) {
       this.startAttempt(classId);
       return;
     }
+
+    // Timed:
+    if (att?.status === 'submitted' || att?.status === 'expired') {
+      // already over — don’t start again
+      return;
+    }
+    if (att?.startedAt) {
+      // already started — nothing to do; the UI is locked while the timer runs
+      return;
+    }
+
+    // First time start → confirm modal
     this.pendingStartClassId = classId;
     this.confirmStartOpen = true;
   }

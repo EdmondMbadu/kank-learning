@@ -20,22 +20,95 @@
         <p class="text-slate-500 dark:text-slate-400 mt-1">Ravi de vous revoir</p>
       </div>
 
+<!-- Modern segmented control -->
+<div class="mb-6 flex justify-center">
+  <div
+    class="relative inline-flex w-full max-w-xs select-none rounded-full p-1
+           bg-slate-100/80 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700
+           shadow-sm"
+    role="group" aria-label="Mode de connexion" tabindex="0"
+  >
+    <!-- Sliding highlight -->
+    <span
+      class="pointer-events-none absolute top-1 left-1
+             h-[calc(100%-0.5rem)] w-[calc(50%-0.5rem)]
+             rounded-full bg-white/95 dark:bg-slate-900/90
+             shadow-sm transition-transform duration-300 ease-out"
+      [class.translate-x-0]="mode==='username'"
+      [class.translate-x-full]="mode==='email'">
+    </span>
+
+    <!-- Username -->
+    <button
+      type="button"
+      (click)="mode='username'"
+      [attr.aria-pressed]="mode==='username'"
+      class="relative z-10 flex-1 rounded-full px-3 py-1.5
+             text-xs font-semibold transition-colors
+             focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
+             flex items-center justify-center gap-1.5"
+      [class.text-slate-900]="mode==='username'"
+      [class.text-slate-600]="mode!=='username'">
+      <!-- user icon -->
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5 0-8 2.5-8 5v1h16v-1c0-2.5-3-5-8-5z"/>
+      </svg>
+      <span>Nom d’utilisateur</span>
+    </button>
+
+    <!-- Email -->
+    <button
+      type="button"
+      (click)="mode='email'"
+      [attr.aria-pressed]="mode==='email'"
+      class="relative z-10 flex-1 rounded-full px-3 py-1.5
+             text-xs font-semibold transition-colors
+             focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
+             flex items-center justify-center gap-1.5"
+      [class.text-slate-900]="mode==='email'"
+      [class.text-slate-600]="mode!=='email'">
+      <!-- mail icon -->
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 4H4a2 2 0 0 0-2 2v1l10 6 10-6V6a2 2 0 0 0-2-2Zm0 6.5-8 4.8-8-4.8V18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2Z"/>
+      </svg>
+      <span>E-mail</span>
+    </button>
+  </div>
+</div>
+
+
       <!-- use ngSubmit so Enter works -->
       <form novalidate (ngSubmit)="login()">
-        <!-- email -->
-        <div class="mb-4">
-          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">E-mail</label>
+        <!-- username OR email (toggled) -->
+        <div class="mb-4" *ngIf="mode==='username'; else emailBlock">
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nom d’utilisateur</label>
           <input
-            type="email"
-            name="email"
+            type="text"
+            name="username"
             required
             [disabled]="loading"
-            [(ngModel)]="email"
-            placeholder="vous@exemple.com"
-            autocomplete="email"
+            [(ngModel)]="username"
+            placeholder="nom.dutilisateur"
+            autocomplete="username"
             class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+
+        <ng-template #emailBlock>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">E-mail</label>
+            <input
+              type="email"
+              name="email"
+              required
+              [disabled]="loading"
+              [(ngModel)]="email"
+              placeholder="vous@exemple.com"
+              autocomplete="email"
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </ng-template>
 
         <!-- mot de passe -->
         <div class="mb-2">
@@ -62,35 +135,29 @@
           </div>
         </div>
 
-        <!-- actions -->
+        <!-- submit -->
         <div class="mt-5">
           <button
             type="submit"
-            [disabled]="!email || !password || loading"
+            [disabled]="loading || !password || (mode==='username' ? !username : !email)"
             class="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-semibold shadow-lg hover:shadow-xl transition inline-flex items-center justify-center"
           >
             <span *ngIf="loading" class="mr-2 inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/60 border-t-white"></span>
             {{ loading ? 'Connexion…' : 'Se connecter' }}
           </button>
+
+          <p *ngIf="error" class="mt-2 text-sm text-rose-600">{{ error }}</p>
         </div>
 
-        <!-- liens -->
-       <!-- liens -->
+        <!-- liens (student-login link removed) -->
         <div class="mt-4 flex items-center justify-between text-sm">
           <a routerLink="/register" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
             Pas de compte ? <span class="font-semibold">Créer un compte</span>
           </a>
-
-          <div class="flex items-center gap-3">
-            <a routerLink="/student-login" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-              Connexion avec <span class="font-semibold">nom d’utilisateur</span>
-            </a>
-            <a routerLink="/forgot-password" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
-              Mot de passe oublié ?
-            </a>
-          </div>
+          <a routerLink="/forgot-password" class="text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+            Mot de passe oublié ?
+          </a>
         </div>
-
       </form>
     </div>
   </div>

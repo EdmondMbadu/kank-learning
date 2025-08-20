@@ -6,10 +6,15 @@ import { AuthService } from 'src/app/shared/auth.service';
   templateUrl: './login.component.html',
 })
 export class LoginComponent implements OnInit {
+  // login.component.ts
+  mode: 'username' | 'email' = 'username'; // default = student (username) login
+
+  username = '';
   email = '';
   password = '';
   showPassword = false;
   loading = false;
+  error = '';
 
   constructor(private auth: AuthService) {}
 
@@ -17,17 +22,26 @@ export class LoginComponent implements OnInit {
     window.scroll(0, 0);
   }
   async login() {
-    if (!this.email || !this.password) {
-      alert('Veuillez renseigner votre e-mail et votre mot de passe');
-      return;
-    }
+    this.error = '';
+    if (this.loading) return;
+
+    const id =
+      this.mode === 'username' ? this.username?.trim() : this.email?.trim();
+    if (!id || !this.password) return;
+
     this.loading = true;
     try {
-      await this.auth.login(this.email, this.password); // navigates to /home on success
-      this.email = '';
-      this.password = '';
-    } catch {
-      // error already alerted in service; keep fields as-is for retry
+      if (this.mode === 'username') {
+        // Replace with your real method for username-based auth:
+        await this.auth.loginWithUsername(id, this.password);
+      } else {
+        // Replace with your real method for email-based auth:
+        await this.auth.login(id.toLowerCase(), this.password);
+      }
+      // navigate if needed
+      // this.router.navigateByUrl('/dashboard');
+    } catch (e: any) {
+      this.error = e?.message || 'Impossible de se connecter.';
     } finally {
       this.loading = false;
     }

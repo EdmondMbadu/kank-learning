@@ -673,11 +673,14 @@
                   <div class="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Quiz</div>
 
                   <div class="mb-2">
-                   <button (click)="onStartClick(cl.id!, current, vm.att)"
-                          class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
-                                focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                  <button
+                    (click)="onStartClick(cl.id!, current, vm.att)"
+                    [disabled]="lockTimed || vm.att?.status==='submitted' || vm.att?.status==='expired'"
+                    class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
+                          focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60">
                     Démarrer / Continuer
                   </button>
+
 
                   </div>
 
@@ -775,7 +778,16 @@
                           </div>
                         </div>
 
-                        <!-- Countdown / lock banner -->
+                  
+
+
+                        <ng-template #noRows>
+                          <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
+                        </ng-template>
+                      </div>
+                    </ng-container>
+                  </ng-container>
+                       <!-- Countdown / lock banner -->
                     <ng-container *ngIf="(timeLeft$ | async) as secs">
                       <div *ngIf="secs !== null"
                           class="inline-flex items-center gap-2 rounded-lg px-3 py-2
@@ -786,14 +798,6 @@
                         <span *ngIf="lockTimed" class="text-[11px] ml-2 opacity-70">Panneau verrouillé</span>
                       </div>
                     </ng-container>
-
-
-                        <ng-template #noRows>
-                          <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
-                        </ng-template>
-                      </div>
-                    </ng-container>
-                  </ng-container>
 
                 </ng-container>
               </ng-container>
