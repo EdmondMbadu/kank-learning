@@ -41,6 +41,14 @@ export class ClassComponent implements OnInit {
   builderPoints: number | null = null;
   deleting: Record<string, boolean> = {};
 
+  inviteMode: 'email' | 'username' = 'email';
+
+  inviteU = {
+    username: '',
+    role: 'student' as 'student' | 'instructor' | 'ta',
+  };
+  invitingU = false;
+
   // one “draft” question editor
   draft: {
     kind: 'mcq-single' | 'mcq-multi' | 'text';
@@ -704,6 +712,39 @@ export class ClassComponent implements OnInit {
       console.error('[class] send message failed:', e);
     } finally {
       this.sendingMsg = false;
+    }
+  }
+
+  async addByUsername(classId: string) {
+    const username = this.inviteU.username?.trim();
+    if (!username) return;
+
+    this.invitingU = true;
+    try {
+      // optional: avoid adding yourself
+      const me = await firstValueFrom(this.auth.user$);
+      if (
+        me?.displayName &&
+        me.displayName.toLowerCase() === username.toLowerCase()
+      ) {
+        alert('Vous ne pouvez pas vous ajouter vous-même.');
+        return;
+      }
+
+      await this.classes.addMemberByUsername(
+        classId,
+        username,
+        this.inviteU.role
+      );
+
+      // reset
+      this.inviteU.username = '';
+      this.inviteU.role = 'student';
+      alert('Membre ajouté à la classe ✅');
+    } catch (e: any) {
+      alert(e?.message || 'Impossible d’ajouter ce nom d’utilisateur.');
+    } finally {
+      this.invitingU = false;
     }
   }
 }

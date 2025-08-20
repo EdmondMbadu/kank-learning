@@ -1,6 +1,7 @@
 // src/app/shared/class.service.ts
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { serverTimestamp } from '@angular/fire/firestore';
 import firebase from 'firebase/compat/app';
 import { combineLatest, of, switchMap } from 'rxjs';
 import { map } from 'rxjs';
@@ -414,6 +415,46 @@ export class ClassService {
         );
       })
     );
+  }
+
+  /** Resolve a username to uid and add the user to the class immediately. */
+  async addMemberByUsername(
+    classId: string,
+    rawUsername: string,
+    role: Role
+  ): Promise<string> {
+    const username = (rawUsername || '').trim().toLowerCase();
+    if (!username) throw new Error('Nom d’utilisateur requis.');
+
+    // usernames/{username} -> { uid: string, authEmail: string }
+    const unameSnap = await this.afs
+      .doc<{ uid: string }>(`usernames/${username}`)
+      .ref.get();
+    if (!unameSnap.exists) {
+      throw new Error(
+        'Nom d’utilisateur introuvable. Créez d’abord le compte.'
+      );
+    }
+    const { uid } = unameSnap.data()!;
+
+    await this.addMemberIfMissing(classId, uid, role);
+    return uid;
+  }
+
+  private async addMemberIfMissing(classId: string, uid: string, role: Role) {
+    const ref = this.afs.doc(`classes/${classId}/members/${uid}`);
+    const snap = await ref.ref.get();
+    if (!snap.exists) {
+      await ref.set({
+        uid,
+        role,
+        status: 'active',
+        enrolledAt: serverTimestamp(),
+      });
+    } else {
+      // Make sure they’re active and role is up to date
+      await ref.set({ role, status: 'active' }, { merge: true });
+    }
   }
 
   // class.service.ts
