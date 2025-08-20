@@ -16,6 +16,8 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
   quizId$ = this.route.paramMap.pipe(map((p) => p.get('quizId')!));
   me$ = this.auth.effectiveUser$;
 
+  private _forceNewOnConfirm = false;
+
   // data
   assignment$ = combineLatest([this.classId$, this.quizId$]).pipe(
     switchMap(([cid, qid]) => this.asgn.assignment$(cid, qid)),
@@ -133,27 +135,31 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     return att.answers.filter((n) => n != null && n >= 0).length;
   }
 
-  // actions
-  async startAttempt() {
+  async confirmStart() {
+    this.confirmStartOpen = false;
+    await this.startAttempt(this._forceNewOnConfirm);
+    this._forceNewOnConfirm = false;
+  }
+  // accept optional flag
+  async startAttempt(forceNew = false) {
     const cid = await this.classId$.pipe(take(1)).toPromise();
     const qid = await this.quizId$.pipe(take(1)).toPromise();
     const me = await this.me$.pipe(take(1)).toPromise();
     if (!cid || !qid || !me?.uid) return;
-    await this.asgn.startAttemptIfNeeded(cid, qid, me.uid);
+    await this.asgn.startAttemptIfNeeded(cid, qid, me.uid, { forceNew });
   }
-
   onStartClick(a: QuizAssignment | null, att: QuizAttempt | null) {
-    if (!a?.timed) {
-      this.startAttempt();
+    if (!a) return;
+    const forceNew = att?.status === 'submitted' || att?.status === 'expired';
+
+    if (!a.timed) {
+      this.startAttempt(forceNew);
       return;
     }
-    if (att?.status === 'submitted' || att?.status === 'expired') return;
-    if (att?.startedAt) return;
+
+    // for timed: show confirm; remember the intent to retake
+    this._forceNewOnConfirm = forceNew;
     this.confirmStartOpen = true;
-  }
-  async confirmStart() {
-    this.confirmStartOpen = false;
-    await this.startAttempt();
   }
 
   async selectSingle(idx: number, choice: number) {

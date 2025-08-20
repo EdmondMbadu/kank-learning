@@ -143,11 +143,11 @@ export class AssignmentService {
   }
 
   /** Ensure an attempt exists. If missing, create with 5 random IDs */
-  /** Ensure an attempt exists; if timed, set startedAt/expiresAt/status */
   async startAttemptIfNeeded(
     classId: string,
     assignmentId: string,
-    uid: string
+    uid: string,
+    opts?: { forceNew?: boolean }
   ) {
     const aRef = this.afs.doc<QuizAssignment>(
       `classes/${classId}/assignments/${assignmentId}`
@@ -165,48 +165,81 @@ export class AssignmentService {
       const timeLimitMs =
         a?.timed && a?.timeLimitSec ? a.timeLimitSec * 1000 : 0;
 
+      const pickIds = (ids: string[], n: number) => {
+        const copy = ids.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy.slice(0, Math.max(0, Math.min(n, copy.length)));
+      };
+
+      // helper: compute initial answers per question kind
+      const makeInitialAnswers = (selectedIds: string[]) => {
+        const pool: any[] = Array.isArray(a?.pool) ? a.pool : [];
+        const byId = new Map(pool.map((q: any) => [q.id, q]));
+        return selectedIds.map((id) => {
+          const q = byId.get(id);
+          const kind: 'mcq-single' | 'mcq-multi' | 'text' =
+            (q?.kind as any) ??
+            (Array.isArray(q?.choices) ? 'mcq-single' : 'text');
+          if (kind === 'mcq-multi') return [] as number[];
+          if (kind === 'text') return '';
+          return -1; // mcq-single sentinel
+        });
+      };
+
+      const poolIds = (Array.isArray(a?.pool) ? a.pool : []).map(
+        (q: any) => q.id
+      );
+      const newSelectedIds = pickIds(poolIds, a.numQuestions);
+      const newAnswers = makeInitialAnswers(newSelectedIds);
+      const newExpiresAt =
+        timeLimitMs > 0
+          ? firebase.firestore.Timestamp.fromMillis(nowMs + timeLimitMs)
+          : null;
+
       if (!tDoc.exists) {
-        // first start: pick questions (your existing logic)
-        const ids = pickRandomIds(
-          a.pool.map((q: any) => q.id),
-          a.numQuestions
-        );
-        const answers = Array(a.numQuestions).fill(-1);
-
-        // if timed, compute client-side expiresAt immediately so UI has it
-        const expiresAt =
-          timeLimitMs > 0
-            ? firebase.firestore.Timestamp.fromMillis(nowMs + timeLimitMs)
-            : null;
-
+        // first attempt
         tx.set(tRef, {
           uid,
-          selectedIds: ids,
-          answers,
+          selectedIds: newSelectedIds,
+          answers: newAnswers,
           score: null,
           startedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          expiresAt,
-          status: a?.timed ? 'in-progress' : 'in-progress',
+          expiresAt: newExpiresAt,
+          status: 'in-progress',
+          attemptCount: 0, // per-user counter (incremented on submit)
+          history: [], // keep previous runs
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         } as any);
         return;
       }
 
-      // Already exists: if timed but no expiresAt (legacy), set it once
       const t = tDoc.data() as any;
-      const hasExpires = !!t?.expiresAt;
       const alreadyDone = t?.status === 'submitted' || t?.status === 'expired';
 
-      if (alreadyDone) return;
+      if (opts?.forceNew || alreadyDone) {
+        // start a fresh run (retake): reset selection/answers/timer, keep counters/history
+        tx.update(tRef, {
+          selectedIds: newSelectedIds,
+          answers: newAnswers,
+          score: null,
+          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          expiresAt: newExpiresAt,
+          status: 'in-progress',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        return;
+      }
 
+      // legacy: if timed but no expiresAt, set it once; otherwise do nothing
+      const hasExpires = !!t?.expiresAt;
       if (a?.timed && !hasExpires && timeLimitMs > 0) {
-        const expiresAt = firebase.firestore.Timestamp.fromMillis(
-          nowMs + timeLimitMs
-        );
         tx.update(tRef, {
           startedAt:
             t?.startedAt ?? firebase.firestore.FieldValue.serverTimestamp(),
-          expiresAt,
+          expiresAt: newExpiresAt,
           status: 'in-progress',
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         });
@@ -464,7 +497,6 @@ export class AssignmentService {
   }
 
   // --- SUBMIT + GRADE (supports all kinds) ---
-  // --- SUBMIT + GRADE (supports all kinds) ---
   async submitAndGrade(classId: string, assignmentId: string, uid: string) {
     const aRef = this.afs.doc(
       `classes/${classId}/assignments/${assignmentId}`
@@ -489,11 +521,11 @@ export class AssignmentService {
       const expiresAt: firebase.firestore.Timestamp | null =
         t?.expiresAt || null;
 
-      // Compute expired?
+      // expired?
       const isExpired =
         !!a?.timed && !!expiresAt && Date.now() > expiresAt.toMillis();
 
-      // Build lookup and grade
+      // grade
       const byId = new Map(pool.map((q: any) => [q.id, q]));
       let score = 0;
       for (let i = 0; i < selectedIds.length; i++) {
@@ -531,18 +563,35 @@ export class AssignmentService {
         }
       }
 
-      tx.set(
-        tRef,
-        {
-          ...t,
-          score,
-          status: isExpired ? 'expired' : 'submitted',
-          submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          gradedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
+      const finalStatus: 'submitted' | 'expired' = isExpired
+        ? 'expired'
+        : 'submitted';
+      const prevUserCount = t?.attemptCount ?? 0;
+
+      // IMPORTANT: no sentinels inside arrayUnion payload
+      const historyEntry = {
+        score,
+        selectedIds,
+        answers,
+        status: finalStatus,
+        attemptNo: prevUserCount + 1,
+        submittedAt: firebase.firestore.Timestamp.now(), // <-- client timestamp, NOT serverTimestamp()
+      };
+
+      tx.update(tRef, {
+        score,
+        status: finalStatus,
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp(), // ok (top-level)
+        gradedAt: firebase.firestore.FieldValue.serverTimestamp(), // ok (top-level)
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(), // ok (top-level)
+        attemptCount: prevUserCount + 1,
+        history: firebase.firestore.FieldValue.arrayUnion(historyEntry),
+      });
+
+      tx.update(aRef, {
+        attemptCount: firebase.firestore.FieldValue.increment(1),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
     });
   }
 

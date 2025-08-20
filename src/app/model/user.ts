@@ -192,6 +192,7 @@ export interface QuizQuestion {
 export interface QuizAssignment extends Assignment {
   type: 'quiz';
   numQuestions: number; // e.g., 5
+  attemptCount?: number;
   pool: QuizQuestion[]; // question bank for this assignment
 }
 
