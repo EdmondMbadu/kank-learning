@@ -184,6 +184,7 @@ export interface QuizQuestion {
   correctMulti?: number[]; // for mcq-multi
   // Text props
   correctText?: string; // for text exact match
+  imageUrl?: string;
 }
 
 export interface QuizAssignment extends Assignment {

@@ -21,6 +21,7 @@ import {
 import { CourseService } from 'src/app/shared/course.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
 import { MessageService } from 'src/app/shared/message.service';
+import { AngularFireStorage } from '@angular/fire/compat/storage';
 // 1) Add these types + helpers at the top of the class (after existing fields)
 type AvgStats = {
   pct: number | null;
@@ -57,8 +58,19 @@ export class ClassComponent implements OnInit {
     correctSingle: number | null;
     correctMulti: Set<number>;
     correctText: string;
+    imageUrl: string; // remote URL (optional)
+    imageFile?: File | null; // picked local file
+    imagePreviewUrl?: string; // blob: preview
   } = this.newDraft();
-
+  onPickImage(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    // cleanup previous preview
+    if (this.draft.imagePreviewUrl)
+      URL.revokeObjectURL(this.draft.imagePreviewUrl);
+    this.draft.imageFile = file;
+    this.draft.imagePreviewUrl = URL.createObjectURL(file);
+  }
   builderQuestions: QuizQuestion[] = [];
 
   newDraft() {
@@ -69,6 +81,7 @@ export class ClassComponent implements OnInit {
       correctSingle: null,
       correctMulti: new Set<number>(),
       correctText: '',
+      imageUrl: '', // NEW
     };
   }
 
@@ -228,7 +241,8 @@ export class ClassComponent implements OnInit {
     private classes: ClassService,
     private courses: CourseService,
     private asgn: AssignmentService, // QUIZ,
-    private msg: MessageService
+    private msg: MessageService,
+    private storage: AngularFireStorage
   ) {}
   ngOnInit() {
     combineLatest([this.classId$, this.me$]).subscribe(
@@ -501,8 +515,18 @@ export class ClassComponent implements OnInit {
         };
       }
     }
+    if (this.draft.imageUrl?.trim()) {
+      (q as any).imageUrl = this.draft.imageUrl.trim(); // already-hosted URL case
+    }
+    if (this.draft.imageFile) {
+      (q as any).__file = this.draft.imageFile; // temp field for upload
+    }
 
     this.builderQuestions.push(q!);
+
+    // cleanup preview blob
+    if (this.draft.imagePreviewUrl)
+      URL.revokeObjectURL(this.draft.imagePreviewUrl);
     this.draft = this.newDraft();
   }
 
@@ -510,33 +534,33 @@ export class ClassComponent implements OnInit {
     this.builderQuestions = this.builderQuestions.filter((q) => q.id !== qid);
   }
 
-  async saveCustomQuiz(classId: string) {
-    const me = await firstValueFrom(this.me$);
-    if (!me?.uid) return;
-    if (!this.builderTitle.trim()) {
-      alert('Titre du quiz requis');
-      return;
-    }
-    if (!this.builderQuestions.length) {
-      alert('Ajoutez des questions');
-      return;
-    }
+  // async saveCustomQuiz(classId: string) {
+  //   const me = await firstValueFrom(this.me$);
+  //   if (!me?.uid) return;
+  //   if (!this.builderTitle.trim()) {
+  //     alert('Titre du quiz requis');
+  //     return;
+  //   }
+  //   if (!this.builderQuestions.length) {
+  //     alert('Ajoutez des questions');
+  //     return;
+  //   }
 
-    const points = this.builderPoints ?? undefined;
-    await this.asgn.createCustomQuiz(
-      classId,
-      me.uid,
-      this.builderTitle.trim(),
-      this.builderQuestions,
-      points
-    );
+  //   const points = this.builderPoints ?? undefined;
+  //   await this.asgn.createCustomQuiz(
+  //     classId,
+  //     me.uid,
+  //     this.builderTitle.trim(),
+  //     this.builderQuestions,
+  //     points
+  //   );
 
-    // reset
-    this.builderTitle = '';
-    this.builderPoints = null;
-    this.builderQuestions = [];
-    this.builderOpen = false;
-  }
+  //   // reset
+  //   this.builderTitle = '';
+  //   this.builderPoints = null;
+  //   this.builderQuestions = [];
+  //   this.builderOpen = false;
+  // }
 
   // ====== ANSWER HANDLERS for new kinds (student) ======
   async selectAnswerSingle_New(classId: string, idx: number, choice: number) {
@@ -746,6 +770,71 @@ export class ClassComponent implements OnInit {
     } finally {
       this.invitingU = false;
     }
+  }
+
+  private async uploadQuestionImage(
+    classId: string,
+    quizId: string,
+    qid: string,
+    file: File
+  ): Promise<string> {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `classes/${classId}/quizzes/${quizId}/questions/${qid}.${ext}`;
+    const task = this.storage.upload(path, file);
+    await task;
+    const ref = this.storage.ref(path);
+    return await firstValueFrom(ref.getDownloadURL());
+  }
+
+  async saveCustomQuiz(classId: string) {
+    const me = await firstValueFrom(this.me$);
+    if (!me?.uid) return;
+    if (!this.builderTitle.trim()) {
+      alert('Titre du quiz requis');
+      return;
+    }
+    if (!this.builderQuestions.length) {
+      alert('Ajoutez des questions');
+      return;
+    }
+
+    // create a quiz id now (or generate a local one)
+    const quizId = crypto?.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
+    // 1) upload any local files
+    const questions = [];
+    for (const q of this.builderQuestions) {
+      const qq: any = { ...q }; // shallow copy
+      if ((q as any).__file) {
+        const url = await this.uploadQuestionImage(
+          classId,
+          quizId,
+          q.id,
+          (q as any).__file
+        );
+        qq.imageUrl = url;
+        delete qq.__file;
+      }
+      questions.push(qq);
+    }
+
+    // 2) persist with URLs (make sure your service keeps imageUrl)
+    await this.asgn.createCustomQuiz(
+      classId,
+      me.uid,
+      this.builderTitle.trim(),
+      questions,
+      this.builderPoints ?? undefined
+      // quizId // optional if your service accepts a provided id
+    );
+
+    // reset UI
+    this.builderTitle = '';
+    this.builderPoints = null;
+    this.builderQuestions = [];
+    this.builderOpen = false;
   }
 }
 interface ClassMessageWithMeta extends ClassMessage {

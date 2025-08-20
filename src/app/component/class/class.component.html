@@ -678,7 +678,11 @@
                   <div *ngIf="vm.att?.selectedIds?.length; else notStarted" class="space-y-4">
                     <div *ngFor="let qid of vm.att!.selectedIds; let i = index">
                       <ng-container *ngIf="getById(current.pool, qid) as q">
-                        <div class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ i+1 }}. {{ q.prompt }}</div>
+                          <img *ngIf="q.imageUrl" [src]="q.imageUrl" alt="Illustration de la question"
+                              class="mb-2 w-full max-h-64 object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
+                          <div class="text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {{ i+1 }}. {{ q.prompt }}
+                          </div>
 
                         <!-- MCQ (single) -->
                         <div *ngIf="q.kind === 'mcq-single'" class="mt-1 grid gap-1">
@@ -837,6 +841,31 @@
                     class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
                            focus:outline-none focus:ring-2 focus:ring-indigo-500
                            dark:bg-slate-900 dark:border-slate-700"></textarea>
+                           <!-- NEW: optional image URL for this question -->
+        <div class="grid gap-1">
+          <input [(ngModel)]="draft.imageUrl"
+                placeholder="URL de l’image (optionnel)"
+                class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-indigo-500
+                        dark:bg-slate-900 dark:border-slate-700" />
+          <img *ngIf="draft.imageUrl"
+              [src]="draft.imageUrl"
+              alt="Aperçu"
+              class="mt-1 max-h-40 w-full object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
+              <!-- pick from computer -->
+              <input type="file" accept="image/*" (change)="onPickImage($event)"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                            focus:outline-none focus:ring-2 focus:ring-indigo-500
+                            dark:bg-slate-900 dark:border-slate-700" />
+
+              <!-- live preview: blob > URL or remote URL -->
+              <img *ngIf="draft.imagePreviewUrl || draft.imageUrl"
+                  [src]="draft.imagePreviewUrl || draft.imageUrl"
+                  alt="Aperçu"
+                  class="mt-1 max-h-40 w-full object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700"/>
+
+        </div>
+
 
           <div class="flex items-center gap-2">
             <label class="text-xs text-slate-500">Type:</label>
@@ -910,6 +939,12 @@
           <div *ngFor="let q of builderQuestions; trackBy: trackById" class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{{ q.prompt }}</div>
+              <!-- NEW: question image (if provided) -->
+              <img *ngIf="q.imageUrl"
+                  [src]="q.imageUrl"
+                  alt="Illustration de la question"
+                  class="mb-2 w-full max-h-64 object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
+
               <div class="text-[11px] text-slate-500">
                 {{ q.kind }} <ng-container *ngIf="q.kind !== 'text'">• {{ q.choices?.length }} choix</ng-container>
               </div>
