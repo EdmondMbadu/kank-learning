@@ -6,7 +6,13 @@ import {
   AngularFirestore,
   AngularFirestoreDocument,
 } from '@angular/fire/compat/firestore';
-import { firstValueFrom, Observable, of } from 'rxjs';
+import {
+  BehaviorSubject,
+  combineLatest,
+  firstValueFrom,
+  Observable,
+  of,
+} from 'rxjs';
 import { map, shareReplay, switchMap, take } from 'rxjs/operators';
 import { AngularFireStorage } from '@angular/fire/compat/storage'; // ✅ NEW
 import { User } from '../model/user';
@@ -65,7 +71,7 @@ export class AuthService {
         email,
         password
       );
-
+      this.clearActivePersona();
       localStorage.setItem('token', 'true');
 
       if (cred.user?.emailVerified) {
@@ -112,6 +118,7 @@ export class AuthService {
 
   async logout() {
     try {
+      this.clearActivePersona();
       await this.afAuth.signOut();
       localStorage.removeItem('token');
       await this.router.navigate(['/']);
@@ -226,6 +233,7 @@ export class AuthService {
     const { authEmail } = snap.data()!;
     const cred = await this.afAuth.signInWithEmailAndPassword(authEmail, code);
     localStorage.setItem('token', 'true');
+    // this.setActivePersona(studentUid);
     await this.router.navigate(['/dashboard']);
   }
 
@@ -390,4 +398,46 @@ export class AuthService {
       await signOut(auth2).catch(() => {});
     }
   }
+  private activePersonaUid$ = new BehaviorSubject<string | null>(
+    localStorage.getItem('activePersonaUid') || null
+  );
+
+  //  Call this after student login (username+code) to switch persona
+  setActivePersona(uid: string) {
+    this.activePersonaUid$.next(uid);
+    localStorage.setItem('activePersonaUid', uid);
+  }
+
+  // Clear persona on regular email login/logout
+  clearActivePersona() {
+    this.activePersonaUid$.next(null);
+    localStorage.removeItem('activePersonaUid');
+  }
+
+  // Replace your existing `user$` if you want everything to use persona,
+  // OR add these two new streams and migrate views gradually:
+  effectiveUid$ = combineLatest([
+    this.afAuth.authState,
+    this.activePersonaUid$,
+  ]).pipe(
+    map(([auth, active]) => active || auth?.uid || null),
+    shareReplay(1)
+  );
+
+  effectiveUser$: Observable<User | null> = this.effectiveUid$.pipe(
+    switchMap((uid) => {
+      if (!uid) return of(null);
+      return this.afs
+        .doc<User>(`users/${uid}`)
+        .valueChanges()
+        .pipe(
+          map((doc) =>
+            doc
+              ? { ...doc, uid }
+              : { uid, email: this.currentUser?.email ?? '' }
+          )
+        );
+    }),
+    shareReplay(1)
+  );
 }

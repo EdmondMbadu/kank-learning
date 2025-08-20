@@ -25,17 +25,54 @@ export class NavbarComponent {
     private classes: ClassService,
     private messages: MessageService
   ) {
-    this.me$ = this.auth.user$;
-    this.myClassesIndex$ = this.auth.user$.pipe(
-      switchMap((me) =>
-        me?.uid ? this.classes.userClassIndex$(me.uid) : of([])
-      )
+    this.me$ = this.auth.effectiveUser$;
+
+    // navbar.component.ts (constructor)
+    this.myClassesIndex$ = this.auth.effectiveUid$.pipe(
+      switchMap((uid) => {
+        if (!uid) return of([]);
+
+        // First try the user-side index (fast path)
+        return this.classes.userClassIndex$(uid).pipe(
+          switchMap((idx) => {
+            if (idx.length) return of(idx);
+
+            // Fallback: derive an index from memberships so navbar shows up today
+            return this.classes.navClasses$(uid).pipe(
+              switchMap((rows) =>
+                rows.length
+                  ? combineLatest(
+                      rows.map((r) =>
+                        this.classes.memberRole$(r.id, uid).pipe(
+                          map(
+                            (role) =>
+                              ({
+                                classId: r.id,
+                                title: r.title || r.id,
+                                role: role || 'student',
+                                status: 'active',
+                              } as UserClassIndex)
+                          )
+                        )
+                      )
+                    )
+                  : of([])
+              )
+            );
+          })
+        );
+      }),
+      shareReplay(1)
     );
-    this.unreadTotal$ = combineLatest([this.me$, this.myClassesIndex$]).pipe(
-      switchMap(([me, idx]) =>
-        me?.uid && idx.length
+
+    this.unreadTotal$ = combineLatest([
+      this.auth.effectiveUid$,
+      this.myClassesIndex$,
+    ]).pipe(
+      switchMap(([uid, idx]) =>
+        uid && idx.length
           ? this.messages.unreadTotal$(
-              me.uid,
+              uid,
               idx.map((i) => i.classId)
             )
           : of(0)

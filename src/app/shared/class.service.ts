@@ -401,17 +401,64 @@ export class ClassService {
       );
   }
 
+  /** All classes where uid is an active member */
   myClassesAsMember$(uid: string) {
-    return this.userClassIndex$(uid).pipe(
-      switchMap((rows) => {
-        if (!rows.length) return of([] as Array<ClassSection & { role: Role }>);
-        const streams = rows.map((r) => this.class$(r.classId));
-        return combineLatest(streams).pipe(
-          map((classes) =>
-            classes
-              .filter((c): c is ClassSection => !!c)
-              .map((c, i) => ({ ...c, role: rows[i].role }))
-          )
+    const members$ = this.afs
+      .collectionGroup<ClassMember>('members', (ref) =>
+        ref.where('uid', '==', uid).where('status', '==', 'active')
+      )
+      .snapshotChanges();
+
+    return members$.pipe(
+      switchMap((snaps) => {
+        if (!snaps.length) return of<ClassSection[]>([]);
+        const classStreams = snaps.map((s) => {
+          const classRef = s.payload.doc.ref.parent.parent!; // classes/{classId}
+          return this.afs
+            .doc<ClassSection>(classRef.path)
+            .valueChanges()
+            .pipe(
+              map((cl) =>
+                cl ? ({ ...cl, id: classRef.id } as ClassSection) : null
+              )
+            );
+        });
+        return combineLatest(classStreams).pipe(
+          map((arr) => arr.filter((x): x is ClassSection => !!x))
+        );
+      })
+    );
+  }
+  /** Small list for navbar */
+  navClasses$(uid: string, limitCount = 6) {
+    const members$ = this.afs
+      .collectionGroup<ClassMember>('members', (ref) =>
+        ref
+          .where('uid', '==', uid)
+          .where('status', '==', 'active')
+          .limit(limitCount)
+      )
+      .snapshotChanges();
+
+    return members$.pipe(
+      switchMap((snaps) => {
+        if (!snaps.length)
+          return of<{ id: string; title: string; coverUrl?: string }[]>([]);
+        const classStreams = snaps.map((s) => {
+          const classRef = s.payload.doc.ref.parent.parent!;
+          return this.afs
+            .doc<ClassSection>(classRef.path)
+            .valueChanges()
+            .pipe(
+              map((cl) =>
+                cl
+                  ? { id: classRef.id, title: cl.title, coverUrl: cl.coverUrl }
+                  : null
+              )
+            );
+        });
+        return combineLatest(classStreams).pipe(
+          map((arr) => arr.filter(Boolean) as any[])
         );
       })
     );
@@ -437,24 +484,40 @@ export class ClassService {
     }
     const { uid } = unameSnap.data()!;
 
-    await this.addMemberIfMissing(classId, uid, role);
+    await this.addOrUpdateMemberInTx(classId, uid, role);
     return uid;
   }
 
+  /** From earlier step: ensure we also maintain a users/{uid}/classes/{classId} index (optional but nice) */
   private async addMemberIfMissing(classId: string, uid: string, role: Role) {
-    const ref = this.afs.doc(`classes/${classId}/members/${uid}`);
-    const snap = await ref.ref.get();
-    if (!snap.exists) {
-      await ref.set({
+    const mRef = this.afs.doc(`classes/${classId}/members/${uid}`);
+    const mSnap = await mRef.ref.get();
+    if (!mSnap.exists) {
+      await mRef.set({
         uid,
         role,
         status: 'active',
         enrolledAt: serverTimestamp(),
       });
     } else {
-      // Make sure they’re active and role is up to date
-      await ref.set({ role, status: 'active' }, { merge: true });
+      await mRef.set({ role, status: 'active' }, { merge: true });
     }
+
+    // optional: write user-side index for fast dashboards
+    const clSnap = await this.afs
+      .doc<ClassSection>(`classes/${classId}`)
+      .ref.get();
+    const title = clSnap.exists ? (clSnap.data() as any).title : '';
+    await this.afs.doc(`users/${uid}/classes/${classId}`).set(
+      {
+        classId,
+        role,
+        status: 'active',
+        title,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
   }
 
   // class.service.ts

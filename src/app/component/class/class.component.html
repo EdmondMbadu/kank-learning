@@ -20,15 +20,22 @@
       <header class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
         <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 p-5 md:p-6">
 
-          <!-- NEW: Class cover -->
+        <!-- Class cover (more visible, phone-friendly) -->
           <div class="mb-4 relative overflow-hidden rounded-2xl ring-1 ring-slate-200/70 dark:ring-slate-800">
-            <img
-              [src]="cl.coverUrl || 'assets/img/class.jpg'"
-              alt="Couverture de la classe"
-              class="h-40 sm:h-48 md:h-56 w-full object-cover transition duration-300 ease-out"
-              loading="lazy" />
-            <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent"></div>
+            <div class="relative aspect-[4/3] sm:aspect-[16/9] md:aspect-[21/9]">
+              <img
+                [src]="cl.coverUrl || 'assets/img/class.jpg'"
+                alt="Couverture de la classe"
+                class="absolute inset-0 h-full w-full
+                      object-contain sm:object-cover
+                      object-center transition duration-300 ease-out"
+                loading="lazy"
+              />
+              <!-- softer overlay so the image stays vivid -->
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
+            </div>
           </div>
+
 
           <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
             <div class="min-w-0">

@@ -85,7 +85,7 @@ export class DashboardComponent implements OnInit {
   ) {}
   isAdmin$!: Observable<boolean>;
   ngOnInit(): void {
-    this.me$ = this.auth.user$;
+    this.me$ = this.auth.effectiveUser$;
     this.isAdmin$ = this.auth.user$.pipe(
       map((u) => (u?.platformRole || '').toLowerCase() === 'admin')
     );
