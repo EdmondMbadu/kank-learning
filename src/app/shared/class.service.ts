@@ -519,6 +519,16 @@ export class ClassService {
       { merge: true }
     );
   }
+  // class.service.ts
+  myClasses$(uid: string) {
+    return this.afs
+      .collection<any>(
+        'classes',
+        (ref) =>
+          ref.where(`members.${uid}`, 'in', ['student', 'instructor', 'ta']) // or '!=', true depending on your schema
+      )
+      .valueChanges({ idField: 'id' });
+  }
 
   // class.service.ts
 }

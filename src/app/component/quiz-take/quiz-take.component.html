@@ -186,3 +186,81 @@
     </div>
   </div>
 </div>
+
+
+<!-- Result modal -->
+<div *ngIf="showResult" class="fixed inset-0 z-[130]">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeResult()"></div>
+
+  <!-- Dialog -->
+  <div
+    class="absolute inset-0 flex items-center justify-center p-4"
+    role="dialog" aria-modal="true" aria-labelledby="result-title">
+    <div
+      class="relative w-full max-w-md rounded-3xl p-[1px]
+             bg-gradient-to-br from-indigo-500/40 via-cyan-500/30 to-fuchsia-500/30 shadow-2xl">
+      <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-6">
+
+        <!-- Close (X) -->
+        <button (click)="closeResult()"
+                class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full
+                       ring-1 ring-slate-200/80 dark:ring-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Fermer">
+          <svg class="h-5 w-5 text-slate-600 dark:text-slate-300" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18.3 5.7L12 12m0 0l-6.3 6.3M12 12l6.3 6.3M12 12L5.7 5.7"/>
+          </svg>
+        </button>
+
+        <!-- Header -->
+        <div class="flex items-center gap-3">
+          <div class="h-12 w-12 rounded-2xl ring-1 ring-emerald-200 bg-emerald-50 dark:bg-emerald-900/30
+                      text-emerald-700 dark:text-emerald-300 flex items-center justify-center"
+               *ngIf="resultStatus==='submitted'; else expiredIcon">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/>
+            </svg>
+          </div>
+          <ng-template #expiredIcon>
+            <div class="h-12 w-12 rounded-2xl ring-1 ring-amber-200 bg-amber-50 dark:bg-amber-900/30
+                        text-amber-700 dark:text-amber-300 flex items-center justify-center">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M15 1H9v2h6V1zm-1 10h-2V8h2v3zm-2 2h2v6h-2v-6z"/>
+              </svg>
+            </div>
+          </ng-template>
+
+          <div>
+            <h3 id="result-title" class="text-lg font-semibold text-slate-900 dark:text-white">
+              {{ resultStatus === 'expired' ? 'Temps écoulé' : 'Quiz soumis' }}
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Voici votre résultat
+            </p>
+          </div>
+        </div>
+
+        <!-- Score -->
+        <div class="mt-5 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 p-5
+                    bg-slate-50/70 dark:bg-slate-800/40 text-center">
+          <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Score</div>
+          <div class="text-3xl font-bold text-slate-900 dark:text-white">
+            {{ resultScore }}/{{ resultTotal }}
+            <span class="ml-2 text-base font-medium text-slate-500">• {{ resultPct }}%</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-6 flex justify-end gap-2">
+          <button (click)="closeResult()"
+                  class="rounded-lg px-4 py-2 text-sm font-semibold
+                         bg-indigo-600 text-white hover:bg-indigo-700
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+            Fermer et revenir à la classe
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

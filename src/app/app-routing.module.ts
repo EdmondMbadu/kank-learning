@@ -12,6 +12,7 @@ import { ProfileComponent } from './component/profile/profile.component';
 import { GradesComponent } from './component/grades/grades.component';
 import { MessagesComponent } from './component/messages/messages.component';
 import { QuizTakeComponent } from './component/quiz-take/quiz-take.component';
+import { ActivityComponent } from './component/activity/activity.component';
 
 const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -32,6 +33,7 @@ const routes: Routes = [
   { path: 'grades', component: GradesComponent },
   { path: 'messages', component: MessagesComponent },
   { path: 'class/:classId/quiz/:quizId', component: QuizTakeComponent },
+  { path: 'activity', component: ActivityComponent },
 ];
 
 @NgModule({

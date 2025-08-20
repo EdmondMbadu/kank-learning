@@ -22,6 +22,7 @@ import { ProfileComponent } from './component/profile/profile.component';
 import { GradesComponent } from './component/grades/grades.component';
 import { MessagesComponent } from './component/messages/messages.component';
 import { QuizTakeComponent } from './component/quiz-take/quiz-take.component';
+import { ActivityComponent } from './component/activity/activity.component';
 
 @NgModule({
   declarations: [
@@ -38,6 +39,7 @@ import { QuizTakeComponent } from './component/quiz-take/quiz-take.component';
     GradesComponent,
     MessagesComponent,
     QuizTakeComponent,
+    ActivityComponent,
   ],
   imports: [
     BrowserModule,

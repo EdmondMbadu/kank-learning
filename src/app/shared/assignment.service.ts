@@ -268,40 +268,6 @@ export class AssignmentService {
     });
   }
 
-  /** Submit + auto-grade */
-  // async submitAndGrade(classId: string, assignmentId: string, uid: string) {
-  //   const aRef = this.afs.doc<QuizAssignment>(
-  //     `classes/${classId}/assignments/${assignmentId}`
-  //   ).ref;
-  //   const tRef = this.afs.doc<QuizAttempt>(
-  //     `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
-  //   ).ref;
-
-  //   await this.afs.firestore.runTransaction(async (tx) => {
-  //     const [aDoc, tDoc] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
-  //     if (!aDoc.exists || !tDoc.exists) throw new Error('Données manquantes.');
-  //     const a = aDoc.data() as QuizAssignment;
-  //     const t = tDoc.data() as QuizAttempt;
-
-  //     const key = new Map(a.pool.map((q) => [q.id, q.correctIndex]));
-  //     const selected = t.selectedIds;
-  //     const answers = t.answers ?? [];
-
-  //     let correct = 0;
-  //     selected.forEach((qid, i) => {
-  //       const expected = key.get(qid);
-  //       if (expected != null && answers[i] === expected) correct++;
-  //     });
-
-  //     const now = firebase.firestore.FieldValue.serverTimestamp();
-  //     tx.update(tRef, {
-  //       submittedAt: now,
-  //       gradedAt: now,
-  //       score: correct,
-  //     });
-  //   });
-  // }
-
   async deleteAssignment(classId: string, assignmentId: string) {
     const db = this.afs.firestore;
 
@@ -497,23 +463,32 @@ export class AssignmentService {
   }
 
   // --- SUBMIT + GRADE (supports all kinds) ---
-  async submitAndGrade(classId: string, assignmentId: string, uid: string) {
-    const aRef = this.afs.doc(
-      `classes/${classId}/assignments/${assignmentId}`
-    ).ref;
-    const tRef = this.afs.doc(
-      `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
-    ).ref;
+  // assignment.service.ts
+  async submitAndGrade(
+    classId: string,
+    assignmentId: string,
+    uid: string
+  ): Promise<{
+    score: number;
+    total: number;
+    status: 'submitted' | 'expired';
+  }> {
+    return await this.afs.firestore.runTransaction(async (tx) => {
+      const aRef = this.afs.doc(
+        `classes/${classId}/assignments/${assignmentId}`
+      ).ref;
+      const tRef = this.afs.doc(
+        `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
+      ).ref;
 
-    await this.afs.firestore.runTransaction(async (tx) => {
       const [aSnap, tSnap] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
       if (!aSnap.exists) throw new Error('Quiz introuvable');
       if (!tSnap.exists) throw new Error('Aucune tentative');
 
       const a = aSnap.data() as any;
       const pool: QuizQuestion[] = Array.isArray(a?.pool) ? a.pool : [];
-
       const t = tSnap.data() as any;
+
       const selectedIds: string[] = Array.isArray(t?.selectedIds)
         ? t.selectedIds
         : [];
@@ -521,11 +496,9 @@ export class AssignmentService {
       const expiresAt: firebase.firestore.Timestamp | null =
         t?.expiresAt || null;
 
-      // expired?
       const isExpired =
         !!a?.timed && !!expiresAt && Date.now() > expiresAt.toMillis();
 
-      // grade
       const byId = new Map(pool.map((q: any) => [q.id, q]));
       let score = 0;
       for (let i = 0; i < selectedIds.length; i++) {
@@ -568,22 +541,21 @@ export class AssignmentService {
         : 'submitted';
       const prevUserCount = t?.attemptCount ?? 0;
 
-      // IMPORTANT: no sentinels inside arrayUnion payload
       const historyEntry = {
         score,
         selectedIds,
         answers,
         status: finalStatus,
         attemptNo: prevUserCount + 1,
-        submittedAt: firebase.firestore.Timestamp.now(), // <-- client timestamp, NOT serverTimestamp()
+        submittedAt: firebase.firestore.Timestamp.now(), // client timestamp inside array item
       };
 
       tx.update(tRef, {
         score,
         status: finalStatus,
-        submittedAt: firebase.firestore.FieldValue.serverTimestamp(), // ok (top-level)
-        gradedAt: firebase.firestore.FieldValue.serverTimestamp(), // ok (top-level)
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(), // ok (top-level)
+        submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        gradedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         attemptCount: prevUserCount + 1,
         history: firebase.firestore.FieldValue.arrayUnion(historyEntry),
       });
@@ -592,6 +564,12 @@ export class AssignmentService {
         attemptCount: firebase.firestore.FieldValue.increment(1),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       });
+
+      return {
+        score,
+        total: selectedIds.length || (a?.numQuestions ?? 0),
+        status: finalStatus,
+      };
     });
   }
 

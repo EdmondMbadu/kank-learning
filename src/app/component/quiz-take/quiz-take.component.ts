@@ -16,6 +16,12 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
   quizId$ = this.route.paramMap.pipe(map((p) => p.get('quizId')!));
   me$ = this.auth.effectiveUser$;
 
+  showResult = false;
+  resultScore = 0;
+  resultTotal = 0;
+  resultPct = 0;
+  resultStatus: 'submitted' | 'expired' = 'submitted';
+
   private _forceNewOnConfirm = false;
 
   // data
@@ -196,8 +202,22 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     const qid = await this.quizId$.pipe(take(1)).toPromise();
     const me = await this.me$.pipe(take(1)).toPromise();
     if (!cid || !qid || !me?.uid) return;
-    await this.asgn.submitAndGrade(cid, qid, me.uid);
-    alert('Soumis. Note enregistrée.');
+
+    const res = await this.asgn.submitAndGrade(cid, qid, me.uid);
+    this.resultScore = res.score ?? 0;
+    this.resultTotal = res.total ?? 0;
+    this.resultStatus = res.status;
+    this.resultPct = this.resultTotal
+      ? Math.round((this.resultScore / this.resultTotal) * 100)
+      : 0;
+
+    this.showResult = true; // open the modal
+  }
+
+  async closeResult() {
+    this.showResult = false;
+    const cid = await this.classId$.pipe(take(1)).toPromise();
+    if (cid) this.router.navigate(['/class', cid]);
   }
 
   // quiz-take.component.ts
