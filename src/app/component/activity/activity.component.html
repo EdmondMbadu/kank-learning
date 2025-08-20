@@ -47,7 +47,7 @@
                       <div class="text-[11px] mt-0.5"
                            [class.text-amber-700]="r.att && answeredCount(r.att) > 0"
                            [class.dark:text-amber-300]="r.att && answeredCount(r.att) > 0"
-                           [class.text-slate-500]="!r.att || (r.att.answers?.length ?? 0) === 0">
+                          [class.text-slate-500]="!r.att || r.att.answers.length === 0">
                         <ng-container *ngIf="r.att && answeredCount(r.att) > 0; else notStarted">
                           En cours • {{ answeredCount(r.att) }}/{{ r.asg.numQuestions }}
                         </ng-container>
