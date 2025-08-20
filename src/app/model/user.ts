@@ -142,6 +142,8 @@ export interface Assignment {
   moduleRef?: { moduleId: string; lessonId?: string }; // optional linkage to content
   createdBy: string; // uid
   createdAt?: FSDate;
+  timed?: boolean; // default: false
+  timeLimitSec?: number;
 }
 
 export interface SubmissionFile {
@@ -201,4 +203,7 @@ export interface QuizAttempt {
   submittedAt?: FSDate;
   score?: number; // 0..numQuestions
   gradedAt?: FSDate;
+  startedAt?: any; // Firestore Timestamp | Date
+  endsAt?: any; // Firestore Timestamp | Date
+  status?: 'in-progress' | 'submitted' | 'expired';
 }

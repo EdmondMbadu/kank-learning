@@ -143,35 +143,73 @@ export class AssignmentService {
   }
 
   /** Ensure an attempt exists. If missing, create with 5 random IDs */
+  /** Ensure an attempt exists; if timed, set startedAt/expiresAt/status */
   async startAttemptIfNeeded(
     classId: string,
     assignmentId: string,
     uid: string
   ) {
-    const base = this.afs.doc<QuizAssignment>(
+    const aRef = this.afs.doc<QuizAssignment>(
       `classes/${classId}/assignments/${assignmentId}`
     ).ref;
-    const att = this.afs.doc<QuizAttempt>(
+    const tRef = this.afs.doc<QuizAttempt>(
       `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
     ).ref;
 
     await this.afs.firestore.runTransaction(async (tx) => {
-      const [aDoc, atDoc] = await Promise.all([tx.get(base), tx.get(att)]);
+      const [aDoc, tDoc] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
       if (!aDoc.exists) throw new Error('Assignment introuvable.');
+      const a = aDoc.data() as any;
 
-      if (!atDoc.exists) {
-        const a = aDoc.data() as QuizAssignment;
+      const nowMs = Date.now();
+      const timeLimitMs =
+        a?.timed && a?.timeLimitSec ? a.timeLimitSec * 1000 : 0;
+
+      if (!tDoc.exists) {
+        // first start: pick questions (your existing logic)
         const ids = pickRandomIds(
-          a.pool.map((q) => q.id),
+          a.pool.map((q: any) => q.id),
           a.numQuestions
         );
         const answers = Array(a.numQuestions).fill(-1);
 
-        tx.set(att, {
+        // if timed, compute client-side expiresAt immediately so UI has it
+        const expiresAt =
+          timeLimitMs > 0
+            ? firebase.firestore.Timestamp.fromMillis(nowMs + timeLimitMs)
+            : null;
+
+        tx.set(tRef, {
           uid,
           selectedIds: ids,
           answers,
-        } as QuizAttempt);
+          score: null,
+          startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          expiresAt,
+          status: a?.timed ? 'in-progress' : 'in-progress',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        } as any);
+        return;
+      }
+
+      // Already exists: if timed but no expiresAt (legacy), set it once
+      const t = tDoc.data() as any;
+      const hasExpires = !!t?.expiresAt;
+      const alreadyDone = t?.status === 'submitted' || t?.status === 'expired';
+
+      if (alreadyDone) return;
+
+      if (a?.timed && !hasExpires && timeLimitMs > 0) {
+        const expiresAt = firebase.firestore.Timestamp.fromMillis(
+          nowMs + timeLimitMs
+        );
+        tx.update(tRef, {
+          startedAt:
+            t?.startedAt ?? firebase.firestore.FieldValue.serverTimestamp(),
+          expiresAt,
+          status: 'in-progress',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
       }
     });
   }
@@ -278,7 +316,8 @@ export class AssignmentService {
     createdByUid: string,
     title: string,
     pool: QuizQuestion[],
-    points?: number
+    points?: number,
+    opts?: { timed?: boolean; timeLimitSec?: number }
   ): Promise<string> {
     if (!title?.trim()) throw new Error('Titre requis');
     if (!pool?.length) throw new Error('Ajoutez au moins une question');
@@ -296,6 +335,9 @@ export class AssignmentService {
       pool,
       numQuestions: pool.length,
       points: points ?? pool.length, // default 1 pt per question
+      timed: opts?.timed ?? false,
+      timeLimitSec: opts?.timed ? opts?.timeLimitSec ?? 0 : null,
+      // createdAt: this.ts.serverTimestamp(),
     };
 
     await this.afs.doc(`classes/${classId}/assignments/${id}`).set(a);
@@ -336,6 +378,7 @@ export class AssignmentService {
     const ref = this.afs.doc(
       `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
     ).ref;
+    // if (!(await this.canEditAttempt(ref))) return;
     await this.afs.firestore.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       const data = (snap.exists ? snap.data() : {}) as any;
@@ -421,6 +464,7 @@ export class AssignmentService {
   }
 
   // --- SUBMIT + GRADE (supports all kinds) ---
+  // --- SUBMIT + GRADE (supports all kinds) ---
   async submitAndGrade(classId: string, assignmentId: string, uid: string) {
     const aRef = this.afs.doc(
       `classes/${classId}/assignments/${assignmentId}`
@@ -437,38 +481,36 @@ export class AssignmentService {
       const a = aSnap.data() as any;
       const pool: QuizQuestion[] = Array.isArray(a?.pool) ? a.pool : [];
 
-      // Build a lookup by question id
-      const byId = new Map(pool.map((q) => [q.id, q]));
-
       const t = tSnap.data() as any;
       const selectedIds: string[] = Array.isArray(t?.selectedIds)
         ? t.selectedIds
         : [];
       const answers: any[] = Array.isArray(t?.answers) ? t.answers : [];
+      const expiresAt: firebase.firestore.Timestamp | null =
+        t?.expiresAt || null;
 
+      // Compute expired?
+      const isExpired =
+        !!a?.timed && !!expiresAt && Date.now() > expiresAt.toMillis();
+
+      // Build lookup and grade
+      const byId = new Map(pool.map((q: any) => [q.id, q]));
       let score = 0;
-
       for (let i = 0; i < selectedIds.length; i++) {
-        const qid = selectedIds[i];
-        const q = byId.get(qid);
+        const q = byId.get(selectedIds[i]);
         const ans = answers[i];
-
-        if (!q) continue; // safety
-
-        // Normalize kind: legacy quick-quiz had no 'kind' and used 'correctIndex'
+        if (!q) continue;
         const kind: 'mcq-single' | 'mcq-multi' | 'text' =
           (q.kind as any) ?? (Array.isArray(q.choices) ? 'mcq-single' : 'text');
 
         if (kind === 'mcq-single') {
-          // new builder uses q.correct; legacy uses q.correctIndex
           const expected = (q as any).correct ?? (q as any).correctIndex;
           if (
             typeof ans === 'number' &&
             typeof expected === 'number' &&
             ans === expected
-          ) {
+          )
             score++;
-          }
         } else if (kind === 'mcq-multi') {
           const corr = ((q as any).correctMulti ?? [])
             .slice()
@@ -479,10 +521,9 @@ export class AssignmentService {
           if (
             corr.length === got.length &&
             corr.every((v: number, idx: number) => v === got[idx])
-          ) {
+          )
             score++;
-          }
-        } else if (kind === 'text') {
+        } else {
           const ok =
             typeof ans === 'string' &&
             norm(ans) === norm((q as any).correctText ?? '');
@@ -495,6 +536,7 @@ export class AssignmentService {
         {
           ...t,
           score,
+          status: isExpired ? 'expired' : 'submitted',
           submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
           gradedAt: firebase.firestore.FieldValue.serverTimestamp(),
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -502,6 +544,16 @@ export class AssignmentService {
         { merge: true }
       );
     });
+  }
+
+  async canEditAttempt(ref: firebase.firestore.DocumentReference) {
+    const snap = await ref.get();
+    if (!snap.exists) return false;
+    const t = snap.data() as any;
+    const status = t?.status;
+    const expiresAt: firebase.firestore.Timestamp | null = t?.expiresAt || null;
+    const expired = expiresAt && Date.now() >= expiresAt.toMillis();
+    return status !== 'submitted' && status !== 'expired' && !expired;
   }
 }
 

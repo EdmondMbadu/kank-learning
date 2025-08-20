@@ -5,6 +5,7 @@ import {
   BehaviorSubject,
   combineLatest,
   firstValueFrom,
+  interval,
   of,
   Subscription,
 } from 'rxjs';
@@ -41,6 +42,12 @@ export class ClassComponent implements OnInit {
   builderTitle = '';
   builderPoints: number | null = null;
   deleting: Record<string, boolean> = {};
+
+  builderTimed = false;
+  builderTimeMin: number | null = null;
+
+  confirmStartOpen = false;
+  pendingStartClassId: string | null = null;
 
   inviteMode: 'email' | 'username' = 'email';
 
@@ -269,10 +276,50 @@ export class ClassComponent implements OnInit {
         sub.unsubscribe();
       });
     });
+
+    this.tickerSub = interval(1000).subscribe(async () => {
+      const aid = this.openAssignmentId;
+      if (!aid) {
+        this.lockTimed = false;
+        return;
+      }
+
+      const assigns = await firstValueFrom(this.assignments$);
+      const current: any = this.getById(assigns, aid);
+      const att = await firstValueFrom(this.myAttempt$);
+
+      const expires = (att as any)?.expiresAt?.toDate?.() as Date | undefined;
+      const isTimed =
+        !!current?.timed && !!expires && (att as any)?.score == null;
+
+      // lock panel while timed in-progress
+      this.lockTimed = isTimed && Date.now() < expires.getTime();
+
+      // auto-submit once when it hits 0
+      if (isTimed && Date.now() >= expires.getTime()) {
+        if (this.lastAutoSubmitAid !== aid) {
+          this.lastAutoSubmitAid = aid;
+          try {
+            await this.submit(await firstValueFrom(this.classId$));
+          } catch {}
+        }
+      }
+    });
+    // Warn on page exit while timed attempt is running
+    window.addEventListener('beforeunload', this.beforeUnloadHandler);
   }
   ngOnDestroy() {
     this.msgNavSub?.unsubscribe();
+    this.tickerSub?.unsubscribe();
+    window.removeEventListener('beforeunload', this.beforeUnloadHandler);
   }
+
+  private beforeUnloadHandler = (e: BeforeUnloadEvent) => {
+    if (this.lockTimed) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
 
   async inviteMember(classId: string) {
     const email = this.invite.email?.trim();
@@ -398,6 +445,7 @@ export class ClassComponent implements OnInit {
     return Math.round((att.score / total) * 100);
   }
   toggleAssignment(aid: string) {
+    if (this.lockTimed) return; // NEW: lock while timed
     if (this.openAssignmentId === aid) {
       this.openAssignmentId = null;
       this.openAssignmentId$.next(null);
@@ -408,6 +456,7 @@ export class ClassComponent implements OnInit {
   }
 
   closeAssignment() {
+    if (this.lockTimed) return; // NEW
     if (this.openAssignmentId !== null) {
       this.openAssignmentId = null;
       this.openAssignmentId$.next(null);
@@ -797,6 +846,16 @@ export class ClassComponent implements OnInit {
       alert('Ajoutez des questions');
       return;
     }
+    // NEW: timed validation
+    let timeLimitSec: number | undefined;
+    if (this.builderTimed) {
+      const m = Math.max(1, Math.floor(this.builderTimeMin ?? 0));
+      if (!m) {
+        alert('Durée invalide');
+        return;
+      }
+      timeLimitSec = m * 60;
+    }
 
     // create a quiz id now (or generate a local one)
     const quizId = crypto?.randomUUID
@@ -826,7 +885,8 @@ export class ClassComponent implements OnInit {
       me.uid,
       this.builderTitle.trim(),
       questions,
-      this.builderPoints ?? undefined
+      this.builderPoints ?? undefined,
+      { timed: this.builderTimed, timeLimitSec }
       // quizId // optional if your service accepts a provided id
     );
 
@@ -834,7 +894,54 @@ export class ClassComponent implements OnInit {
     this.builderTitle = '';
     this.builderPoints = null;
     this.builderQuestions = [];
+    this.builderTimed = false;
+    this.builderTimeMin = null;
     this.builderOpen = false;
+  }
+
+  lockTimed = false;
+
+  timeLeft$ = combineLatest([
+    this.myAttempt$,
+    this.openAssignmentId$,
+    this.assignments$,
+  ]).pipe(
+    map(([att, aid, assigns]) => {
+      if (!aid) return null;
+      const current: any = this.getById(assigns, aid);
+      if (!current?.timed) return null;
+      const expires = (att as any)?.expiresAt?.toDate?.() as Date | undefined;
+      if (!expires) return null;
+      const s = Math.floor((expires.getTime() - Date.now()) / 1000);
+      return Math.max(0, s);
+    })
+  );
+
+  private tickerSub?: Subscription;
+  private lastAutoSubmitAid: string | null = null;
+
+  clock(sec: number) {
+    const s = Math.max(0, Math.floor(sec));
+    const h = Math.floor(s / 3600),
+      m = Math.floor((s % 3600) / 60),
+      r = s % 60;
+    return h > 0
+      ? `${h}:${m.toString().padStart(2, '0')}:${r.toString().padStart(2, '0')}`
+      : `${m}:${r.toString().padStart(2, '0')}`;
+  }
+  onStartClick(classId: string, current: any, att: QuizAttempt | null) {
+    if (!current?.timed || (att && (att as any)?.startedAt)) {
+      this.startAttempt(classId);
+      return;
+    }
+    this.pendingStartClassId = classId;
+    this.confirmStartOpen = true;
+  }
+
+  async confirmStart(classId: string) {
+    this.confirmStartOpen = false;
+    await this.startAttempt(classId);
+    this.pendingStartClassId = null;
   }
 }
 interface ClassMessageWithMeta extends ClassMessage {

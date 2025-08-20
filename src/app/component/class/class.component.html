@@ -542,6 +542,11 @@
                     <div class="text-xs text-slate-500">
                       {{ a.type === 'quiz' ? (a.numQuestions + ' questions') : '—' }}
                       <span *ngIf="a.points">• {{ a.points }} pts</span>
+                      <span *ngIf="a.timed" class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
+                      bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
+                      ⏱ {{ (a.timeLimitSec || 0) / 60 | number:'1.0-0' }} min
+                      </span>
+
 
                       <ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
                         <span class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
@@ -668,10 +673,12 @@
                   <div class="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Quiz</div>
 
                   <div class="mb-2">
-                    <button (click)="startAttempt(cl.id!)"
-                            class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                      Démarrer / Continuer
-                    </button>
+                   <button (click)="onStartClick(cl.id!, current, vm.att)"
+                          class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
+                                focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                    Démarrer / Continuer
+                  </button>
+
                   </div>
 
                   <!-- Questions -->
@@ -768,6 +775,19 @@
                           </div>
                         </div>
 
+                        <!-- Countdown / lock banner -->
+                    <ng-container *ngIf="(timeLeft$ | async) as secs">
+                      <div *ngIf="secs !== null"
+                          class="inline-flex items-center gap-2 rounded-lg px-3 py-2
+                                  bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200
+                                  dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 1H9v2h6V1zm-1 10h-2V8h2v3zm-2 2h2v6h-2v-6z"/><path d="M12 4a8 8 0 100 16 8 8 0 000-16z"/></svg>
+                        <span>Temps restant&nbsp;: <b>{{ clock(secs) }}</b></span>
+                        <span *ngIf="lockTimed" class="text-[11px] ml-2 opacity-70">Panneau verrouillé</span>
+                      </div>
+                    </ng-container>
+
+
                         <ng-template #noRows>
                           <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
                         </ng-template>
@@ -834,6 +854,21 @@
                       focus:outline-none focus:ring-2 focus:ring-indigo-500
                       dark:bg-slate-900 dark:border-slate-700"/>
       </div>
+      <!-- Timed quiz controls -->
+          <div class="grid gap-2 md:grid-cols-3">
+            <label class="md:col-span-2 inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" [(ngModel)]="builderTimed" />
+              Quiz chronométré
+            </label>
+            <input *ngIf="builderTimed"
+                  [(ngModel)]="builderTimeMin"
+                  type="number" min="1" step="1"
+                  placeholder="Durée (minutes)"
+                  class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                          focus:outline-none focus:ring-2 focus:ring-indigo-500
+                          dark:bg-slate-900 dark:border-slate-700" />
+          </div>
+
 
       <div class="rounded-lg bg-white ring-1 ring-slate-200 p-3 dark:bg-slate-900 dark:ring-slate-700">
         <div class="grid gap-2">
@@ -965,7 +1000,35 @@
             </button>
           </ng-container>
         </div>
+
+        
       </div>
     </div>
   </div>
 </div>
+
+
+<!-- Confirm start timed quiz (place it right after the Quiz Builder Modal block) -->
+<div *ngIf="confirmStartOpen"
+     class="fixed inset-0 z-[110] flex items-center justify-center p-4">
+  <div class="absolute inset-0 bg-black/50" (click)="confirmStartOpen=false"></div>
+  <div class="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900
+              ring-1 ring-black/10 dark:ring-white/10 p-5">
+    <h4 class="text-base font-semibold mb-2">Démarrer le quiz chronométré ?</h4>
+    <p class="text-sm text-slate-600 dark:text-slate-300">
+      Une fois commencé, le minuteur tourne (<b>impossible de fermer</b> le panneau
+      jusqu’à l’envoi ou la fin du temps).
+    </p>
+    <div class="mt-4 flex justify-end gap-2">
+      <button (click)="confirmStartOpen=false"
+              class="rounded-md px-3 py-1.5 text-sm ring-1 ring-slate-200 dark:ring-slate-700">
+        Annuler
+      </button>
+      <button (click)="confirmStart(pendingStartClassId!)"
+              class="rounded-md px-3 py-1.5 text-sm font-semibold bg-emerald-600 text-white">
+        Commencer
+      </button>
+    </div>
+  </div>
+</div>
+
