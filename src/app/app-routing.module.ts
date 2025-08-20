@@ -29,11 +29,15 @@ const routes: Routes = [
   { path: 'verify-email', component: VerifyEmailComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   // app-routing.module.ts
-  { path: 'profile', component: ProfileComponent }, // e.g., /me
-  { path: 'grades', component: GradesComponent },
-  { path: 'messages', component: MessagesComponent },
-  { path: 'class/:classId/quiz/:quizId', component: QuizTakeComponent },
-  { path: 'activity', component: ActivityComponent },
+  { path: 'profile', component: ProfileComponent, canActivate: [AuthGuard] }, // e.g., /me
+  { path: 'grades', component: GradesComponent, canActivate: [AuthGuard] },
+  { path: 'messages', component: MessagesComponent, canActivate: [AuthGuard] },
+  {
+    path: 'class/:classId/quiz/:quizId',
+    component: QuizTakeComponent,
+    canActivate: [AuthGuard],
+  },
+  { path: 'activity', component: ActivityComponent, canActivate: [AuthGuard] },
 ];
 
 @NgModule({

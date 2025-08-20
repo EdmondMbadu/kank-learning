@@ -3,16 +3,16 @@ import { Injectable } from '@angular/core';
 import {
   CanActivate,
   CanLoad,
-  Route,
-  UrlSegment,
-  Router,
-  UrlTree,
   ActivatedRouteSnapshot,
   RouterStateSnapshot,
+  Route,
+  UrlSegment,
+  UrlTree,
+  Router,
 } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { map, take } from 'rxjs/operators';
 import { Observable } from 'rxjs';
+import { take, map } from 'rxjs/operators';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate, CanLoad {
@@ -28,9 +28,16 @@ export class AuthGuard implements CanActivate, CanLoad {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Observable<boolean | UrlTree> {
+    const target = state.url;
     return this.afAuth.authState.pipe(
       take(1),
-      map((user) => (user ? true : this.toLoginTree(state.url)))
+      map((user) => {
+        if (user) return true;
+        if (!target.startsWith('/login')) {
+          localStorage.setItem('auth:redirect', target); // remember the deep link
+        }
+        return this.toLoginTree(target);
+      })
     );
   }
 

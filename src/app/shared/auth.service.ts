@@ -65,6 +65,14 @@ export class AuthService {
   }
 
   // -------- AUTH --------
+  private sanitizeRedirect(url: string | null | undefined): string | null {
+    if (!url) return null;
+    if (!url.startsWith('/')) return null; // same-origin only
+    if (url.startsWith('/login') || url.startsWith('/verify-email'))
+      return null;
+    return url;
+  }
+
   async login(email: string, password: string): Promise<void> {
     try {
       const cred = await this.afAuth.signInWithEmailAndPassword(
@@ -74,15 +82,24 @@ export class AuthService {
       this.clearActivePersona();
       localStorage.setItem('token', 'true');
 
+      const stored = this.sanitizeRedirect(
+        localStorage.getItem('auth:redirect')
+      );
+
       if (cred.user?.emailVerified) {
-        await this.router.navigate(['/dashboard']); // ← go to home after login
+        if (stored) localStorage.removeItem('auth:redirect');
+        await this.router.navigateByUrl(stored || '/dashboard', {
+          replaceUrl: true,
+        });
       } else {
-        await this.router.navigate(['/verify-email']);
+        await this.router.navigate(['/verify-email'], {
+          queryParams: stored ? { returnUrl: stored } : undefined,
+          replaceUrl: true,
+        });
       }
     } catch (err: any) {
       alert(err?.message || 'Une erreur est survenue.');
-      // don't navigate here; let the component decide
-      throw err; // ← lets the component turn off loading properly
+      throw err;
     }
   }
 
