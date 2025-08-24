@@ -2,7 +2,7 @@
 
 <div class="pt-16 min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50
             dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-  <div class="mx-auto max-w-3xl px-4 py-6">
+  <div class="mx-auto max-w-6xl px-4 py-6">
     <div class="mb-4 flex items-center gap-2 text-sm">
       <a [routerLink]="['/class', (classId$ | async)!]"
          class="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
@@ -154,129 +154,152 @@
             </ng-container>
           </div>
 
-          <!-- Instructor dashboard -->
-          <ng-container *ngIf="isTeacher$ | async">
-            <ng-container *ngIf="scoreboardRows$ | async as rows">
-              <div class="mt-8 rounded-2xl p-[1px]
-                          bg-gradient-to-br from-slate-300/40 via-slate-200/30 to-slate-300/40
-                          dark:from-slate-700/30 dark:via-slate-800/30 dark:to-slate-700/30">
-                <div class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white/90 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-4 md:p-5">
-                  <div class="mb-3 flex items-center justify-between">
-                    <div>
-                      <div class="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                        Tableau de bord — Résultats des étudiants
-                      </div>
-                      <div class="text-[11px] text-slate-500">
-                        {{ rows.length }} étudiants ayant une tentative
-                      </div>
-                    </div>
-                  </div>
+                <!-- Instructor dashboard (mobile-first) -->
+            <ng-container *ngIf="isTeacher$ | async">
+              <ng-container *ngIf="scoreboardRows$ | async as rows">
+                <div class="mt-8 rounded-2xl p-[1px]
+                            bg-gradient-to-br from-slate-300/40 via-slate-200/30 to-slate-300/40
+                            dark:from-slate-700/30 dark:via-slate-800/30 dark:to-slate-700/30">
+                  <div class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white/90 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-4 md:p-5">
 
-                  <div *ngIf="rows.length; else noRows">
                     <!-- Header -->
-                    <div class="hidden md:grid grid-cols-12 gap-3 px-3 py-2 text-[11px] font-semibold
-                                text-slate-500 uppercase tracking-wide">
-                      <div class="col-span-4">Étudiant</div>
-                      <div class="col-span-2">Statut</div>
-                      <div class="col-span-2">Progression</div>
-                      <div class="col-span-2">Score</div>
-                      <div class="col-span-1 text-center">Tentatives</div>
-                      <div class="col-span-1 text-right">Dernière</div>
-                    </div>
-
-                    <div class="divide-y divide-slate-200 dark:divide-slate-700">
-                      <div *ngFor="let r of rows; trackBy: trackByUid"
-                          class="py-3 px-3 grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-3 items-center">
-                        <!-- Étudiant -->
-                        <div class="md:col-span-4">
-                          <div class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                            {{ r.name }}
-                          </div>
-                          <div class="text-[11px] text-slate-500 truncate">
-                            {{ r.email || r.uid }}
-                          </div>
+                    <div class="mb-4 md:mb-3 flex items-start justify-between">
+                      <div>
+                        <div class="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
+                          Tableau de bord — Résultats des étudiants
                         </div>
-
-                        <!-- Statut -->
-                        <div class="md:col-span-2">
-                          <span *ngIf="r.status === 'in-progress'"
-                                class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                      bg-amber-50 text-amber-700 ring-1 ring-amber-200
-                                      dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                            En cours
-                          </span>
-                          <span *ngIf="r.status === 'submitted'"
-                                class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                      bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                                      dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-                            Soumis
-                          </span>
-                          <span *ngIf="r.status === 'expired'"
-                                class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                      bg-rose-50 text-rose-700 ring-1 ring-rose-200
-                                      dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
-                            Expiré
-                          </span>
-                          <span *ngIf="!r.status"
-                                class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                      bg-slate-100 text-slate-600 ring-1 ring-slate-200
-                                      dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                            —
-                          </span>
-                        </div>
-
-                        <!-- Progression -->
-                        <div class="md:col-span-2 text-sm text-slate-700 dark:text-slate-200">
-                          {{ r.answered }}/{{ r.total }}
-                        </div>
-
-                        <!-- Score -->
-                        <div class="md:col-span-2">
-                          <span *ngIf="r.score !== null"
-                                class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                      bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                                      dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-                            {{ r.score }}/{{ r.total }} • {{ r.percent }}%
-                          </span>
-                          <span *ngIf="r.score === null"
-                                class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                      bg-slate-100 text-slate-600 ring-1 ring-slate-200
-                                      dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                            —
-                          </span>
-                        </div>
-
-                        <!-- Tentatives -->
-                        <div class="md:col-span-1 text-center">
-                          <span class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                      bg-slate-100 text-slate-600 ring-1 ring-slate-200
-                                      dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
-                                [title]="'Nombre de retakes confirmés'">
-                            ↻ {{ r.attemptCount }}
-                          </span>
-                        </div>
-
-                        <!-- Dernière soumission -->
-                        <div class="md:col-span-1 text-right text-[11px] text-slate-500">
-                          <ng-container *ngIf="r.lastSubmittedAt as d; else noDate">
-                            {{ d | date:'short' }}
-                          </ng-container>
-                          <ng-template #noDate>—</ng-template>
+                        <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                          {{ rows.length }} étudiants ayant une tentative
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <ng-template #noRows>
-                    <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 text-xs text-slate-500
-                                dark:bg-slate-800/40 dark:ring-slate-700">
-                      Personne n’a encore commencé ce quiz.
+                    <div *ngIf="rows.length; else noRows">
+                      <!-- Table header (md+) -->
+                      <div class="hidden md:grid grid-cols-12 gap-3 px-3 py-2 text-[11px] font-semibold
+                                  text-slate-500 uppercase tracking-wide">
+                        <div class="col-span-4">Étudiant</div>
+                        <div class="col-span-2">Statut</div>
+                        <div class="col-span-2">Progression</div>
+                        <div class="col-span-2">Score</div>
+                        <div class="col-span-1 text-center">Tentatives</div>
+                        <div class="col-span-1 text-right">Dernière</div>
+                      </div>
+
+                      <!-- Rows -->
+                      <div class="space-y-3 md:space-y-0 md:divide-y md:divide-slate-200 dark:md:divide-slate-700">
+                        <article *ngFor="let r of rows; trackBy: trackByUid"
+                                class="p-3 rounded-xl ring-1 ring-slate-200 bg-white/80 dark:bg-slate-800/40
+                                        md:ring-0 md:bg-transparent md:rounded-none md:p-0
+                                        md:grid md:grid-cols-12 md:items-center md:gap-3">
+
+                          <!-- Étudiant -->
+                          <div class="md:col-span-4 min-w-0">
+                            <div class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
+                              {{ r.name }}
+                            </div>
+                            <div class="text-[11px] text-slate-500 truncate">
+                              {{ r.email || r.uid }}
+                            </div>
+                          </div>
+
+                          <!-- Statut -->
+                          <div class="md:col-span-2 mt-2 md:mt-0">
+                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Statut</div>
+                            <ng-container [ngSwitch]="r.status">
+                              <span *ngSwitchCase="'in-progress'"
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                          bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                                          dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                                En cours
+                              </span>
+                              <span *ngSwitchCase="'submitted'"
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                          bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                          dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                                Soumis
+                              </span>
+                              <span *ngSwitchCase="'expired'"
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                          bg-rose-50 text-rose-700 ring-1 ring-rose-200
+                                          dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
+                                Expiré
+                              </span>
+                              <span *ngSwitchDefault
+                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                          bg-slate-100 text-slate-600 ring-1 ring-slate-200
+                                          dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                                —
+                              </span>
+                            </ng-container>
+                          </div>
+
+                          <!-- Progression -->
+                          <div class="md:col-span-2 mt-2 md:mt-0">
+                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Progression</div>
+                            <div class="text-sm text-slate-700 dark:text-slate-200">
+                              {{ r.answered }}/{{ r.total }}
+                            </div>
+                            <div class="mt-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700/60 overflow-hidden">
+                              <div class="h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400"
+                                  [style.width.%]="r.total ? (r.answered / r.total) * 100 : 0"></div>
+                            </div>
+                          </div>
+
+                          <!-- Score -->
+                          <div class="md:col-span-2 mt-2 md:mt-0">
+                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Score</div>
+                            <span *ngIf="r.score !== null; else noScore"
+                                  class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                        bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                        dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                              {{ r.score }}/{{ r.total }} • {{ r.percent }}%
+                            </span>
+                            <ng-template #noScore>
+                              <span class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                          bg-slate-100 text-slate-600 ring-1 ring-slate-200
+                                          dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                                —
+                              </span>
+                            </ng-template>
+                          </div>
+
+                          <!-- Tentatives -->
+                          <div class="md:col-span-1 mt-2 md:mt-0 md:text-center">
+                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Tentatives</div>
+                            <span class="rounded-full px-2 py-0.5 text-[11px] font-medium
+                                        bg-slate-100 text-slate-600 ring-1 ring-slate-200
+                                        dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
+                                  title="Nombre de retakes confirmés">
+                              ↻ {{ r.attemptCount }}
+                            </span>
+                          </div>
+
+                          <!-- Dernière -->
+                          <div class="md:col-span-1 mt-2 md:mt-0 md:text-right">
+                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Dernière</div>
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400">
+                              <ng-container *ngIf="r.lastSubmittedAt as d; else noDate">
+                                {{ d | date:'short' }}
+                              </ng-container>
+                              <ng-template #noDate>—</ng-template>
+                            </div>
+                          </div>
+
+                        </article>
+                      </div>
                     </div>
-                  </ng-template>
+
+                    <ng-template #noRows>
+                      <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 text-xs text-slate-500
+                                  dark:bg-slate-800/40 dark:ring-slate-700">
+                        Personne n’a encore commencé ce quiz.
+                      </div>
+                    </ng-template>
+                  </div>
                 </div>
-              </div>
+              </ng-container>
             </ng-container>
-          </ng-container>
 
 
 
