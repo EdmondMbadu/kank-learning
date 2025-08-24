@@ -194,6 +194,8 @@ export interface QuizAssignment extends Assignment {
   numQuestions: number; // e.g., 5
   attemptCount?: number;
   pool: QuizQuestion[]; // question bank for this assignment
+  audience?: 'all' | 'subset';
+  assignedTo?: string[];
 }
 
 export interface QuizAttempt {

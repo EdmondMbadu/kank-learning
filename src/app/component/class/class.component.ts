@@ -59,6 +59,12 @@ export class ClassComponent implements OnInit {
   };
   invitingU = false;
 
+  builderAudience: 'all' | 'subset' = 'all';
+  builderAssignees = new Set<string>();
+
+  assigneeQuery$ = new BehaviorSubject<string>('');
+  assigneeQuery = '';
+
   // one “draft” question editor
   draft: {
     kind: 'mcq-single' | 'mcq-multi' | 'text';
@@ -155,9 +161,26 @@ export class ClassComponent implements OnInit {
   removing: Record<string, boolean> = {};
   canceling: Record<string, boolean> = {}; // NEW: cancel pending invite
   // QUIZ state/streams
-  // --- QUIZ streams/state ---
-  assignments$ = this.classId$.pipe(
+  // REPLACE your current `assignments$` with these two streams:
+
+  assignmentsAll$ = this.classId$.pipe(
     switchMap((id) => this.asgn.assignments$(id))
+  );
+
+  assignments$ = combineLatest([
+    this.assignmentsAll$,
+    this.me$,
+    this.role$,
+  ]).pipe(
+    map(([list, me, role]) => {
+      if (role === 'instructor' || role === 'ta') return list;
+      const uid = me?.uid;
+      return (list ?? []).filter(
+        (a: any) =>
+          (a?.audience ?? 'all') !== 'subset' ||
+          (Array.isArray(a?.assignedTo) && a.assignedTo.includes(uid))
+      );
+    })
   );
 
   // use a BehaviorSubject so the stream re-computes when you open another assignment
@@ -210,6 +233,33 @@ export class ClassComponent implements OnInit {
     )
   );
 
+  students$ = this.members$.pipe(
+    map((list) => (list ?? []).filter((m) => (m as any)?.role === 'student'))
+  );
+  filteredStudents$ = combineLatest([this.students$, this.assigneeQuery$]).pipe(
+    map(([list, q]) => {
+      const t = (q || '').toLowerCase();
+      if (!t) return list;
+      return list.filter((m) => {
+        const fn = (m.user?.firstName || '').toLowerCase();
+        const ln = (m.user?.lastName || '').toLowerCase();
+        const em = (m.user?.email || m.uid).toLowerCase();
+        return fn.includes(t) || ln.includes(t) || em.includes(t);
+      });
+    })
+  );
+
+  onAssigneeSearch(v: string) {
+    this.assigneeQuery = v;
+    this.assigneeQuery$.next(v);
+  }
+  toggleAssignee(uid: string, checked: boolean) {
+    if (checked) this.builderAssignees.add(uid);
+    else this.builderAssignees.delete(uid);
+  }
+  isAssignee(uid: string) {
+    return this.builderAssignees.has(uid);
+  }
   // ALL attempts for the open assignment (NOT deduped)
   instructorAttemptsAll$ = combineLatest([
     this.isTeacher$,
@@ -695,34 +745,6 @@ export class ClassComponent implements OnInit {
     this.builderQuestions = this.builderQuestions.filter((q) => q.id !== qid);
   }
 
-  // async saveCustomQuiz(classId: string) {
-  //   const me = await firstValueFrom(this.me$);
-  //   if (!me?.uid) return;
-  //   if (!this.builderTitle.trim()) {
-  //     alert('Titre du quiz requis');
-  //     return;
-  //   }
-  //   if (!this.builderQuestions.length) {
-  //     alert('Ajoutez des questions');
-  //     return;
-  //   }
-
-  //   const points = this.builderPoints ?? undefined;
-  //   await this.asgn.createCustomQuiz(
-  //     classId,
-  //     me.uid,
-  //     this.builderTitle.trim(),
-  //     this.builderQuestions,
-  //     points
-  //   );
-
-  //   // reset
-  //   this.builderTitle = '';
-  //   this.builderPoints = null;
-  //   this.builderQuestions = [];
-  //   this.builderOpen = false;
-  // }
-
   // ====== ANSWER HANDLERS for new kinds (student) ======
   async selectAnswerSingle_New(classId: string, idx: number, choice: number) {
     const me = await firstValueFrom(this.me$);
@@ -946,7 +968,7 @@ export class ClassComponent implements OnInit {
     const ref = this.storage.ref(path);
     return await firstValueFrom(ref.getDownloadURL());
   }
-
+  // class.component.ts -> saveCustomQuiz(...)
   async saveCustomQuiz(classId: string) {
     const me = await firstValueFrom(this.me$);
     if (!me?.uid) return;
@@ -958,7 +980,8 @@ export class ClassComponent implements OnInit {
       alert('Ajoutez des questions');
       return;
     }
-    // NEW: timed validation
+
+    // timed
     let timeLimitSec: number | undefined;
     if (this.builderTimed) {
       const m = Math.max(1, Math.floor(this.builderTimeMin ?? 0));
@@ -969,15 +992,13 @@ export class ClassComponent implements OnInit {
       timeLimitSec = m * 60;
     }
 
-    // create a quiz id now (or generate a local one)
+    // upload images (unchanged)
     const quizId = crypto?.randomUUID
       ? crypto.randomUUID()
       : Math.random().toString(36).slice(2);
-
-    // 1) upload any local files
-    const questions = [];
+    const questions: any[] = [];
     for (const q of this.builderQuestions) {
-      const qq: any = { ...q }; // shallow copy
+      const qq: any = { ...q };
       if ((q as any).__file) {
         const url = await this.uploadQuestionImage(
           classId,
@@ -991,23 +1012,30 @@ export class ClassComponent implements OnInit {
       questions.push(qq);
     }
 
-    // 2) persist with URLs (make sure your service keeps imageUrl)
+    // NEW: recipients
+    const audience = this.builderAudience;
+    const assignedTo =
+      audience === 'subset' ? Array.from(this.builderAssignees) : [];
+
     await this.asgn.createCustomQuiz(
       classId,
       me.uid,
       this.builderTitle.trim(),
       questions,
       this.builderPoints ?? undefined,
-      { timed: this.builderTimed, timeLimitSec }
-      // quizId // optional if your service accepts a provided id
+      { timed: this.builderTimed, timeLimitSec, audience, assignedTo }
     );
 
-    // reset UI
+    // reset
     this.builderTitle = '';
     this.builderPoints = null;
     this.builderQuestions = [];
     this.builderTimed = false;
     this.builderTimeMin = null;
+    this.builderAudience = 'all';
+    this.builderAssignees.clear();
+    this.assigneeQuery = '';
+    this.assigneeQuery$.next('');
     this.builderOpen = false;
   }
 

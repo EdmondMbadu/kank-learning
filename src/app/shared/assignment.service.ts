@@ -160,6 +160,15 @@ export class AssignmentService {
       const [aDoc, tDoc] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
       if (!aDoc.exists) throw new Error('Assignment introuvable.');
       const a = aDoc.data() as any;
+      // NEW: restrict if audience is 'subset'
+      const audience: 'all' | 'subset' = (a?.audience as any) ?? 'all';
+      if (audience === 'subset') {
+        const allowed =
+          Array.isArray(a?.assignedTo) && a.assignedTo.includes(uid);
+        if (!allowed) {
+          throw new Error('Vous ne pouvez pas accéder à ce quiz.');
+        }
+      }
 
       const nowMs = Date.now();
       const timeLimitMs =
@@ -247,6 +256,19 @@ export class AssignmentService {
     });
   }
 
+  // assignment.service.ts
+  assignmentsForUser$(classId: string, uid: string) {
+    return this.assignments$(classId).pipe(
+      map((list) =>
+        (list ?? []).filter(
+          (a: any) =>
+            (a?.audience ?? 'all') !== 'subset' ||
+            (Array.isArray(a?.assignedTo) && a.assignedTo.includes(uid))
+        )
+      )
+    );
+  }
+
   /** Persist a single answer change (optional, can also just submit once) */
   async saveAnswer(
     classId: string,
@@ -309,14 +331,19 @@ export class AssignmentService {
       );
   }
 
-  // --- CREATE a custom quiz with a prepared pool of questions ---
+  // Add these to the opts signature:
   async createCustomQuiz(
     classId: string,
     createdByUid: string,
     title: string,
     pool: QuizQuestion[],
     points?: number,
-    opts?: { timed?: boolean; timeLimitSec?: number }
+    opts?: {
+      timed?: boolean;
+      timeLimitSec?: number;
+      audience?: 'all' | 'subset';
+      assignedTo?: string[];
+    }
   ): Promise<string> {
     if (!title?.trim()) throw new Error('Titre requis');
     if (!pool?.length) throw new Error('Ajoutez au moins une question');
@@ -324,8 +351,9 @@ export class AssignmentService {
     const id = this.afs.createId();
     const now = firebase.firestore.FieldValue.serverTimestamp();
 
-    const a = {
+    const a: any = {
       id,
+      classId,
       title: title.trim(),
       type: 'quiz',
       createdBy: createdByUid,
@@ -333,10 +361,16 @@ export class AssignmentService {
       updatedAt: now,
       pool,
       numQuestions: pool.length,
-      points: points ?? pool.length, // default 1 pt per question
+      points: points ?? pool.length, // 1 pt/question by default
       timed: opts?.timed ?? false,
       timeLimitSec: opts?.timed ? opts?.timeLimitSec ?? 0 : null,
-      // createdAt: this.ts.serverTimestamp(),
+
+      // NEW: audience
+      audience: opts?.audience ?? 'all', // 'all' | 'subset'
+      assignedTo:
+        opts?.audience === 'subset'
+          ? Array.from(new Set(opts?.assignedTo ?? [])) // unique list of uids
+          : [], // keep empty for 'all'
     };
 
     await this.afs.doc(`classes/${classId}/assignments/${id}`).set(a);
