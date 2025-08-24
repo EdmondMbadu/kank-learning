@@ -195,6 +195,34 @@
 
 
                       </ng-container>
+                      <!-- Assigned-to list (instructor/TA only) -->
+                      <ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'">
+                        <div *ngIf="a?.audience === 'subset' && (members$ | async) as members"
+                            class="mt-1 flex flex-wrap gap-1.5">
+                          <ng-container *ngFor="let m of assignedList(a, members); trackBy: trackByUid">
+                            <span
+                              class="inline-flex items-center gap-1.5 rounded-full px-2 py-1
+                                    text-[11px] ring-1 ring-slate-200 bg-slate-50
+                                    dark:bg-slate-700/40 dark:ring-slate-700 dark:text-slate-200"
+                              [title]="m.email ? (m.name + ' • ' + m.email) : m.name"
+                            >
+                              <span
+                                class="grid place-items-center h-5 w-5 rounded-full
+                                      bg-indigo-600/10 text-indigo-700 dark:text-indigo-300
+                                      text-[10px] font-semibold"
+                              >
+                                {{ initials(m.name) }}
+                              </span>
+                              <span class="truncate max-w-[9rem]">{{ m.name }}</span>
+                            </span>
+                          </ng-container>
+                          <span *ngIf="assignedList(a, members).length === 0"
+                                class="text-[11px] text-slate-400">
+                            (aucun destinataire défini)
+                          </span>
+                        </div>
+                      </ng-container>
+
                     </div>
                   </div>
 

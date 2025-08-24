@@ -1102,6 +1102,62 @@ export class ClassComponent implements OnInit {
     await this.startAttempt(classId);
     this.pendingStartClassId = null;
   }
+
+  // Return an ordered list of targets with graceful fallbacks (name/email/uid)
+  assignedList(
+    asg: any,
+    members: Array<{ uid: string; user?: any }>
+  ): Array<{ uid: string; name: string; email?: string }> {
+    if (!asg) return [];
+    const uids: string[] =
+      (Array.isArray(asg?.assignedToUids) && asg.assignedToUids) ||
+      (Array.isArray(asg?.assignedTo) && asg.assignedTo) ||
+      [];
+    const emailsLower: string[] =
+      (Array.isArray(asg?.assignedToEmailsLower) &&
+        asg.assignedToEmailsLower) ||
+      [];
+
+    const byUid = new Map<string, any>(
+      (members || []).map((m) => [m.uid, m?.user || null])
+    );
+
+    const out: Array<{ uid: string; name: string; email?: string }> = [];
+
+    // First: all UID targets (prefer full name, then email, then uid)
+    for (const uid of uids) {
+      const u = byUid.get(uid);
+      const name =
+        [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim() ||
+        u?.displayName ||
+        u?.email ||
+        uid;
+      out.push({ uid, name, email: u?.email });
+    }
+
+    // Then: any pure email targets not covered by UID
+    for (const e of emailsLower) {
+      const already = out.some((x) => (x.email || '').toLowerCase() === e);
+      if (!already) {
+        out.push({ uid: `email:${e}`, name: e, email: e });
+      }
+    }
+
+    return out;
+  }
+
+  initials(name: string): string {
+    return (name || '')
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((s) => (s[0] || '').toUpperCase())
+      .join('');
+  }
+
+  trackByUid(_: number, x: any) {
+    return x?.uid || x;
+  }
 }
 interface ClassMessageWithMeta extends ClassMessage {
   createdAtDate: Date;
