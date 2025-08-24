@@ -45,6 +45,10 @@ export class ClassComponent implements OnInit {
   builderPoints: number | null = null;
   deleting: Record<string, boolean> = {};
 
+  // class.component.ts (inside class)
+  attemptLimitOpen = false;
+  attemptLimit = { used: 0, max: 0 };
+
   // class.component.ts
   builderMaxAttempts: number | null = null;
 
@@ -1089,23 +1093,21 @@ export class ClassComponent implements OnInit {
       : `${m}:${r.toString().padStart(2, '0')}`;
   }
   onStartClick(classId: string, current: any, att: QuizAttempt | null) {
-    // Untimed: same behavior as before
+    // NEW: cap first
+    if (this.reachedLimit(att, current)) {
+      this.openAttemptLimit(att, current);
+      return;
+    }
+
+    // Untimed: same behavior
     if (!current?.timed) {
       this.startAttempt(classId);
       return;
     }
 
-    // Timed:
-    if (att?.status === 'submitted' || att?.status === 'expired') {
-      // already over — don’t start again
-      return;
-    }
-    if (att?.startedAt) {
-      // already started — nothing to do; the UI is locked while the timer runs
-      return;
-    }
-
-    // First time start → confirm modal
+    // Timed (unchanged below)
+    if (att?.status === 'submitted' || att?.status === 'expired') return;
+    if (att?.startedAt) return;
     this.pendingStartClassId = classId;
     this.confirmStartOpen = true;
   }
@@ -1170,6 +1172,64 @@ export class ClassComponent implements OnInit {
 
   trackByUid(_: number, x: any) {
     return x?.uid || x;
+  }
+
+  public usedAttempts(att: any): number {
+    // exact same implementation as in QuizTakeComponent
+    const field = typeof att?.attemptCount === 'number' ? att.attemptCount : 0;
+    const histLen = Array.isArray(att?.history) ? att.history.length : 0;
+    const maxNo = Array.isArray(att?.history)
+      ? Math.max(
+          0,
+          ...att.history.map((h: any) =>
+            typeof h?.attemptNo === 'number' ? h.attemptNo : 0
+          )
+        )
+      : 0;
+    const hasAnySubmitted =
+      att?.status === 'submitted' ||
+      att?.status === 'expired' ||
+      att?.score != null ||
+      !!att?.submittedAt;
+    const submitted = Math.max(field, histLen, maxNo, hasAnySubmitted ? 1 : 0);
+    const lastSubmittedMs = Array.isArray(att?.history)
+      ? att.history.reduce(
+          (m: number, h: any) =>
+            Math.max(m, h?.submittedAt?.toDate?.()?.getTime?.() ?? 0),
+          0
+        )
+      : 0;
+    const startedMs = att?.startedAt?.toDate?.()?.getTime?.() ?? 0;
+    const hasFreshUnsubmittedRun =
+      att?.status === 'in-progress' && startedMs > lastSubmittedMs;
+
+    const hasAnyAnswers =
+      Array.isArray(att?.answers) &&
+      att.answers.some(
+        (ans: any) =>
+          (typeof ans === 'number' && ans >= 0) ||
+          (Array.isArray(ans) && ans.length > 0) ||
+          (typeof ans === 'string' && ans.trim().length > 0)
+      );
+
+    const addUnsubmitted =
+      hasFreshUnsubmittedRun ||
+      (submitted === 0 && (att?.status === 'in-progress' || hasAnyAnswers));
+    return submitted + (addUnsubmitted ? 1 : 0);
+  }
+
+  reachedLimit(att: QuizAttempt | null | undefined, a: any): boolean {
+    const max = a?.maxAttempts ?? 0;
+    if (!max || max <= 0) return false;
+    return this.usedAttempts(att) >= max;
+  }
+
+  private openAttemptLimit(att: any, a: any) {
+    this.attemptLimit = {
+      used: this.usedAttempts(att),
+      max: a?.maxAttempts ?? 0,
+    };
+    this.attemptLimitOpen = true;
   }
 }
 interface ClassMessageWithMeta extends ClassMessage {

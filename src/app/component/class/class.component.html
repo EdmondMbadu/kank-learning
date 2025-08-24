@@ -413,13 +413,21 @@
                   <div class="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Quiz</div>
 
                   <div class="mb-2">
-                  <button
-                    (click)="onStartClick(cl.id!, current, vm.att)"
-                    [disabled]="lockTimed || vm.att?.status==='submitted' || vm.att?.status==='expired'"
-                    class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
-                          focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60">
-                    Démarrer / Continuer
-                  </button>
+                    <button
+                      (click)="onStartClick(cl.id!, current, vm.att)"
+                      [disabled]="lockTimed || vm.att?.status==='submitted' || vm.att?.status==='expired' || reachedLimit(vm.att, current)"
+                      class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
+                            focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60">
+                      Démarrer / Continuer
+                    </button>
+
+                    <span *ngIf="(current?.maxAttempts ?? 0) > 0"
+                          class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
+                                bg-slate-100 text-slate-600 ring-slate-200
+                                dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                      ↻ {{ usedAttempts(vm.att) }}/{{ current.maxAttempts }}
+                    </span>
+
 
 
                   </div>
