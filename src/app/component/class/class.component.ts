@@ -45,6 +45,9 @@ export class ClassComponent implements OnInit {
   builderPoints: number | null = null;
   deleting: Record<string, boolean> = {};
 
+  // class.component.ts
+  builderMaxAttempts: number | null = null;
+
   builderTimed = false;
   builderTimeMin: number | null = null;
 
@@ -1023,7 +1026,16 @@ export class ClassComponent implements OnInit {
       this.builderTitle.trim(),
       questions,
       this.builderPoints ?? undefined,
-      { timed: this.builderTimed, timeLimitSec, audience, assignedTo }
+      {
+        timed: this.builderTimed,
+        timeLimitSec,
+        audience,
+        assignedTo,
+        maxAttempts:
+          (this.builderMaxAttempts ?? 0) > 0
+            ? this.builderMaxAttempts!
+            : undefined,
+      }
     );
 
     // reset
@@ -1037,6 +1049,7 @@ export class ClassComponent implements OnInit {
     this.assigneeQuery = '';
     this.assigneeQuery$.next('');
     this.builderOpen = false;
+    this.builderMaxAttempts = null;
   }
 
   lockTimed = false;

@@ -143,6 +143,120 @@ export class AssignmentService {
   }
 
   /** Ensure an attempt exists. If missing, create with 5 random IDs */
+  // async startAttemptIfNeeded(
+  //   classId: string,
+  //   assignmentId: string,
+  //   uid: string,
+  //   opts?: { forceNew?: boolean }
+  // ) {
+  //   const aRef = this.afs.doc<QuizAssignment>(
+  //     `classes/${classId}/assignments/${assignmentId}`
+  //   ).ref;
+  //   const tRef = this.afs.doc<QuizAttempt>(
+  //     `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
+  //   ).ref;
+
+  //   await this.afs.firestore.runTransaction(async (tx) => {
+  //     const [aDoc, tDoc] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
+  //     if (!aDoc.exists) throw new Error('Assignment introuvable.');
+  //     const a = aDoc.data() as any;
+  //     // NEW: restrict if audience is 'subset'
+  //     const audience: 'all' | 'subset' = (a?.audience as any) ?? 'all';
+  //     if (audience === 'subset') {
+  //       const allowed =
+  //         Array.isArray(a?.assignedTo) && a.assignedTo.includes(uid);
+  //       if (!allowed) {
+  //         throw new Error('Vous ne pouvez pas accéder à ce quiz.');
+  //       }
+  //     }
+
+  //     const nowMs = Date.now();
+  //     const timeLimitMs =
+  //       a?.timed && a?.timeLimitSec ? a.timeLimitSec * 1000 : 0;
+
+  //     const pickIds = (ids: string[], n: number) => {
+  //       const copy = ids.slice();
+  //       for (let i = copy.length - 1; i > 0; i--) {
+  //         const j = Math.floor(Math.random() * (i + 1));
+  //         [copy[i], copy[j]] = [copy[j], copy[i]];
+  //       }
+  //       return copy.slice(0, Math.max(0, Math.min(n, copy.length)));
+  //     };
+
+  //     // helper: compute initial answers per question kind
+  //     const makeInitialAnswers = (selectedIds: string[]) => {
+  //       const pool: any[] = Array.isArray(a?.pool) ? a.pool : [];
+  //       const byId = new Map(pool.map((q: any) => [q.id, q]));
+  //       return selectedIds.map((id) => {
+  //         const q = byId.get(id);
+  //         const kind: 'mcq-single' | 'mcq-multi' | 'text' =
+  //           (q?.kind as any) ??
+  //           (Array.isArray(q?.choices) ? 'mcq-single' : 'text');
+  //         if (kind === 'mcq-multi') return [] as number[];
+  //         if (kind === 'text') return '';
+  //         return -1; // mcq-single sentinel
+  //       });
+  //     };
+
+  //     const poolIds = (Array.isArray(a?.pool) ? a.pool : []).map(
+  //       (q: any) => q.id
+  //     );
+  //     const newSelectedIds = pickIds(poolIds, a.numQuestions);
+  //     const newAnswers = makeInitialAnswers(newSelectedIds);
+  //     const newExpiresAt =
+  //       timeLimitMs > 0
+  //         ? firebase.firestore.Timestamp.fromMillis(nowMs + timeLimitMs)
+  //         : null;
+
+  //     if (!tDoc.exists) {
+  //       // first attempt
+  //       tx.set(tRef, {
+  //         uid,
+  //         selectedIds: newSelectedIds,
+  //         answers: newAnswers,
+  //         score: null,
+  //         startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  //         expiresAt: newExpiresAt,
+  //         status: 'in-progress',
+  //         attemptCount: 0, // per-user counter (incremented on submit)
+  //         history: [], // keep previous runs
+  //         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  //       } as any);
+  //       return;
+  //     }
+
+  //     const t = tDoc.data() as any;
+  //     const alreadyDone = t?.status === 'submitted' || t?.status === 'expired';
+
+  //     if (opts?.forceNew || alreadyDone) {
+  //       // start a fresh run (retake): reset selection/answers/timer, keep counters/history
+  //       tx.update(tRef, {
+  //         selectedIds: newSelectedIds,
+  //         answers: newAnswers,
+  //         score: null,
+  //         startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  //         expiresAt: newExpiresAt,
+  //         status: 'in-progress',
+  //         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  //       });
+  //       return;
+  //     }
+
+  //     // legacy: if timed but no expiresAt, set it once; otherwise do nothing
+  //     const hasExpires = !!t?.expiresAt;
+  //     if (a?.timed && !hasExpires && timeLimitMs > 0) {
+  //       tx.update(tRef, {
+  //         startedAt:
+  //           t?.startedAt ?? firebase.firestore.FieldValue.serverTimestamp(),
+  //         expiresAt: newExpiresAt,
+  //         status: 'in-progress',
+  //         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  //       });
+  //     }
+  //   });
+  // }
+
+  /** Ensure an attempt exists or start a fresh run (retake) respecting audience/timing/maxAttempts. */
   async startAttemptIfNeeded(
     classId: string,
     assignmentId: string,
@@ -152,6 +266,7 @@ export class AssignmentService {
     const aRef = this.afs.doc<QuizAssignment>(
       `classes/${classId}/assignments/${assignmentId}`
     ).ref;
+
     const tRef = this.afs.doc<QuizAttempt>(
       `classes/${classId}/assignments/${assignmentId}/attempts/${uid}`
     ).ref;
@@ -159,21 +274,23 @@ export class AssignmentService {
     await this.afs.firestore.runTransaction(async (tx) => {
       const [aDoc, tDoc] = await Promise.all([tx.get(aRef), tx.get(tRef)]);
       if (!aDoc.exists) throw new Error('Assignment introuvable.');
+
       const a = aDoc.data() as any;
-      // NEW: restrict if audience is 'subset'
+
+      // Audience gate
       const audience: 'all' | 'subset' = (a?.audience as any) ?? 'all';
       if (audience === 'subset') {
         const allowed =
           Array.isArray(a?.assignedTo) && a.assignedTo.includes(uid);
-        if (!allowed) {
-          throw new Error('Vous ne pouvez pas accéder à ce quiz.');
-        }
+        if (!allowed) throw new Error('Vous ne pouvez pas accéder à ce quiz.');
       }
 
+      // Timing
       const nowMs = Date.now();
       const timeLimitMs =
         a?.timed && a?.timeLimitSec ? a.timeLimitSec * 1000 : 0;
 
+      // Helpers (same as your current code)
       const pickIds = (ids: string[], n: number) => {
         const copy = ids.slice();
         for (let i = copy.length - 1; i > 0; i--) {
@@ -183,7 +300,6 @@ export class AssignmentService {
         return copy.slice(0, Math.max(0, Math.min(n, copy.length)));
       };
 
-      // helper: compute initial answers per question kind
       const makeInitialAnswers = (selectedIds: string[]) => {
         const pool: any[] = Array.isArray(a?.pool) ? a.pool : [];
         const byId = new Map(pool.map((q: any) => [q.id, q]));
@@ -194,7 +310,7 @@ export class AssignmentService {
             (Array.isArray(q?.choices) ? 'mcq-single' : 'text');
           if (kind === 'mcq-multi') return [] as number[];
           if (kind === 'text') return '';
-          return -1; // mcq-single sentinel
+          return -1; // mcq-single placeholder
         });
       };
 
@@ -208,8 +324,19 @@ export class AssignmentService {
           ? firebase.firestore.Timestamp.fromMillis(nowMs + timeLimitMs)
           : null;
 
+      const max = Number(a?.maxAttempts || 0);
+
+      // === No attempt yet: create first one (always allowed if max==0 or >=1) ===
       if (!tDoc.exists) {
-        // first attempt
+        if (max > 0) {
+          const used = 0; // first run
+          if (used >= max) {
+            const err: any = new Error('Max attempts reached');
+            err.code = 'attempts-exhausted';
+            throw err;
+          }
+        }
+
         tx.set(tRef, {
           uid,
           selectedIds: newSelectedIds,
@@ -218,18 +345,48 @@ export class AssignmentService {
           startedAt: firebase.firestore.FieldValue.serverTimestamp(),
           expiresAt: newExpiresAt,
           status: 'in-progress',
-          attemptCount: 0, // per-user counter (incremented on submit)
-          history: [], // keep previous runs
+          attemptCount: 0, // incremented on submit
+          history: [],
           updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
         } as any);
         return;
       }
 
+      // There is an attempt doc already
       const t = tDoc.data() as any;
-      const alreadyDone = t?.status === 'submitted' || t?.status === 'expired';
+      const status: string | undefined = t?.status;
 
-      if (opts?.forceNew || alreadyDone) {
-        // start a fresh run (retake): reset selection/answers/timer, keep counters/history
+      // If in-progress → this is a "continue"; DO NOT enforce cap; just ensure timer exists for timed quizzes.
+      if (status === 'in-progress') {
+        if (a?.timed && !t?.expiresAt && timeLimitMs > 0) {
+          tx.update(tRef, {
+            startedAt:
+              t?.startedAt ?? firebase.firestore.FieldValue.serverTimestamp(),
+            expiresAt: newExpiresAt,
+            status: 'in-progress',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+        return; // continue
+      }
+
+      // Otherwise, user wants to start a fresh run (retake)
+      const wantsFreshRun = !!(
+        opts?.forceNew ||
+        status === 'submitted' ||
+        status === 'expired'
+      );
+
+      if (wantsFreshRun) {
+        if (max > 0) {
+          const used = this.computeUsedAttempts(t);
+          if (used >= max) {
+            const err: any = new Error('Max attempts reached');
+            err.code = 'attempts-exhausted';
+            throw err;
+          }
+        }
+
         tx.update(tRef, {
           selectedIds: newSelectedIds,
           answers: newAnswers,
@@ -242,9 +399,8 @@ export class AssignmentService {
         return;
       }
 
-      // legacy: if timed but no expiresAt, set it once; otherwise do nothing
-      const hasExpires = !!t?.expiresAt;
-      if (a?.timed && !hasExpires && timeLimitMs > 0) {
+      // Legacy timed fix-up: if somehow timed but missing expiresAt, set once
+      if (a?.timed && !t?.expiresAt && timeLimitMs > 0) {
         tx.update(tRef, {
           startedAt:
             t?.startedAt ?? firebase.firestore.FieldValue.serverTimestamp(),
@@ -255,7 +411,6 @@ export class AssignmentService {
       }
     });
   }
-
   // assignment.service.ts
   assignmentsForUser$(classId: string, uid: string) {
     return this.assignments$(classId).pipe(
@@ -343,6 +498,7 @@ export class AssignmentService {
       timeLimitSec?: number;
       audience?: 'all' | 'subset';
       assignedTo?: string[];
+      maxAttempts?: number;
     }
   ): Promise<string> {
     if (!title?.trim()) throw new Error('Titre requis');
@@ -371,6 +527,7 @@ export class AssignmentService {
         opts?.audience === 'subset'
           ? Array.from(new Set(opts?.assignedTo ?? [])) // unique list of uids
           : [], // keep empty for 'all'
+      maxAttempts: opts?.maxAttempts,
     };
 
     await this.afs.doc(`classes/${classId}/assignments/${id}`).set(a);
@@ -633,6 +790,63 @@ export class AssignmentService {
         ref.orderBy('updatedAt', 'desc')
       )
       .valueChanges({ idField: 'uid' });
+  }
+
+  // Inside AssignmentService
+
+  /** Strong attempt counter that merges attemptCount, history[], status, and in-progress evidence. */
+  private computeUsedAttempts(att: any | null | undefined): number {
+    if (!att) return 0;
+
+    const field = typeof att?.attemptCount === 'number' ? att.attemptCount : 0;
+    const histLen = Array.isArray(att?.history) ? att.history.length : 0;
+    const maxNo = Array.isArray(att?.history)
+      ? Math.max(
+          0,
+          ...att.history.map((h: any) =>
+            typeof h?.attemptNo === 'number' ? h.attemptNo : 0
+          )
+        )
+      : 0;
+
+    // any sign of at least one submission
+    const hasAnySubmitted =
+      att?.status === 'submitted' ||
+      att?.status === 'expired' ||
+      att?.score != null ||
+      !!att?.submittedAt;
+
+    // strongest submitted signal
+    const submitted = Math.max(field, histLen, maxNo, hasAnySubmitted ? 1 : 0);
+
+    // detect a *fresh* in-progress run that isn’t yet counted in submitted
+    const lastSubmittedMs = Array.isArray(att?.history)
+      ? att.history.reduce(
+          (m: number, h: any) =>
+            Math.max(m, h?.submittedAt?.toDate?.()?.getTime?.() ?? 0),
+          0
+        )
+      : 0;
+
+    const startedMs = att?.startedAt?.toDate?.()?.getTime?.() ?? 0;
+    const hasFreshUnsubmittedRun =
+      att?.status === 'in-progress' && startedMs > lastSubmittedMs;
+
+    // extra fallback: if answers exist and nothing counted yet, treat as 1
+    const hasAnyAnswers =
+      Array.isArray(att?.answers) &&
+      att.answers.some(
+        (ans: any) =>
+          (typeof ans === 'number' && ans >= 0) ||
+          (Array.isArray(ans) && ans.length > 0) ||
+          (typeof ans === 'string' && ans.trim().length > 0)
+      );
+
+    const addUnsubmitted =
+      hasFreshUnsubmittedRun ||
+      (submitted === 0 && (att?.status === 'in-progress' || hasAnyAnswers));
+
+    return submitted + (addUnsubmitted ? 1 : 0);
   }
 }
 

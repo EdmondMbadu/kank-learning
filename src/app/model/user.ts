@@ -196,6 +196,7 @@ export interface QuizAssignment extends Assignment {
   pool: QuizQuestion[]; // question bank for this assignment
   audience?: 'all' | 'subset';
   assignedTo?: string[];
+  maxAttempts?: number;
 }
 
 export interface QuizAttempt {
@@ -209,4 +210,5 @@ export interface QuizAttempt {
   startedAt?: any; // Firestore Timestamp | Date
   endsAt?: any; // Firestore Timestamp | Date
   status?: 'in-progress' | 'submitted' | 'expired';
+  attemptCount?: number;
 }

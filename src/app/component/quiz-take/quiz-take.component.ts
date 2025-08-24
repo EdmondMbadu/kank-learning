@@ -5,7 +5,7 @@ import { map, switchMap, shareReplay, take } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
 import { ClassService } from 'src/app/shared/class.service';
-import { QuizAssignment, QuizAttempt, QuizQuestion } from 'src/app/model/user';
+import { QuizAssignment, QuizAttempt } from 'src/app/model/user';
 
 @Component({
   selector: 'app-quiz-take',
@@ -21,6 +21,14 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
   resultTotal = 0;
   resultPct = 0;
   resultStatus: 'submitted' | 'expired' = 'submitted';
+
+  // modals
+  confirmStartOpen = false;
+  maxAttemptsModalOpen = false;
+
+  // for cap modal message
+  lastUsedForModal = 0;
+  lastMaxForModal = 0;
 
   private _forceNewOnConfirm = false;
 
@@ -73,7 +81,6 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
   lockTimed = false;
   private ticker?: Subscription;
   private lastAutosubmitted: string | null = null;
-  confirmStartOpen = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -119,6 +126,28 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     }
   };
 
+  // ===== Attempt caps helpers =====
+  getMaxAttempts(a: QuizAssignment | null | undefined): number | null {
+    const m = (a as any)?.maxAttempts;
+    return Number.isFinite(m) && m > 0 ? Number(m) : null;
+  }
+  hasCap(a: QuizAssignment | null | undefined): boolean {
+    return this.getMaxAttempts(a) !== null;
+  }
+  computeUsedAttempts(
+    a: QuizAssignment | null | undefined,
+    att: QuizAttempt | null | undefined
+  ): number {
+    // Uses per-user counter incremented on submit; falls back to history length
+    return (att?.attemptCount ?? 0) | 0;
+  }
+  canRetake(a: QuizAssignment | null, att: QuizAttempt | null): boolean {
+    const cap = this.getMaxAttempts(a);
+    if (cap === null) return true; // unlimited
+    const used = this.computeUsedAttempts(a, att);
+    return used < cap;
+  }
+
   // UI helpers
   clock(sec: number) {
     const s = Math.max(0, Math.floor(sec));
@@ -146,6 +175,7 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     await this.startAttempt(this._forceNewOnConfirm);
     this._forceNewOnConfirm = false;
   }
+
   // accept optional flag
   async startAttempt(forceNew = false) {
     const cid = await this.classId$.pipe(take(1)).toPromise();
@@ -154,8 +184,21 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     if (!cid || !qid || !me?.uid) return;
     await this.asgn.startAttemptIfNeeded(cid, qid, me.uid, { forceNew });
   }
+
   onStartClick(a: QuizAssignment | null, att: QuizAttempt | null) {
     if (!a) return;
+
+    // If a cap exists and it's reached, show info modal (button is still clickable)
+    if (!this.canRetake(a, att)) {
+      const used = this.computeUsedAttempts(a, att);
+      const cap = this.getMaxAttempts(a)!;
+      this.lastUsedForModal = used;
+      this.lastMaxForModal = cap;
+      this.maxAttemptsModalOpen = true;
+      return;
+    }
+
+    // else: proceed (with confirm for timed)
     const forceNew = att?.status === 'submitted' || att?.status === 'expired';
 
     if (!a.timed) {
@@ -163,7 +206,6 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // for timed: show confirm; remember the intent to retake
     this._forceNewOnConfirm = forceNew;
     this.confirmStartOpen = true;
   }
@@ -177,6 +219,7 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     if (!cid || !qid || !me?.uid) return;
     await this.asgn.saveAnswerSingle(cid, qid, me.uid, idx, choice);
   }
+
   async toggleMulti(idx: number, choice: number) {
     const [cid, qid, me] = await Promise.all([
       this.classId$.pipe(take(1)).toPromise(),
@@ -186,11 +229,12 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     if (!cid || !qid || !me?.uid) return;
     await this.asgn.toggleAnswerMulti(cid, qid, me.uid, idx, choice);
   }
+
   async saveText(idx: number, text: string) {
     const [cid, qid, me] = await Promise.all([
       this.classId$.pipe(take(1)).toPromise(),
       this.quizId$.pipe(take(1)).toPromise(),
-      this.me$.pipe(take(1)).toPromise(),
+      this.me$.pipe(take(1)).toPromise(), // ← missing before
     ]);
     if (!cid || !qid || !me?.uid) return;
     await this.asgn.saveAnswerText(cid, qid, me.uid, idx, text);

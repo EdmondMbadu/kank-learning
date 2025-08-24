@@ -940,6 +940,19 @@
                           focus:outline-none focus:ring-2 focus:ring-indigo-500
                           dark:bg-slate-900 dark:border-slate-700" />
           </div>
+          <!-- Builder: max attempts -->
+            <div class="grid gap-2 md:grid-cols-3">
+              <label class="md:col-span-2 text-sm text-slate-700 dark:text-slate-300">
+                Max tentatives par étudiant
+                <span class="text-xs text-slate-500">(0 = illimité)</span>
+              </label>
+              <input [(ngModel)]="builderMaxAttempts"
+                    type="number" min="0" step="1" placeholder="0"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                            focus:outline-none focus:ring-2 focus:ring-indigo-500
+                            dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+            </div>
+
           <!-- Audience -->
             <div class="rounded-lg ring-1 ring-slate-200 p-3 dark:ring-slate-700 dark:bg-slate-900/50 bg-white">
               <div class="flex flex-wrap items-center justify-between gap-2">
