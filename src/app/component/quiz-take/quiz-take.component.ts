@@ -10,6 +10,19 @@ import { AngularFirestore } from '@angular/fire/compat/firestore';
 
 // Type helper (optional)
 type AttemptRow = QuizAttempt & { uid: string; name?: string };
+// ---- VM type for the table
+type ScoreboardRow = {
+  uid: string;
+  name: string; // "First Last" | displayName | uid
+  email: string; // fallback: ''
+  attemptCount: number; // total retakes
+  status: 'in-progress' | 'submitted' | 'expired' | null;
+  answered: number; // answered count
+  total: number; // a.numQuestions
+  score: number | null; // raw score
+  percent: number | null; // 0..100, null if not graded
+  lastSubmittedAt: Date | null;
+};
 @Component({
   selector: 'app-quiz-take',
   templateUrl: './quiz-take.component.html',
@@ -54,15 +67,137 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     map((r) => r === 'instructor' || r === 'ta'),
     shareReplay({ bufferSize: 1, refCount: true })
   );
-
+  // ---- use the "all" attempts feed so we keep attemptCount/history too
   instructorAttempts$ = combineLatest([
     this.isTeacher$,
     this.classId$,
     this.quizId$,
   ]).pipe(
     switchMap(([ok, cid, qid]) =>
-      ok ? this.asgn.attemptsForAssignment$(cid, qid) : of([])
+      ok ? this.asgn.attemptsForAssignmentAll$(cid, qid) : of([])
     ),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
+
+  // ---- join attempts with user profiles and compute fields for the grid
+  scoreboardRows$ = combineLatest([
+    this.instructorAttempts$,
+    this.assignment$,
+  ]).pipe(
+    switchMap(([rows, a]) => {
+      const total = a?.numQuestions ?? 0;
+      const uids = Array.from(new Set(rows.map((r) => r.uid))).filter(Boolean);
+      if (!uids.length) {
+        return of([] as ScoreboardRow[]);
+      }
+
+      // load users/{uid} docs (adjust path/fields if yours differ)
+      const streams = uids.map((uid) =>
+        this.afs
+          .doc<any>(`users/${uid}`)
+          .valueChanges()
+          .pipe(
+            map((u) => ({
+              uid,
+              first: u?.firstName ?? u?.firstname ?? u?.first_name ?? '',
+              last: u?.lastName ?? u?.lastname ?? u?.last_name ?? '',
+              displayName: u?.displayName ?? u?.name ?? '',
+              email: u?.email ?? '',
+            }))
+          )
+      );
+
+      return combineLatest(streams).pipe(
+        map((profiles) => {
+          const byId = new Map(profiles.map((p) => [p.uid, p]));
+
+          const toScoreboard = (r: any): ScoreboardRow => {
+            const p = byId.get(r.uid);
+            const name = p
+              ? p.first || p.last
+                ? `${p.first} ${p.last}`.trim()
+                : p.displayName || r.uid
+              : r.uid;
+
+            const answers = Array.isArray(r.answers) ? r.answers : [];
+            const answered = answers.filter((x: any) => {
+              if (typeof x === 'number') return x >= 0; // mcq-single
+              if (Array.isArray(x)) return x.length > 0; // mcq-multi
+              if (typeof x === 'string') return x.trim().length > 0; // text
+              return false;
+            }).length;
+
+            const score: number | null = Number.isFinite(r.score)
+              ? Number(r.score)
+              : null;
+            const percent: number | null =
+              score === null || !total
+                ? null
+                : Math.round((score / total) * 100);
+
+            const status = (r.status ?? null) as ScoreboardRow['status'];
+            const lastFromHist =
+              Array.isArray(r.history) && r.history.length
+                ? r.history
+                    .map((h: any) => this.tsToDate(h?.submittedAt))
+                    .filter((d: Date | null): d is Date => !!d)
+                    .sort((a: any, b: any) => b.getTime() - a.getTime())[0] ||
+                  null
+                : null;
+
+            const lastRoot =
+              this.tsToDate(r?.submittedAt) || this.tsToDate(r?.gradedAt);
+
+            const lastSubmittedAt = lastFromHist || lastRoot;
+
+            return {
+              uid: r.uid,
+              name,
+              email: p?.email ?? '',
+              attemptCount: r?.attemptCount ?? 0,
+              status,
+              answered,
+              total,
+              score,
+              percent,
+              lastSubmittedAt,
+            };
+          };
+
+          // build and sort: graded first (by % desc), then in-progress (by answered desc), then the rest by name
+          const vms = (rows as any[]).map(toScoreboard);
+          const rank = (s: ScoreboardRow['status'], scored: boolean) => {
+            // lower rank = earlier in the list
+            if (scored) return 0; // submitted/expired with score
+            if (s === 'in-progress') return 1;
+            return 2;
+          };
+          vms.sort((a, b) => {
+            const ra = rank(a.status, a.score !== null);
+            const rb = rank(b.status, b.score !== null);
+            if (ra !== rb) return ra - rb;
+
+            // if both scored, sort by percent desc, then lastSubmittedAt desc
+            if (a.score !== null && b.score !== null) {
+              if (b.percent! !== a.percent!) return b.percent! - a.percent!;
+              const ta = a.lastSubmittedAt?.getTime() ?? 0;
+              const tb = b.lastSubmittedAt?.getTime() ?? 0;
+              return tb - ta;
+            }
+
+            // if both in-progress, sort by answered desc
+            if (a.status === 'in-progress' && b.status === 'in-progress') {
+              if (b.answered !== a.answered) return b.answered - a.answered;
+            }
+
+            // fallback: alphabetical by name
+            return a.name.localeCompare(b.name);
+          });
+
+          return vms;
+        })
+      );
+    }),
     shareReplay({ bufferSize: 1, refCount: true })
   );
 
@@ -291,41 +426,59 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     const v = att?.answers?.[i];
     return typeof v === 'string' ? v : '';
   }
-  scoreboardRows$ = this.instructorAttempts$.pipe(
-    switchMap((rows: AttemptRow[]) => {
-      const uids = Array.from(new Set(rows.map((r) => r.uid).filter(Boolean)));
-      if (!uids.length) return of(rows);
+  // scoreboardRows$ = this.instructorAttempts$.pipe(
+  //   switchMap((rows: AttemptRow[]) => {
+  //     const uids = Array.from(new Set(rows.map((r) => r.uid).filter(Boolean)));
+  //     if (!uids.length) return of(rows);
 
-      // load each user doc: users/{uid}
-      const streams = uids.map((uid) =>
-        this.afs
-          .doc<any>(`users/${uid}`)
-          .valueChanges()
-          .pipe(
-            map((u) => ({
-              uid,
-              firstName: u?.firstName ?? u?.firstname ?? u?.first_name ?? '',
-              lastName: u?.lastName ?? u?.lastname ?? u?.last_name ?? '',
-              displayName: u?.displayName ?? u?.name ?? '',
-            }))
-          )
-      );
+  //     // load each user doc: users/{uid}
+  //     const streams = uids.map((uid) =>
+  //       this.afs
+  //         .doc<any>(`users/${uid}`)
+  //         .valueChanges()
+  //         .pipe(
+  //           map((u) => ({
+  //             uid,
+  //             firstName: u?.firstName ?? u?.firstname ?? u?.first_name ?? '',
+  //             lastName: u?.lastName ?? u?.lastname ?? u?.last_name ?? '',
+  //             displayName: u?.displayName ?? u?.name ?? '',
+  //           }))
+  //         )
+  //     );
 
-      return combineLatest(streams).pipe(
-        map((profiles) => {
-          const byId = new Map(profiles.map((p) => [p.uid, p]));
-          return rows.map((r) => {
-            const p = byId.get(r.uid);
-            const name = p
-              ? p.firstName || p.lastName
-                ? `${p.firstName} ${p.lastName}`.trim()
-                : p.displayName || r.uid
-              : r.uid;
-            return { ...r, name };
-          });
-        })
-      );
-    }),
-    shareReplay({ bufferSize: 1, refCount: true })
-  );
+  //     return combineLatest(streams).pipe(
+  //       map((profiles) => {
+  //         const byId = new Map(profiles.map((p) => [p.uid, p]));
+  //         return rows.map((r) => {
+  //           const p = byId.get(r.uid);
+  //           const name = p
+  //             ? p.firstName || p.lastName
+  //               ? `${p.firstName} ${p.lastName}`.trim()
+  //               : p.displayName || r.uid
+  //             : r.uid;
+  //           return { ...r, name };
+  //         });
+  //       })
+  //     );
+  //   }),
+  //   shareReplay({ bufferSize: 1, refCount: true })
+  // );
+
+  private tsToDate(x: any): Date | null {
+    if (!x) return null;
+    // Firestore Timestamp (compat) exposes .toDate()
+    if (typeof x.toDate === 'function') {
+      try {
+        return x.toDate();
+      } catch {
+        /* noop */
+      }
+    }
+    return x instanceof Date ? x : null;
+  }
+
+  // (optional) trackBy for *ngFor
+  trackByUid(_i: number, r: ScoreboardRow) {
+    return r.uid;
+  }
 }
