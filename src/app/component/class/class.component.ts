@@ -209,16 +209,104 @@ export class ClassComponent implements OnInit {
     )
   );
 
-  // Join attempts with member user info for pretty names/emails
+  // ALL attempts for the open assignment (NOT deduped)
+  instructorAttemptsAll$ = combineLatest([
+    this.isTeacher$,
+    this.classId$,
+    this.openAssignmentId$,
+  ]).pipe(
+    switchMap(([ok, classId, aid]) =>
+      ok && classId && aid
+        ? this.asgn.attemptsForAssignmentAll$(classId, aid) // must return full history
+        : of([])
+    )
+  );
+
   instructorAttemptRows$ = combineLatest([
-    this.instructorAttempts$,
+    this.instructorAttemptsAll$, // all per-user attempt docs for the open quiz
     this.members$,
   ]).pipe(
-    map(([atts, members]) => {
+    map(([all, members]) => {
       const userByUid = new Map(members.map((m) => [m.uid, m.user]));
-      return atts.map((a) => ({ ...a, user: userByUid.get(a.uid) || null }));
+
+      // If duplicates ever appear, keep the one with the newest updatedAt
+      const byUid = new Map<string, any>();
+      for (const a of all as any[]) {
+        const prev = byUid.get(a.uid);
+        const prevTs = prev?.updatedAt?.toDate?.()?.getTime?.() ?? 0;
+        const currTs = a?.updatedAt?.toDate?.()?.getTime?.() ?? 0;
+        if (!prev || currTs >= prevTs) byUid.set(a.uid, a);
+      }
+
+      return Array.from(byUid.values()).map((a: any) => ({
+        ...a,
+        user: userByUid.get(a.uid) || null,
+        attemptCount: this.computeDisplayAttemptCount(a), // <- the chip shows this
+        // (Optional: expose raw values for debugging tooltips)
+        _rawAttemptCount:
+          typeof a.attemptCount === 'number' ? a.attemptCount : null,
+        _historyLen: Array.isArray(a.history) ? a.history.length : null,
+        _status: a.status,
+      }));
     })
   );
+
+  private computeDisplayAttemptCount(a: any): number {
+    // 1) Submitted runs from different sources (some older docs may have only one of these)
+    const fieldCount = typeof a?.attemptCount === 'number' ? a.attemptCount : 0;
+    const histLen = Array.isArray(a?.history) ? a.history.length : 0;
+    const maxAttemptNo =
+      Array.isArray(a?.history) && a.history.length
+        ? Math.max(
+            ...a.history.map((h: any) =>
+              typeof h?.attemptNo === 'number' ? h.attemptNo : 0
+            )
+          )
+        : 0;
+
+    // 2) Evidence that *at least one* submission happened even if counters were never written
+    const hasAnySubmitted =
+      a?.status === 'submitted' ||
+      a?.status === 'expired' ||
+      a?.score != null ||
+      !!a?.submittedAt;
+
+    // 3) Base submitted count = the strongest of all sources (plus 1 if we only have “evidence”)
+    const submitted = Math.max(
+      fieldCount,
+      histLen,
+      maxAttemptNo,
+      hasAnySubmitted ? 1 : 0
+    );
+
+    // 4) Count an in-progress retake that isn’t included in the submitted total yet
+    const lastSubmittedMs = Array.isArray(a?.history)
+      ? a.history.reduce(
+          (m: number, h: any) =>
+            Math.max(m, h?.submittedAt?.toDate?.()?.getTime?.() ?? 0),
+          0
+        )
+      : 0;
+    const startedMs = a?.startedAt?.toDate?.()?.getTime?.() ?? 0;
+    const hasFreshUnsubmittedRun =
+      a?.status === 'in-progress' && startedMs > lastSubmittedMs;
+
+    // Extra fallback: if the doc is in-progress (or has answers) but submitted==0, count it as 1
+    const hasAnyAnswers =
+      Array.isArray(a?.answers) &&
+      a.answers.some(
+        (ans: any) =>
+          (typeof ans === 'number' && ans >= 0) ||
+          (Array.isArray(ans) && ans.length > 0) ||
+          (typeof ans === 'string' && ans.trim().length > 0)
+      );
+
+    const addInProgress =
+      hasFreshUnsubmittedRun ||
+      (submitted === 0 && (a?.status === 'in-progress' || hasAnyAnswers));
+
+    return submitted + (addInProgress ? 1 : 0);
+  }
 
   attemptCounts$ = combineLatest([
     this.isTeacher$,

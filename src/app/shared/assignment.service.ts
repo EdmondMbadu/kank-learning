@@ -587,6 +587,19 @@ export class AssignmentService {
       .doc<QuizAssignment>(`classes/${classId}/assignments/${assignmentId}`)
       .valueChanges({ idField: 'id' });
   }
+
+  // Returns every attempt document (one per user) for an assignment,
+  // with no filtering — includes attemptCount and history[] so you
+  // can show per-user retake counts.
+  attemptsForAssignmentAll$(classId: string, assignmentId: string) {
+    const path = `classes/${classId}/assignments/${assignmentId}/attempts`;
+    return this.afs
+      .collection<QuizAttempt>(path, (ref) =>
+        // order by a field you always set; updatedAt is set on create/update
+        ref.orderBy('updatedAt', 'desc')
+      )
+      .valueChanges({ idField: 'uid' });
+  }
 }
 
 // --- util (file-local) ---
