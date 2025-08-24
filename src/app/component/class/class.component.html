@@ -409,85 +409,87 @@
                       </ng-template>
                     </ng-template>
                   </div>
+                  <ng-container *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'" >
+                        <div class="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Quiz</div>
 
-                  <div class="text-sm font-semibold mb-2 text-slate-900 dark:text-white">Quiz</div>
+                      <div  class="mb-2">
+                        <button
+                          (click)="onStartClick(cl.id!, current, vm.att)"
+                          [disabled]="lockTimed || vm.att?.status==='submitted' || vm.att?.status==='expired' || reachedLimit(vm.att, current)"
+                          class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
+                                focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60">
+                          Démarrer / Continuer
+                        </button>
 
-                  <div class="mb-2">
-                    <button
-                      (click)="onStartClick(cl.id!, current, vm.att)"
-                      [disabled]="lockTimed || vm.att?.status==='submitted' || vm.att?.status==='expired' || reachedLimit(vm.att, current)"
-                      class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
-                            focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60">
-                      Démarrer / Continuer
-                    </button>
-
-                    <span *ngIf="(current?.maxAttempts ?? 0) > 0"
-                          class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
-                                bg-slate-100 text-slate-600 ring-slate-200
-                                dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                      ↻ {{ usedAttempts(vm.att) }}/{{ current.maxAttempts }}
-                    </span>
+                        <span *ngIf="(current?.maxAttempts ?? 0) > 0"
+                              class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
+                                    bg-slate-100 text-slate-600 ring-slate-200
+                                    dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                          ↻ {{ usedAttempts(vm.att) }}/{{ current.maxAttempts }}
+                        </span>
 
 
 
-                  </div>
-
-                  <!-- Questions -->
-                  <div *ngIf="vm.att?.selectedIds?.length; else notStarted" class="space-y-4">
-                    <div *ngFor="let qid of vm.att!.selectedIds; let i = index">
-                      <ng-container *ngIf="getById(current.pool, qid) as q">
-                          <img *ngIf="q.imageUrl" [src]="q.imageUrl" alt="Illustration de la question"
-                              class="mb-2 w-full max-h-64 object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
-                          <div class="text-sm font-medium text-slate-900 dark:text-slate-100">
-                            {{ i+1 }}. {{ q.prompt }}
-                          </div>
-
-                        <!-- MCQ (single) -->
-                        <div *ngIf="q.kind === 'mcq-single'" class="mt-1 grid gap-1">
-                          <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
-                            <input type="radio"
-                                   [attr.name]="'q' + aid + '-' + i"
-                                   (change)="selectAnswerSingle_New(cl.id!, i, j)" />
-                            <span>{{ opt }}</span>
-                          </label>
-                        </div>
-
-                        <!-- MCQ (multiple) -->
-                        <div *ngIf="q.kind === 'mcq-multi'" class="mt-1 grid gap-1">
-                          <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
-                            <input type="checkbox" (change)="toggleAnswerMulti_New(cl.id!, i, j)" />
-                            <span>{{ opt }}</span>
-                          </label>
-                        </div>
-
-                        <!-- Text answer -->
-                        <div *ngIf="q.kind === 'text'" class="mt-1">
-                          <input type="text"
-                                 (input)="saveAnswerText_New(cl.id!, i, $any($event.target).value)"
-                                 placeholder="Votre réponse"
-                                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                                        dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
-                        </div>
-                      </ng-container>
-                    </div>
-
-                    <div class="pt-2 flex items-center gap-3">
-                      <button (click)="submit(cl.id!)"
-                              class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                        Envoyer
-                      </button>
-
-                      <div *ngIf="vm.att!.score != null" class="text-sm text-slate-700 dark:text-slate-300">
-                        Note: <span class="font-semibold">{{ vm.att!.score }}/{{ current.numQuestions }}</span>
                       </div>
-                    </div>
-                  </div>
 
-                  <ng-template #notStarted>
-                    <div class="text-sm text-slate-500">
-                      Cliquez sur “Démarrer / Continuer” pour générer votre quiz ({{ current.numQuestions }} questions aléatoires).
-                    </div>
-                  </ng-template>
+                      <!-- Questions -->
+                      <div *ngIf="vm.att?.selectedIds?.length ; else notStarted" class="space-y-4">
+                        <div *ngFor="let qid of vm.att!.selectedIds; let i = index">
+                          <ng-container *ngIf="getById(current.pool, qid) as q">
+                              <img *ngIf="q.imageUrl" [src]="q.imageUrl" alt="Illustration de la question"
+                                  class="mb-2 w-full max-h-64 object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
+                              <div class="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                {{ i+1 }}. {{ q.prompt }}
+                              </div>
+
+                            <!-- MCQ (single) -->
+                            <div *ngIf="q.kind === 'mcq-single'" class="mt-1 grid gap-1">
+                              <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
+                                <input type="radio"
+                                      [attr.name]="'q' + aid + '-' + i"
+                                      (change)="selectAnswerSingle_New(cl.id!, i, j)" />
+                                <span>{{ opt }}</span>
+                              </label>
+                            </div>
+
+                            <!-- MCQ (multiple) -->
+                            <div *ngIf="q.kind === 'mcq-multi'" class="mt-1 grid gap-1">
+                              <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" (change)="toggleAnswerMulti_New(cl.id!, i, j)" />
+                                <span>{{ opt }}</span>
+                              </label>
+                            </div>
+
+                            <!-- Text answer -->
+                            <div *ngIf="q.kind === 'text'" class="mt-1">
+                              <input type="text"
+                                    (input)="saveAnswerText_New(cl.id!, i, $any($event.target).value)"
+                                    placeholder="Votre réponse"
+                                    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                                            dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+                            </div>
+                          </ng-container>
+                        </div>
+
+                        <div class="pt-2 flex items-center gap-3">
+                          <button (click)="submit(cl.id!)"
+                                  class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                            Envoyer
+                          </button>
+
+                          <div *ngIf="vm.att!.score != null" class="text-sm text-slate-700 dark:text-slate-300">
+                            Note: <span class="font-semibold">{{ vm.att!.score }}/{{ current.numQuestions }}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <ng-template #notStarted>
+                        <div class="text-sm text-slate-500">
+                          Cliquez sur “Démarrer / Continuer” pour générer votre quiz ({{ current.numQuestions }} questions aléatoires).
+                        </div>
+                      </ng-template>
+                </ng-container>
+                                
 
                 
                        <!-- Countdown / lock banner -->
