@@ -65,12 +65,17 @@ export class ActivityComponent {
   // Join with my attempt per assignment
   rows$ = combineLatest([this.me$, this.assignments$]).pipe(
     switchMap(([me, pairs]) => {
-      if (!me?.uid || !pairs.length) return of([] as Row[]);
+      if (!me?.uid || !pairs?.length) return of([] as Row[]);
+
+      // keep only the assignments visible to this user
+      const visiblePairs = pairs.filter((p) => this.isAsgVisibleTo(me, p.asg));
+      if (!visiblePairs.length) return of([] as Row[]);
+
       return combineLatest(
-        pairs.map((p) =>
+        visiblePairs.map((p) =>
           this.asgn
             .attempt$(p.cl.id, (p.asg as any).id, me.uid!)
-            .pipe(map((att) => ({ cl: p.cl, asg: p.asg, att })))
+            .pipe(map((att) => ({ cl: p.cl, asg: p.asg, att } as Row)))
         )
       );
     }),
@@ -214,5 +219,31 @@ export class ActivityComponent {
       month: 'short',
       day: '2-digit',
     });
+  }
+
+  /** Show assignment if it's global, or the user is explicitly targeted */
+  private isAsgVisibleTo(me: any, asg: any): boolean {
+    const audience = (asg?.audience ?? 'all') as 'all' | 'subset';
+
+    if (audience !== 'subset') return true; // default/global
+
+    const meUid = me?.uid ?? '';
+    const meEmail = (me?.email || '').toLowerCase();
+
+    // Support either naming: assignedToUids/assignedTo + optional emails list
+    const targetUids: string[] =
+      (Array.isArray(asg?.assignedToUids) && asg.assignedToUids) ||
+      (Array.isArray(asg?.assignedTo) && asg.assignedTo) ||
+      [];
+
+    const targetEmailsLower: string[] =
+      (Array.isArray(asg?.assignedToEmailsLower) &&
+        asg.assignedToEmailsLower) ||
+      [];
+
+    return (
+      (!!meUid && targetUids.includes(meUid)) ||
+      (!!meEmail && targetEmailsLower.includes(meEmail))
+    );
   }
 }
