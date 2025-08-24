@@ -84,14 +84,14 @@
                 <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent"></div>
               </div>
 
-              <!-- Content -->
+           <!-- Content -->
               <div class="p-4 flex-1 flex flex-col">
                 <div class="flex items-start gap-4">
                   <!-- Donut -->
-                  <div class="relative h-16 w-16 shrink-0 rounded-full"
-                      [style.background]="conic(c.avgPct)">
-                    <div class="absolute inset-1 rounded-full bg-white/95 dark:bg-slate-900/90 grid place-items-center">
-                      <div class="text-sm font-bold text-slate-900 dark:text-white">
+                  <div class="relative h-16 w-16 md:h-20 md:w-20 shrink-0 rounded-full"
+                      [style.background]="conicGrade(c.avgPct)">
+                    <div class="absolute inset-1 md:inset-1.5 rounded-full bg-white/95 dark:bg-slate-900/90 grid place-items-center">
+                      <div class="text-sm md:text-base font-bold text-slate-900 dark:text-white">
                         <ng-container *ngIf="c.avgPct != null; else ndash">{{ c.avgPct }}%</ng-container>
                         <ng-template #ndash>—</ng-template>
                       </div>
@@ -106,14 +106,14 @@
                       {{ c.gradedCount }} / {{ c.assignmentsCount }} devoirs notés
                     </div>
 
-                    <!-- Gradient bar -->
-                    <div class="mt-2 h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-1 ring-slate-200/70 dark:ring-slate-700/70">
-                      <div class="h-full rounded-full bg-gradient-to-r from-indigo-600 via-cyan-500 to-emerald-500"
-                          [style.width]="barWidth(c.avgPct)"></div>
+                    <!-- Grade-colored bar -->
+                    <div class="mt-2 h-2 md:h-3 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+                      <div class="h-full rounded-full" [ngStyle]="barStyle(c.avgPct)"></div>
                     </div>
                   </div>
                 </div>
-           <!-- Actions (always stacked) -->
+
+                <!-- Actions (always stacked) -->
                 <div class="mt-4 flex flex-col gap-2">
                   <a
                     [routerLink]="['/class', c.cl.id]"
@@ -143,10 +143,8 @@
                     ID: {{ c.cl.id }}
                   </span>
                 </div>
-
-
-
               </div>
+
             </article>
           </div>
 
