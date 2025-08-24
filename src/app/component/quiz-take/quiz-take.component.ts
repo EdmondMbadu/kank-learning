@@ -6,7 +6,10 @@ import { AuthService } from 'src/app/shared/auth.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
 import { ClassService } from 'src/app/shared/class.service';
 import { QuizAssignment, QuizAttempt } from 'src/app/model/user';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 
+// Type helper (optional)
+type AttemptRow = QuizAttempt & { uid: string; name?: string };
 @Component({
   selector: 'app-quiz-take',
   templateUrl: './quiz-take.component.html',
@@ -87,7 +90,8 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     private router: Router,
     private auth: AuthService,
     private asgn: AssignmentService,
-    private classes: ClassService
+    private classes: ClassService,
+    private afs: AngularFirestore
   ) {}
 
   ngOnInit(): void {
@@ -287,4 +291,41 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     const v = att?.answers?.[i];
     return typeof v === 'string' ? v : '';
   }
+  scoreboardRows$ = this.instructorAttempts$.pipe(
+    switchMap((rows: AttemptRow[]) => {
+      const uids = Array.from(new Set(rows.map((r) => r.uid).filter(Boolean)));
+      if (!uids.length) return of(rows);
+
+      // load each user doc: users/{uid}
+      const streams = uids.map((uid) =>
+        this.afs
+          .doc<any>(`users/${uid}`)
+          .valueChanges()
+          .pipe(
+            map((u) => ({
+              uid,
+              firstName: u?.firstName ?? u?.firstname ?? u?.first_name ?? '',
+              lastName: u?.lastName ?? u?.lastname ?? u?.last_name ?? '',
+              displayName: u?.displayName ?? u?.name ?? '',
+            }))
+          )
+      );
+
+      return combineLatest(streams).pipe(
+        map((profiles) => {
+          const byId = new Map(profiles.map((p) => [p.uid, p]));
+          return rows.map((r) => {
+            const p = byId.get(r.uid);
+            const name = p
+              ? p.firstName || p.lastName
+                ? `${p.firstName} ${p.lastName}`.trim()
+                : p.displayName || r.uid
+              : r.uid;
+            return { ...r, name };
+          });
+        })
+      );
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
 }

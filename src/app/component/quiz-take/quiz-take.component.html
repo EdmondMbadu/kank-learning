@@ -154,35 +154,41 @@
             </ng-container>
           </div>
 
-          <!-- Instructor scoreboard -->
+            <!-- Instructor scoreboard -->
           <ng-container *ngIf="isTeacher$ | async">
-            <ng-container *ngIf="instructorAttempts$ | async as rows">
-              <div class="mt-6 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 dark:bg-slate-8 00/40 dark:ring-slate-700">
+            <ng-container *ngIf="scoreboardRows$ | async as rows">
+              <div class="mt-6 rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 dark:bg-slate-800/40 dark:ring-slate-700">
                 <div class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-2">
                   Résultats des étudiants
                 </div>
+
                 <div *ngIf="rows.length; else noRows" class="divide-y divide-slate-200 dark:divide-slate-700">
                   <div *ngFor="let r of rows" class="py-2 flex items-center justify-between">
                     <div class="min-w-0">
-                      <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{{ r.uid }}</div>
+                      <!-- Name with uid fallback just in case -->
+                      <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
+                        {{ r.name || r.uid }}
+                      </div>
                     </div>
                     <div class="shrink-0">
                       <span *ngIf="r.score != null"
                             class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                   bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                                   dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+                                  bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                                  dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
                         {{ r.score }}/{{ (assignment$ | async)?.numQuestions }}
                         • {{ (r.score / (assignment$ | async)!.numQuestions * 100) | number:'1.0-0' }}%
                       </span>
                     </div>
                   </div>
                 </div>
+
                 <ng-template #noRows>
                   <div class="text-xs text-slate-500">Personne n’a encore commencé ce quiz.</div>
                 </ng-template>
               </div>
             </ng-container>
           </ng-container>
+
 
         </ng-container>
 
