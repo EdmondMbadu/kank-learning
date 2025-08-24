@@ -6,6 +6,7 @@ import { AuthService } from 'src/app/shared/auth.service';
 import { ClassService } from 'src/app/shared/class.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
 import { ClassSection, QuizAttempt } from 'src/app/model/user';
+import { DataService } from 'src/app/shared/data.service';
 
 type ClassGradeCard = {
   cl: ClassSection;
@@ -123,9 +124,32 @@ export class GradesComponent {
   constructor(
     private auth: AuthService,
     private classes: ClassService,
-    private asgn: AssignmentService
+    private asgn: AssignmentService,
+    private data: DataService
   ) {}
 
+  /** Map a % to your grade color; fallback to neutral when missing */
+  private gradeColor(pct: number | null): string {
+    if (pct == null || isNaN(pct)) return 'rgb(203, 213, 225)'; // slate-300
+    return this.data.getGradientColor(pct);
+  }
+
+  /** Donut ring using your grade color for the filled arc */
+  conicGrade(pct: number | null) {
+    const p = Math.max(0, Math.min(100, pct ?? 0));
+    const fill = this.gradeColor(pct);
+    const rest = 'rgb(226, 232, 240)'; // slate-200
+    return `conic-gradient(${fill} 0% ${p}%, ${rest} ${p}% 100%)`;
+  }
+
+  /** Progress bar inline styles: width + solid grade color */
+  barStyle(pct: number | null) {
+    const w = Math.max(0, Math.min(100, pct ?? 0));
+    return {
+      width: `${w}%`,
+      background: this.gradeColor(pct),
+    };
+  }
   // ---- UI helpers ----
   conic(pct: number | null) {
     if (pct == null || isNaN(pct)) {

@@ -24,6 +24,7 @@ import { CourseService } from 'src/app/shared/course.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
 import { MessageService } from 'src/app/shared/message.service';
 import { AngularFireStorage } from '@angular/fire/compat/storage';
+import { DataService } from 'src/app/shared/data.service';
 // 1) Add these types + helpers at the top of the class (after existing fields)
 type AvgStats = {
   pct: number | null;
@@ -338,8 +339,32 @@ export class ClassComponent implements OnInit {
     private courses: CourseService,
     private asgn: AssignmentService, // QUIZ,
     private msg: MessageService,
-    private storage: AngularFireStorage
+    private storage: AngularFireStorage,
+    public data: DataService
   ) {}
+
+  /** Map a % to your grade color; fallback to neutral when missing */
+  private gradeColor(pct: number | null): string {
+    if (pct == null || isNaN(pct)) return 'rgb(203, 213, 225)'; // slate-300
+    return this.data.getGradientColor(pct);
+  }
+
+  /** Donut ring using your grade color for the filled arc */
+  conicGrade(pct: number | null) {
+    const p = Math.max(0, Math.min(100, pct ?? 0));
+    const fill = this.gradeColor(pct);
+    const rest = 'rgb(226, 232, 240)'; // slate-200
+    return `conic-gradient(${fill} 0% ${p}%, ${rest} ${p}% 100%)`;
+  }
+
+  /** Progress bar inline styles: width + solid grade color */
+  barStyle(pct: number | null) {
+    const w = Math.max(0, Math.min(100, pct ?? 0));
+    return {
+      width: `${w}%`,
+      background: this.gradeColor(pct),
+    };
+  }
   ngOnInit() {
     combineLatest([this.classId$, this.me$]).subscribe(
       async ([classId, me]) => {
