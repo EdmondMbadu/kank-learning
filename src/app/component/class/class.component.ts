@@ -137,6 +137,21 @@ export class ClassComponent implements OnInit {
     )
   );
 
+  // Accordion state: all closed by default
+  sectionOpen: Record<
+    'assignments' | 'readings' | 'messages' | 'participants',
+    boolean
+  > = {
+    assignments: false,
+    readings: false,
+    messages: false,
+    participants: false,
+  };
+
+  toggleSection(key: 'assignments' | 'readings' | 'messages' | 'participants') {
+    this.sectionOpen[key] = !this.sectionOpen[key];
+  }
+
   newMessageTxt = '';
   sendingMsg = false;
   msgError = '';
