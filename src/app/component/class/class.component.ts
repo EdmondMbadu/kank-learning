@@ -1075,6 +1075,11 @@ export class ClassComponent implements OnInit {
     const audience = this.builderAudience;
     const assignedTo =
       audience === 'subset' ? Array.from(this.builderAssignees) : [];
+    const maxAttemptsNum = Number(this.builderMaxAttempts);
+    const maxAttempts =
+      Number.isFinite(maxAttemptsNum) && maxAttemptsNum > 0
+        ? Math.floor(maxAttemptsNum)
+        : 10000;
 
     await this.asgn.createCustomQuiz(
       classId,
@@ -1087,10 +1092,7 @@ export class ClassComponent implements OnInit {
         timeLimitSec,
         audience,
         assignedTo,
-        maxAttempts:
-          (this.builderMaxAttempts ?? 0) > 0
-            ? this.builderMaxAttempts!
-            : undefined,
+        maxAttempts,
       }
     );
 

@@ -498,7 +498,7 @@ export class AssignmentService {
       timeLimitSec?: number;
       audience?: 'all' | 'subset';
       assignedTo?: string[];
-      maxAttempts?: number;
+      maxAttempts?: number | null; // allow null from the caller
     }
   ): Promise<string> {
     if (!title?.trim()) throw new Error('Titre requis');
@@ -517,23 +517,29 @@ export class AssignmentService {
       updatedAt: now,
       pool,
       numQuestions: pool.length,
-      points: points ?? pool.length, // 1 pt/question by default
-      timed: opts?.timed ?? false,
+      points: points ?? pool.length,
+      timed: !!opts?.timed,
       timeLimitSec: opts?.timed ? opts?.timeLimitSec ?? 0 : null,
-
-      // NEW: audience
-      audience: opts?.audience ?? 'all', // 'all' | 'subset'
+      audience: opts?.audience ?? 'all',
       assignedTo:
         opts?.audience === 'subset'
-          ? Array.from(new Set(opts?.assignedTo ?? [])) // unique list of uids
-          : [], // keep empty for 'all'
-      maxAttempts: opts?.maxAttempts,
+          ? Array.from(new Set(opts?.assignedTo ?? []))
+          : [],
+      // DO NOT set maxAttempts if it's null/undefined/<=0
+      ...(typeof opts?.maxAttempts === 'number' && opts.maxAttempts > 0
+        ? { maxAttempts: Math.floor(opts.maxAttempts) }
+        : {}),
     };
 
-    await this.afs.doc(`classes/${classId}/assignments/${id}`).set(a);
+    await this.afs
+      .doc(`classes/${classId}/assignments/${id}`)
+      .set(this.stripUndefined(a));
     return id;
   }
-
+  private stripUndefined<T extends Record<string, any>>(obj: T): T {
+    for (const k of Object.keys(obj)) if (obj[k] === undefined) delete obj[k];
+    return obj;
+  }
   // --- ADD/UPDATE/DELETE questions on an existing quiz (optional utilities) ---
   async addQuestion(classId: string, assignmentId: string, q: QuizQuestion) {
     const ref = this.afs.doc(
