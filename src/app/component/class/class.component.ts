@@ -1389,6 +1389,18 @@ export class ClassComponent implements OnInit {
       } catch {}
     }
   }
+
+  // Add inside ClassComponent
+  avatar(m: any): string | null {
+    // Prefer common fields if your user model provides them
+    return m?.user?.photoUrl || m?.user?.photoURL || m?.user?.avatarUrl || null;
+  }
+
+  displayName(m: any): string {
+    const u = m?.user;
+    const full = [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
+    return full || u?.name || u?.email || m?.uid || '—';
+  }
 }
 interface ClassMessageWithMeta extends ClassMessage {
   createdAtDate: Date;
