@@ -522,13 +522,31 @@
       <!-- Readings -->
         <section class="mt-6 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
           <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Lectures / Readings</h2>
-              <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
-                      (click)="addReadingOpen = true"
-                      class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                + Ajouter une lecture
-              </button>
+           <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                <a [routerLink]="['/class', cl.id, 'readings']"
+                  class="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 ring-1
+                          ring-indigo-200/70 bg-indigo-50 text-indigo-700
+                          hover:bg-indigo-100 hover:ring-indigo-300
+                          dark:bg-indigo-900/30 dark:text-indigo-200 dark:ring-indigo-800">
+                  Lectures / Readings
+                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 17 17 7M7 7h10v10"/></svg>
+                </a>
+              </h2>
+
+              <div class="flex items-center gap-2">
+                <a [routerLink]="['/class', cl.id, 'readings']"
+                  class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 ring-slate-200
+                          bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
+                  Voir toutes les lectures
+                </a>
+
+                <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                        (click)="addReadingOpen = true"
+                        class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                  + Ajouter une lecture
+                </button>
+              </div>
             </div>
 
             <div class="mt-1 text-[11px] text-slate-500">Les plus récents en premier</div>

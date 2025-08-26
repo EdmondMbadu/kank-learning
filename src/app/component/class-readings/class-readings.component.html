@@ -1,0 +1,147 @@
+<app-navbar></app-navbar>
+<div
+  class="pt-16 min-h-screen antialiased selection:bg-indigo-600/20 selection:text-indigo-900 dark:selection:text-indigo-200
+         bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+
+  <!-- soft blobs (desktop only) -->
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -top-24 -left-24 hidden md:block h-80 w-80 rounded-full
+              bg-gradient-to-tr from-indigo-500 to-cyan-400 opacity-20 blur-3xl"></div>
+  <div aria-hidden="true"
+       class="pointer-events-none fixed -bottom-28 -right-28 hidden md:block h-[28rem] w-[28rem] rounded-full
+              bg-gradient-to-tr from-fuchsia-500 to-indigo-500 opacity-20 blur-3xl"></div>
+
+  <div class="mx-auto max-w-6xl px-4 sm:px-5 lg:px-6 py-6">
+    <ng-container *ngIf="(class$ | async) as cl; else loading">
+
+      <!-- Header -->
+      <header class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
+        <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 p-5 md:p-6">
+
+          <div class="mb-4 relative overflow-hidden rounded-2xl ring-1 ring-slate-200/70 dark:ring-slate-800">
+            <div class="relative aspect-[4/3] sm:aspect-[16/9] md:aspect-[21/9]">
+              <img [src]="cl.coverUrl || 'assets/img/class.jpg'"
+                   alt="Class cover"
+                   class="absolute inset-0 h-full w-full object-cover object-center" loading="lazy" />
+              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent"></div>
+            </div>
+          </div>
+
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs text-slate-500">Classe</div>
+              <h1 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white line-clamp-2">
+                {{ cl.title }}
+              </h1>
+              <div class="mt-1 text-[11px] text-slate-500">
+                ID: {{ cl.id }} • Cours: {{ cl.courseId }}
+              </div>
+            </div>
+
+            <button (click)="back(cl.id!)"
+                    class="shrink-0 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold
+                           ring-1 ring-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 19l-7-7 7-7"/></svg>
+              Revenir à la classe
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Title row + search -->
+      <div class="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="group inline-flex items-center gap-2">
+          <a [routerLink]="['/class', cl.id, 'readings']"
+             class="inline-flex items-center gap-2 rounded-2xl px-4 py-2 ring-1
+                    ring-indigo-200/70 bg-indigo-50 text-indigo-700
+                    hover:bg-indigo-100 hover:ring-indigo-300
+                    dark:bg-indigo-900/30 dark:text-indigo-200 dark:ring-indigo-800">
+            <span class="text-lg sm:text-xl font-bold tracking-tight">Lectures / Readings</span>
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M7 17 17 7M7 7h10v10"/></svg>
+          </a>
+          <span class="text-xs text-slate-500">Chronologie des ajouts</span>
+        </div>
+
+        <div class="relative">
+          <input type="search"
+                (input)="setQuery(($any($event.target)).value)"
+
+                 placeholder="Rechercher une lecture…"
+                 class="w-full sm:w-72 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm
+                        focus:outline-none focus:ring-2 focus:ring-indigo-500
+                        dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+          <svg class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+               viewBox="0 0 24 24" fill="currentColor"><path d="M10 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm9 3-5-5"/></svg>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <section class="mt-4">
+        <ng-container *ngIf="(groups$ | async) as groups; else loadingList">
+          <div *ngIf="groups.length; else empty" class="space-y-6">
+
+            <div *ngFor="let g of groups; trackBy: trackByKey" class="relative">
+              <!-- date label -->
+              <div class="flex items-center gap-3 mb-2">
+                <div class="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-transparent dark:via-slate-700"></div>
+                <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ g.label }}</div>
+                <div class="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-transparent dark:via-slate-700"></div>
+              </div>
+
+              <ol class="relative ml-3 pl-6">
+                <div class="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-indigo-300 via-slate-300 to-transparent dark:from-indigo-700 dark:via-slate-700"></div>
+
+                <li *ngFor="let l of g.items; trackBy: trackById" class="group mb-3 last:mb-0">
+                  <div class="relative flex items-center gap-3">
+                    <!-- dot -->
+                    <span class="absolute -left-[13px] mt-[2px] grid h-6 w-6 place-items-center rounded-full bg-white ring-2 ring-indigo-400 dark:bg-slate-900 dark:ring-indigo-700">
+                      <svg class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-300" viewBox="0 0 24 24" fill="currentColor">
+                        <path [attr.d]="iconPath(l)"/>
+                      </svg>
+                    </span>
+
+                    <div class="flex-1 min-w-0 rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 transition group-hover:ring-indigo-300/60 group-hover:shadow">
+                      <div class="flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                          <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
+                            <a *ngIf="l.url" (click)="open(l)" class="cursor-pointer hover:underline">{{ l.title }}</a>
+                            <span *ngIf="!l.url">{{ l.title }}</span>
+                          </div>
+                          <div class="text-[11px] text-slate-500">
+                            {{ l.contentType || (l.type | titlecase) }}
+                            <span *ngIf="l.sizeBytes">• {{ (l.sizeBytes/1024) | number:'1.0-0' }} KB</span>
+                            <span *ngIf="l.createdAt">• {{ l.createdAt?.toDate ? (l.createdAt.toDate() | date:'shortTime') : (l.createdAt | date:'shortTime') }}</span>
+                          </div>
+                        </div>
+
+                        <a *ngIf="l.url" (click)="open(l)"
+                           class="shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+                          Ouvrir
+                          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 17 17 7M7 7h10v10"/></svg>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </div>
+
+          <ng-template #empty>
+            <div class="rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white/80 dark:bg-slate-800/60 p-5 text-sm text-slate-600 dark:text-slate-300">
+              Aucune lecture pour l’instant.
+            </div>
+          </ng-template>
+        </ng-container>
+
+        <ng-template #loadingList>
+          <div class="h-24 rounded-2xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+        </ng-template>
+      </section>
+    </ng-container>
+
+    <ng-template #loading>
+      <div class="rounded-3xl h-40 bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+    </ng-template>
+  </div>
+</div>

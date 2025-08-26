@@ -13,6 +13,7 @@ import { GradesComponent } from './component/grades/grades.component';
 import { MessagesComponent } from './component/messages/messages.component';
 import { QuizTakeComponent } from './component/quiz-take/quiz-take.component';
 import { ActivityComponent } from './component/activity/activity.component';
+import { ClassReadingsComponent } from './component/class-readings/class-readings.component';
 
 const routes: Routes = [
   { path: '', component: LandingPageComponent },
@@ -37,6 +38,8 @@ const routes: Routes = [
     component: QuizTakeComponent,
     canActivate: [AuthGuard],
   },
+  { path: 'class/:id/readings', component: ClassReadingsComponent },
+
   { path: 'activity', component: ActivityComponent, canActivate: [AuthGuard] },
 ];
 

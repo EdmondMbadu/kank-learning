@@ -23,6 +23,7 @@ import { GradesComponent } from './component/grades/grades.component';
 import { MessagesComponent } from './component/messages/messages.component';
 import { QuizTakeComponent } from './component/quiz-take/quiz-take.component';
 import { ActivityComponent } from './component/activity/activity.component';
+import { ClassReadingsComponent } from './component/class-readings/class-readings.component';
 
 @NgModule({
   declarations: [
@@ -40,6 +41,7 @@ import { ActivityComponent } from './component/activity/activity.component';
     MessagesComponent,
     QuizTakeComponent,
     ActivityComponent,
+    ClassReadingsComponent,
   ],
   imports: [
     BrowserModule,
