@@ -520,91 +520,132 @@
       </section>
 
       <!-- Readings -->
-        <section class="mt-6 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
-          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
-           <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
-                <a [routerLink]="['/class', cl.id, 'readings']"
-                  class="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 ring-1
-                          ring-indigo-200/70 bg-indigo-50 text-indigo-700
-                          hover:bg-indigo-100 hover:ring-indigo-300
-                          dark:bg-indigo-900/30 dark:text-indigo-200 dark:ring-indigo-800">
-                  Lectures / Readings
-                  <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 17 17 7M7 7h10v10"/></svg>
-                </a>
-              </h2>
+      <section class="mt-6 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+        <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-4 sm:p-5">
 
-              <div class="flex items-center gap-2">
-                <a [routerLink]="['/class', cl.id, 'readings']"
-                  class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 ring-slate-200
-                          bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
-                  Voir toutes les lectures
-                </a>
+          <!-- Header (mobile-first) -->
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+              <a [routerLink]="['/class', cl.id, 'readings']"
+                class="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 ring-1
+                        ring-indigo-200/70 bg-indigo-50 text-indigo-700
+                        hover:bg-indigo-100 hover:ring-indigo-300
+                        dark:bg-indigo-900/30 dark:text-indigo-200 dark:ring-indigo-800">
+                Lectures / Readings
+                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 17 17 7M7 7h10v10"/></svg>
+              </a>
+            </h2>
 
-                <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
-                        (click)="addReadingOpen = true"
-                        class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                  + Ajouter une lecture
-                </button>
-              </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <a [routerLink]="['/class', cl.id, 'readings']"
+                class="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 ring-slate-200
+                        bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
+                Voir toutes les lectures
+              </a>
+
+              <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                      (click)="addReadingOpen = true"
+                      class="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold
+                            bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                + Ajouter une lecture
+              </button>
             </div>
+          </div>
 
-            <div class="mt-1 text-[11px] text-slate-500">Les plus récents en premier</div>
+          <div class="mt-1 text-[11px] text-slate-500">Les plus récents en premier</div>
 
-            <ng-container *ngIf="(lessons$ | async) as lessons; else lessonsLoading">
-              <div *ngIf="lessons.length; else noLessons" class="mt-3 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
-                  <li *ngFor="let l of lessons; trackBy: trackById" class="flex items-center justify-between gap-3 px-3 py-2">
-                    <div class="min-w-0 flex items-center gap-2">
-                      <span class="grid place-items-center h-6 w-6 rounded-md ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-700/40 text-[11px]">
-                        <ng-container [ngSwitch]="l.type">
-                          <span *ngSwitchCase="'pdf'">PDF</span>
-                          <span *ngSwitchCase="'image'">🖼️</span>
-                          <span *ngSwitchCase="'link'">🔗</span>
-                          <span *ngSwitchDefault>📄</span>
-                        </ng-container>
-                      </span>
-                      <div class="min-w-0">
-                        <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
-                          <a *ngIf="l.url" [href]="l.url" target="_blank" rel="noopener noreferrer" class="hover:underline">
-                            {{ l.title }}
-                          </a>
-                          <span *ngIf="!l.url">{{ l.title }}</span>
-                        </div>
-                        <div class="text-[11px] text-slate-500">
-                          {{ l.contentType || (l.type | titlecase) }}
-                          <span *ngIf="l.sizeBytes">• {{ (l.sizeBytes/1024) | number:'1.0-0' }} KB</span>
-                          <span *ngIf="l.createdAt">• {{ l.createdAt?.toDate ? (l.createdAt.toDate() | date:'medium') : (l.createdAt | date:'medium') }}</span>
-                        </div>
+          <!-- List -->
+          <ng-container *ngIf="(lessons$ | async) as lessons; else lessonsLoading">
+            <div *ngIf="lessons.length; else noLessons" class="mt-3 grid grid-cols-1 gap-3 sm:gap-4">
+              <!-- Card -->
+              <article *ngFor="let l of lessons; trackBy: trackById"
+                      class="flex items-start gap-3 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700
+                              bg-white/90 dark:bg-slate-800/70 backdrop-blur p-3 sm:p-4">
+
+                <!-- Icon (fixed size so nothing overlaps) -->
+                <div class="shrink-0 grid place-items-center h-10 w-10 rounded-xl
+                            ring-1 ring-slate-200 dark:ring-slate-700
+                            bg-gradient-to-br from-indigo-500/10 to-cyan-500/10">
+                  <ng-container [ngSwitch]="l.type">
+                    <!-- PDF -->
+                    <svg *ngSwitchCase="'pdf'" class="h-5 w-5 text-indigo-600 dark:text-indigo-300" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm7 1v4h4"/>
+                    </svg>
+                    <!-- Image -->
+                    <svg *ngSwitchCase="'image'" class="h-5 w-5 text-indigo-600 dark:text-indigo-300" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M4 5h16v14H4z M8 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm12 6-5-6-4 5-2-2-5 7h16"/>
+                    </svg>
+                    <!-- Link -->
+                    <svg *ngSwitchCase="'link'" class="h-5 w-5 text-indigo-600 dark:text-indigo-300" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M10 13a5 5 0 0 1 0-7l1.5-1.5a5 5 0 0 1 7 7L17 12m-6 6a5 5 0 0 0 7 0L20 16m-8-4 4-4"/>
+                    </svg>
+                    <!-- Default: file -->
+                    <svg *ngSwitchDefault class="h-5 w-5 text-indigo-600 dark:text-indigo-300" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M6 4h12v16H6z M8 6h8v2H8z M8 10h8v2H8z M8 14h8v2H8z"/>
+                    </svg>
+                  </ng-container>
+                </div>
+
+                <!-- Body -->
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <!-- Title + meta -->
+                    <div class="min-w-0">
+                      <div class="text-sm sm:text-[15px] font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        <a *ngIf="$any(l)?.url as href"
+                          [href]="href" target="_blank" rel="noopener"
+                          class="hover:underline">
+                          {{ l.title }}
+                        </a>
+                        <span *ngIf="!$any(l)?.url">{{ l.title }}</span>
+                      </div>
+                      <div class="mt-0.5 text-[11px] sm:text-xs text-slate-500">
+                        {{ l.contentType || (l.type | titlecase) }}
+                        <span *ngIf="l.sizeBytes">• {{ (l.sizeBytes/1024) | number:'1.0-0' }} KB</span>
+                        <span *ngIf="l.createdAt">
+                          • {{
+                            l.createdAt?.toDate
+                              ? (l.createdAt.toDate() | date:'medium')
+                              : (l.createdAt | date:'medium')
+                          }}
+                        </span>
                       </div>
                     </div>
 
+                    <!-- Actions -->
                     <div class="shrink-0 flex items-center gap-2">
-                      <a *ngIf="l.url"
-                        [href]="l.url" target="_blank" rel="noopener noreferrer"
-                        class="rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+                      <a *ngIf="$any(l)?.url as href"
+                        [href]="href" target="_blank" rel="noopener"
+                        class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold
+                                bg-indigo-600 text-white hover:bg-indigo-700">
                         Ouvrir
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M7 17 17 7M7 7h10v10"/></svg>
                       </a>
+
                       <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
                               (click)="deleteReading(l)"
-                              class="rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-rose-600 text-white hover:bg-rose-700">
+                              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold
+                                    bg-rose-600 text-white hover:bg-rose-700">
                         Supprimer
                       </button>
                     </div>
-                  </li>
-                </ul>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <ng-template #noLessons>
+              <div class="mt-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white/90 dark:bg-slate-800/70 p-4 text-sm text-slate-600 dark:text-slate-300">
+                Aucune lecture pour l’instant.
               </div>
-
-              <ng-template #noLessons>
-                <div class="mt-3 text-sm text-slate-500">Aucune lecture pour l’instant.</div>
-              </ng-template>
-            </ng-container>
-
-            <ng-template #lessonsLoading>
-              <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
             </ng-template>
-          </div>
-        </section>
+          </ng-container>
+
+          <ng-template #lessonsLoading>
+            <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+          </ng-template>
+        </div>
+      </section>
 
 
       <!-- Class Messages -->
