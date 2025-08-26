@@ -6,7 +6,7 @@ import {
   Subscription,
   firstValueFrom,
 } from 'rxjs';
-import { map, switchMap, filter, take } from 'rxjs/operators';
+import { map, switchMap, take } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { ClassService } from 'src/app/shared/class.service';
 import { MessageService, ClassMessage } from 'src/app/shared/message.service';
@@ -17,19 +17,27 @@ import { User, UserClassIndex } from 'src/app/model/user';
   templateUrl: './messages.component.html',
 })
 export class MessagesComponent implements OnInit, OnDestroy {
+  // identity
   me$!: Observable<User | null>;
-  myIndex$!: Observable<UserClassIndex[]>;
-  classIds$!: Observable<string[]>;
+  isAdmin$!: Observable<boolean>;
+
+  // class lists
+  myIndex$!: Observable<UserClassIndex[]>; // raw index (with owner fallback)
+  safeClassIds$!: Observable<string[]>; // filtered to classes the user is a member of
+  visibleIndex$!: Observable<UserClassIndex[]>; // myIndex$ filtered by safe membership
+  classIds$!: Observable<string[]>; // use this everywhere for queries
+
+  // messages
   messages$!: Observable<ClassMessageWithMeta[]>;
   private messagesRaw$!: Observable<ClassMessage[]>;
 
+  // ui
   newMessage = '';
   selectedClassId = '';
   sending = false;
   errorMsg = '';
 
-  isAdmin$!: Observable<boolean>;
-  private sub?: Subscription;
+  private sub = new Subscription();
 
   constructor(
     private auth: AuthService,
@@ -38,28 +46,26 @@ export class MessagesComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Always use effective identity
+    // Always use effective identity (handles managed subusers)
     this.me$ = this.auth.effectiveUser$;
 
-    this.isAdmin$ = this.auth.effectiveUser$.pipe(
+    this.isAdmin$ = this.me$.pipe(
       map((u) => (u?.platformRole || '').toLowerCase() === 'admin')
     );
 
-    // Get my class index; if I'm a managed child with empty index, fallback to owner's index
-    this.myIndex$ = this.auth.effectiveUser$.pipe(
+    // ---- 1) Build a raw index with owner fallback for managed children
+    this.myIndex$ = this.me$.pipe(
       switchMap((me) => {
-        if (!me?.uid) return of([]);
+        if (!me?.uid) return of<UserClassIndex[]>([]);
         return this.classes.userClassIndex$(me.uid).pipe(
           switchMap((myIdx) => {
-            // If child has no own index, try owner's
-            if (
-              myIdx.length === 0 &&
-              (me as any).isManagedChild &&
-              (me as any).ownerUid
-            ) {
+            // If child has no own index, try owner’s index (but we’ll still filter by membership later)
+            const isChild =
+              (me as any)?.isManagedChild && (me as any)?.ownerUid;
+            if (myIdx.length === 0 && isChild) {
               return this.classes.userClassIndex$((me as any).ownerUid).pipe(
-                // If your index items carry memberUid, keep only those for this child
                 map((ownerIdx) =>
+                  // If your index items carry memberUid, keep only those for this child
                   ownerIdx.filter(
                     (x: any) => !('memberUid' in x) || x.memberUid === me.uid
                   )
@@ -72,23 +78,56 @@ export class MessagesComponent implements OnInit, OnDestroy {
       })
     );
 
-    this.classIds$ = this.myIndex$.pipe(
-      map((list) => list.map((x) => x.classId))
+    // ---- 2) Verify real membership for each class (prevents leaks to subusers)
+    this.safeClassIds$ = combineLatest([this.me$, this.myIndex$]).pipe(
+      switchMap(([me, idx]) => {
+        if (!me?.uid) return of<string[]>([]);
+        const ids = (idx || []).map((x) => x.classId);
+        if (!ids.length) return of<string[]>([]);
+        const checks$ = ids.map((id) =>
+          this.classes
+            .memberRole$(id, me.uid)
+            .pipe(map((role) => (role ? id : null)))
+        );
+        return combineLatest(checks$).pipe(
+          map((list) => list.filter((x): x is string => !!x))
+        );
+      })
     );
 
-    // Auto-select first class
-    this.sub = this.myIndex$.subscribe((idx) => {
-      if (!this.selectedClassId && idx?.length)
-        this.selectedClassId = idx[0].classId;
-    });
+    // ---- 3) Keep only the index entries the user actually belongs to
+    this.visibleIndex$ = combineLatest([
+      this.myIndex$,
+      this.safeClassIds$,
+    ]).pipe(
+      map(([idx, allowed]) => idx.filter((x) => allowed.includes(x.classId)))
+    );
 
-    const titleMap$ = this.myIndex$.pipe(
+    // This is the canonical set of classIds for all queries
+    this.classIds$ = this.safeClassIds$;
+
+    // ---- 4) Auto-select a valid class (and keep selection valid if list changes)
+    this.sub.add(
+      this.visibleIndex$.subscribe((idx) => {
+        if (!idx?.length) {
+          this.selectedClassId = '';
+          return;
+        }
+        const stillValid = idx.some((c) => c.classId === this.selectedClassId);
+        if (!this.selectedClassId || !stillValid) {
+          this.selectedClassId = idx[0].classId;
+        }
+      })
+    );
+
+    // Titles map for display
+    const titleMap$ = this.visibleIndex$.pipe(
       map((list) =>
         Object.fromEntries(list.map((x) => [x.classId, x.title || x.classId]))
       )
     );
 
-    // Raw feed across classes (make sure your service chunks 'in' queries, see §2)
+    // ---- 5) Messages feed across allowed classes
     this.messagesRaw$ = this.classIds$.pipe(
       switchMap((ids) =>
         ids.length ? this.msg.messagesAcrossClasses$(ids, 40) : of([])
@@ -107,18 +146,22 @@ export class MessagesComponent implements OnInit, OnDestroy {
       )
     );
 
-    // Mark seen with effective UID
+    // ---- 6) Mark all seen for allowed classes (effective uid)
     this.sub.add(
       combineLatest([this.auth.effectiveUid$, this.classIds$]).subscribe(
         async ([uid, ids]) => {
-          if (uid && ids.length) await this.msg.markAllSeen(uid, ids);
+          if (uid && ids.length) {
+            try {
+              await this.msg.markAllSeen(uid, ids);
+            } catch {}
+          }
         }
       )
     );
   }
 
   ngOnDestroy(): void {
-    this.sub?.unsubscribe();
+    this.sub.unsubscribe();
   }
 
   async send() {
@@ -132,11 +175,19 @@ export class MessagesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.sending = true;
     try {
-      const me = await firstValueFrom(this.auth.effectiveUser$.pipe(take(1)));
+      this.sending = true;
+
+      const me = await firstValueFrom(this.me$.pipe(take(1)));
       if (!me?.uid) {
         this.errorMsg = 'Non authentifié.';
+        return;
+      }
+
+      // extra guard: ensure selected class is allowed
+      const allowed = await firstValueFrom(this.classIds$.pipe(take(1)));
+      if (!allowed.includes(this.selectedClassId)) {
+        this.errorMsg = "Vous n'appartenez pas à cette classe.";
         return;
       }
 
@@ -144,7 +195,6 @@ export class MessagesComponent implements OnInit, OnDestroy {
       this.newMessage = '';
       await this.msg.markClassSeen(me.uid, this.selectedClassId);
     } catch (e: any) {
-      // Most common: Firestore rules denial if not admin/instructor
       this.errorMsg = e?.message || 'Échec de la publication.';
       console.error('[messages] send failed:', e);
     } finally {

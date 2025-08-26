@@ -32,7 +32,7 @@
                             focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
                 <!-- IMPORTANT: no 'selected' attribute (Angular controls selection) -->
                 <option [ngValue]="''" disabled>Choisir la classe…</option>
-                <ng-container *ngIf="myIndex$ | async as idx">
+                <ng-container *ngIf="visibleIndex$ | async as idx">
                     <option *ngFor="let c of idx" [ngValue]="c.classId">{{ c.title || c.classId }}</option>
                 </ng-container>
                 </select>
