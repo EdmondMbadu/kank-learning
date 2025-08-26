@@ -431,4 +431,33 @@ export class DashboardComponent implements OnInit {
     await uploadBytes(r, file);
     return await getDownloadURL(r);
   }
+
+  /** Prefer photo if available; else null for a fallback badge */
+  avatar(u: Partial<User> | null | undefined): string | null {
+    return (
+      (u?.photoURL ||
+        (u as any)?.photoURL ||
+        (u as any)?.avatarUrl ||
+        (u as any)?.picture) ??
+      null
+    );
+  }
+
+  /** Human-friendly full name or email/uid fallback */
+  displayName(u: Partial<User> | null | undefined): string {
+    if (!u) return '—';
+    const full = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+    return full || u['firstName'] || u['email'] || '—';
+  }
+
+  /** Build initials from a display string */
+  initialsFromName(name: string | null | undefined): string {
+    const s = (name || '').trim();
+    if (!s) return '—';
+    const parts = s.split(/\s+/).slice(0, 2);
+    return parts
+      .map((p) => p[0])
+      .join('')
+      .toUpperCase();
+  }
 }
