@@ -17,6 +17,7 @@ import {
   ClassMessage,
   ClassSection,
   CourseModule,
+  Lesson,
   QuizAttempt,
   QuizQuestion,
 } from 'src/app/model/user';
@@ -25,6 +26,7 @@ import { AssignmentService } from 'src/app/shared/assignment.service';
 import { MessageService } from 'src/app/shared/message.service';
 import { AngularFireStorage } from '@angular/fire/compat/storage';
 import { DataService } from 'src/app/shared/data.service';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 // 1) Add these types + helpers at the top of the class (after existing fields)
 type AvgStats = {
   pct: number | null;
@@ -44,6 +46,15 @@ export class ClassComponent implements OnInit {
   builderTitle = '';
   builderPoints: number | null = null;
   deleting: Record<string, boolean> = {};
+
+  addReadingOpen = false;
+  reading = {
+    title: '',
+    linkUrl: '',
+    file: null as File | null,
+  };
+  readingBusy = false;
+  readingError = '';
 
   // class.component.ts (inside class)
   attemptLimitOpen = false;
@@ -279,6 +290,31 @@ export class ClassComponent implements OnInit {
         : of([])
     )
   );
+  lessons$ = this.classId$.pipe(
+    switchMap((classId) =>
+      classId
+        ? this.afs
+            .collection<Lesson>(`classes/${classId}/lessons`)
+            .valueChanges({ idField: 'id' })
+        : of([] as Lesson[])
+    ),
+    // latest first: by createdAt desc, fallback to order desc
+    map((list) =>
+      [...list].sort(
+        (a, b) =>
+          this.ms(b.createdAt) - this.ms(a.createdAt) ||
+          (b.order ?? 0) - (a.order ?? 0)
+      )
+    ),
+    shareReplay(1)
+  );
+
+  private ms(x: any): number {
+    if (!x) return 0;
+    if (x instanceof Date) return x.getTime();
+    const t = (x as any)?.toDate?.();
+    return t instanceof Date ? t.getTime() : typeof x === 'number' ? x : 0;
+  }
 
   instructorAttemptRows$ = combineLatest([
     this.instructorAttemptsAll$, // all per-user attempt docs for the open quiz
@@ -397,7 +433,8 @@ export class ClassComponent implements OnInit {
     private asgn: AssignmentService, // QUIZ,
     private msg: MessageService,
     private storage: AngularFireStorage,
-    public data: DataService
+    public data: DataService,
+    private afs: AngularFirestore
   ) {}
 
   /** Map a % to your grade color; fallback to neutral when missing */
@@ -1230,6 +1267,112 @@ export class ClassComponent implements OnInit {
       max: a?.maxAttempts ?? 0,
     };
     this.attemptLimitOpen = true;
+  }
+
+  onPickReadingFile(ev: Event) {
+    const f = (ev.target as HTMLInputElement).files?.[0] || null;
+    this.reading.file = f;
+    if (f) this.reading.linkUrl = '';
+  }
+
+  private detectLessonType(
+    file?: File,
+    link?: string
+  ): 'pdf' | 'image' | 'file' | 'link' {
+    if (file) {
+      const ct = (file.type || '').toLowerCase();
+      if (ct.includes('pdf')) return 'pdf';
+      if (ct.startsWith('image/')) return 'image';
+      return 'file';
+    }
+    if (link) return 'link';
+    return 'file';
+  }
+
+  async createReading() {
+    this.readingError = '';
+    if (!this.reading.title.trim()) {
+      this.readingError = 'Titre requis.';
+      return;
+    }
+    if (!this.reading.file && !this.reading.linkUrl.trim()) {
+      this.readingError = 'Fichier ou lien requis.';
+      return;
+    }
+
+    this.readingBusy = true;
+    try {
+      const cl = await firstValueFrom(this.class$);
+      const me = await firstValueFrom(this.me$);
+      if (!cl?.id || !me?.uid) throw new Error('Contexte invalide');
+
+      const id = this.afs.createId();
+      const now = new Date();
+      const t = this.detectLessonType(
+        this.reading.file || undefined,
+        this.reading.linkUrl || undefined
+      );
+
+      let storagePath: string | undefined;
+      let url: string | undefined;
+      let contentType: string | undefined;
+      let sizeBytes: number | undefined;
+
+      if (this.reading.file) {
+        const file = this.reading.file;
+        const ext = file.name.split('.').pop() || 'dat';
+        storagePath = `classes/${cl.id}/lessons/${id}.${ext}`;
+        await this.storage.upload(storagePath, file);
+        url = await firstValueFrom(
+          this.storage.ref(storagePath).getDownloadURL()
+        );
+        contentType = file.type || undefined;
+        sizeBytes = file.size;
+      } else {
+        url = this.reading.linkUrl.trim();
+      }
+
+      const doc: Lesson = {
+        id,
+        classId: cl.id, // ✅ class-scoped
+        courseId: cl.courseId, // optional convenience
+        title: this.reading.title.trim(),
+        order: -now.getTime(), // keeps “latest first” if you ever sort asc
+        type: t,
+        storagePath,
+        url,
+        contentType,
+        sizeBytes,
+        createdAt: now,
+        updatedAt: now,
+        uploadedBy: me.uid,
+        isPreview: false,
+      };
+
+      await this.afs.doc(`classes/${cl.id}/lessons/${id}`).set(doc);
+
+      // reset + close
+      this.reading = { title: '', linkUrl: '', file: null };
+      this.addReadingOpen = false;
+    } catch (e: any) {
+      this.readingError = e?.message || 'Échec de la création.';
+    } finally {
+      this.readingBusy = false;
+    }
+  }
+
+  async deleteReading(l: Lesson) {
+    const ok = confirm(`Supprimer la lecture “${l.title}” ?`);
+    if (!ok) return;
+    const clId = await firstValueFrom(this.classId$);
+    if (!clId || !l?.id) return;
+
+    await this.afs.doc(`classes/${clId}/lessons/${l.id}`).delete();
+    if (l.storagePath) {
+      try {
+        await this.storage.ref(l.storagePath).delete().toPromise();
+      } catch {}
+    }
   }
 }
 interface ClassMessageWithMeta extends ClassMessage {

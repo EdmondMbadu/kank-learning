@@ -22,7 +22,7 @@ export class User {
 
 // --- Common types/enums ---
 export type Role = 'student' | 'instructor' | 'ta';
-export type LessonType = 'video' | 'pdf' | 'link' | 'quiz';
+export type LessonType = 'video' | 'pdf' | 'link' | 'quiz' | 'file' | 'image';
 export type ClassStatus = 'active' | 'archived';
 
 // If you prefer stricter typing for Firestore dates, change `any` to:
@@ -78,14 +78,25 @@ export interface Module {
 
 export interface Lesson {
   id?: string;
+  // NEW: class-scoped readings
+  classId?: string; // ✅ lessons belong to a class
+  // Optional leftovers (safe to keep around)
   courseId?: string;
-  moduleId?: string;
+  moduleId?: string; // optional/unused now
+
   title: string;
-  order: number;
-  type: LessonType; // 'video' | 'pdf' | 'link' | 'quiz'
-  storagePath?: string; // Firebase Storage path
+  order: number; // you can keep using negative timestamps if you like
+  type: LessonType;
+  storagePath?: string;
+  url?: string; // public URL or external link
+  contentType?: string;
+  sizeBytes?: number;
   durationSec?: number;
-  isPreview?: boolean; // allow unauthenticated preview if needed
+  isPreview?: boolean;
+
+  createdAt?: any;
+  updatedAt?: any;
+  uploadedBy?: string;
 }
 
 // --- Running instance (class/section) ---

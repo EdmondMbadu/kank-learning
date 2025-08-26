@@ -519,6 +519,76 @@
         </div>
       </section>
 
+      <!-- Readings -->
+        <section class="mt-6 rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+          <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-slate-900 dark:text-white">Lectures / Readings</h2>
+              <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                      (click)="addReadingOpen = true"
+                      class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                + Ajouter une lecture
+              </button>
+            </div>
+
+            <div class="mt-1 text-[11px] text-slate-500">Les plus récents en premier</div>
+
+            <ng-container *ngIf="(lessons$ | async) as lessons; else lessonsLoading">
+              <div *ngIf="lessons.length; else noLessons" class="mt-3 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                  <li *ngFor="let l of lessons; trackBy: trackById" class="flex items-center justify-between gap-3 px-3 py-2">
+                    <div class="min-w-0 flex items-center gap-2">
+                      <span class="grid place-items-center h-6 w-6 rounded-md ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50 dark:bg-slate-700/40 text-[11px]">
+                        <ng-container [ngSwitch]="l.type">
+                          <span *ngSwitchCase="'pdf'">PDF</span>
+                          <span *ngSwitchCase="'image'">🖼️</span>
+                          <span *ngSwitchCase="'link'">🔗</span>
+                          <span *ngSwitchDefault>📄</span>
+                        </ng-container>
+                      </span>
+                      <div class="min-w-0">
+                        <div class="text-sm font-medium truncate text-slate-900 dark:text-slate-100">
+                          <a *ngIf="l.url" [href]="l.url" target="_blank" rel="noopener noreferrer" class="hover:underline">
+                            {{ l.title }}
+                          </a>
+                          <span *ngIf="!l.url">{{ l.title }}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500">
+                          {{ l.contentType || (l.type | titlecase) }}
+                          <span *ngIf="l.sizeBytes">• {{ (l.sizeBytes/1024) | number:'1.0-0' }} KB</span>
+                          <span *ngIf="l.createdAt">• {{ l.createdAt?.toDate ? (l.createdAt.toDate() | date:'medium') : (l.createdAt | date:'medium') }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="shrink-0 flex items-center gap-2">
+                      <a *ngIf="l.url"
+                        [href]="l.url" target="_blank" rel="noopener noreferrer"
+                        class="rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-indigo-600 text-white hover:bg-indigo-700">
+                        Ouvrir
+                      </a>
+                      <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                              (click)="deleteReading(l)"
+                              class="rounded-lg px-2.5 py-1 text-[11px] font-semibold bg-rose-600 text-white hover:bg-rose-700">
+                        Supprimer
+                      </button>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <ng-template #noLessons>
+                <div class="mt-3 text-sm text-slate-500">Aucune lecture pour l’instant.</div>
+              </ng-template>
+            </ng-container>
+
+            <ng-template #lessonsLoading>
+              <div class="mt-3 h-16 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+            </ng-template>
+          </div>
+        </section>
+
+
       <!-- Class Messages -->
       <section id="messages" class="mt-6 scroll-mt-24 rounded-3xl p-[1px]
               bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70
@@ -1179,3 +1249,68 @@
   </div>
 </div>
 
+
+
+<!-- Add Reading Modal -->
+<div *ngIf="addReadingOpen"
+     class="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6"
+     role="dialog" aria-modal="true">
+  <div class="absolute inset-0 bg-black/50" (click)="addReadingOpen=false"></div>
+
+  <div class="relative w-full max-w-xl max-h-[85vh] overflow-y-auto
+              rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 shadow-2xl">
+    <div class="sticky top-0 z-10 flex items-center justify-between gap-3
+                p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800
+                bg-white/90 dark:bg-slate-900/80 backdrop-blur">
+      <h3 class="text-base sm:text-lg font-semibold">Ajouter une lecture</h3>
+      <button (click)="addReadingOpen=false"
+              class="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+              aria-label="Fermer">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6l-12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="p-4 sm:p-5 space-y-3">
+      <input [(ngModel)]="reading.title" placeholder="Titre de la lecture"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500
+                    dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"/>
+
+      <input type="url" [(ngModel)]="reading.linkUrl" placeholder="OU coller un lien (https://...)"
+             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500
+                    dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"/>
+
+      <div class="grid gap-2">
+        <label class="text-sm text-slate-700 dark:text-slate-300">OU choisir un fichier</label>
+        <input type="file"
+               accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.doc,.docx,.ppt,.pptx,.txt"
+               (change)="onPickReadingFile($event)"
+               class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500
+                      dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+        <div class="text-[11px] text-slate-500">
+          PDF, images, docs… (si un fichier est choisi, le lien sera ignoré).
+        </div>
+      </div>
+
+      <p *ngIf="readingError" class="text-sm text-rose-600">{{ readingError }}</p>
+
+      <div class="pt-1 flex items-center justify-end gap-2">
+        <button (click)="addReadingOpen=false"
+                class="rounded-md px-3 py-1.5 text-sm ring-1 ring-slate-200 dark:ring-slate-700">
+          Annuler
+        </button>
+        <button (click)="createReading()"
+                [disabled]="readingBusy"
+                class="rounded-md px-3 py-1.5 text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60">
+          <svg *ngIf="readingBusy" class="h-4 w-4 inline mr-1 animate-spin" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+          </svg>
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
