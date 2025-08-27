@@ -36,6 +36,16 @@ type AvgStats = {
   totalCorrect: number;
   totalQuestions: number;
 };
+// Make a concrete type the builder uses internally
+type EditorQuestion = Omit<QuizQuestion, 'kind'> & {
+  // Whatever your model defines for kind (keeps it in sync)
+  kind: NonNullable<QuizQuestion['kind']>;
+  imageUrl?: string;
+  correct?: number;
+  correctMulti?: number[];
+  correctText?: string;
+};
+
 @Component({
   selector: 'app-class',
   templateUrl: './class.component.html',
@@ -48,6 +58,8 @@ export class ClassComponent implements OnInit {
   deleting: Record<string, boolean> = {};
 
   builderEditingId: string | null = null;
+
+  editingQuizId: string | null = null; // when set, builder is editing an existing quiz
 
   addReadingOpen = false;
   reading = {
@@ -106,7 +118,8 @@ export class ClassComponent implements OnInit {
     this.draft.imageFile = file;
     this.draft.imagePreviewUrl = URL.createObjectURL(file);
   }
-  builderQuestions: QuizQuestion[] = [];
+  // builderQuestions: QuizQuestion[] = [];
+  builderQuestions: EditorQuestion[] = [];
 
   newDraft() {
     return {
@@ -1328,40 +1341,43 @@ export class ClassComponent implements OnInit {
   /** Load an existing question back into the draft editor */
   private loadDraftFromQuestion(q: QuizQuestion & { imageUrl?: string }) {
     this.draft = this.newDraft();
-
     this.draft.prompt = q.prompt ?? '';
     this.draft.imageUrl = (q as any).imageUrl ?? '';
     this.draft.imageFile = null;
     this.draft.imagePreviewUrl = undefined;
 
-    if (q.kind === 'text') {
+    if ((q as any).kind === 'text') {
       this.draft.kind = 'text';
       this.draft.correctText = (q as any).correctText ?? '';
       return;
     }
 
-    const rawChoices = (q as any).choices as string[] | undefined;
     const choices =
-      Array.isArray(rawChoices) && rawChoices.length > 0
-        ? rawChoices
+      Array.isArray((q as any).choices) && (q as any).choices.length
+        ? (q as any).choices
         : ['', ''];
 
-    if (q.kind === 'mcq-single') {
-      this.draft.kind = 'mcq-single';
-      this.draft.choices = [...choices];
-      this.draft.correctSingle =
-        typeof (q as any).correct === 'number' ? (q as any).correct : null;
-      this.draft.correctMulti = new Set<number>();
-    } else {
-      // mcq-multi
+    if ((q as any).kind === 'mcq-multi') {
       this.draft.kind = 'mcq-multi';
       this.draft.choices = [...choices];
-      const corr = Array.isArray((q as any).correctMulti)
-        ? ((q as any).correctMulti as number[])
-        : [];
-      this.draft.correctMulti = new Set<number>(corr);
+      this.draft.correctMulti = new Set<number>(
+        Array.isArray((q as any).correctMulti) ? (q as any).correctMulti : []
+      );
       this.draft.correctSingle = null;
+      return;
     }
+
+    // mcq-single
+    this.draft.kind = 'mcq-single';
+    this.draft.choices = [...choices];
+    const corr =
+      typeof (q as any).correct === 'number'
+        ? (q as any).correct
+        : typeof (q as any).correctIndex === 'number'
+        ? (q as any).correctIndex
+        : null;
+    this.draft.correctSingle = corr;
+    this.draft.correctMulti = new Set<number>();
   }
 
   /** Start editing an existing question (open the modal if closed) */
@@ -1390,30 +1406,27 @@ export class ClassComponent implements OnInit {
     this.draft = this.newDraft();
   }
 
-  /** Build a question object from the current draft (shared by add/update) */
   private buildQuestionFromDraft(
     targetId: string
-  ): QuizQuestion & { imageUrl?: string; __file?: File } {
+  ): EditorQuestion & { __file?: File } {
     const prompt = (this.draft.prompt || '').trim();
-
     if (!prompt) throw new Error('Écrivez l’énoncé.');
 
     if (this.draft.kind === 'text') {
       const ct = (this.draft.correctText || '').trim();
       if (!ct) throw new Error('Réponse exacte requise.');
-      const out: any = {
+      return {
         id: targetId,
-        kind: 'text',
+        kind: 'text' as NonNullable<QuizQuestion['kind']>,
         prompt,
         correctText: ct,
+        ...(this.draft.imageUrl?.trim()
+          ? { imageUrl: this.draft.imageUrl.trim() }
+          : {}),
+        ...(this.draft.imageFile ? { __file: this.draft.imageFile } : {}),
       };
-      if (this.draft.imageUrl?.trim())
-        out.imageUrl = this.draft.imageUrl.trim();
-      if (this.draft.imageFile) out.__file = this.draft.imageFile;
-      return out;
     }
 
-    // MCQ kinds
     const cleaned = (this.draft.choices || [])
       .map((c) => c.trim())
       .filter((c) => c.length);
@@ -1425,36 +1438,38 @@ export class ClassComponent implements OnInit {
       if (idx == null || idx < 0 || idx >= cleaned.length) {
         throw new Error('Sélectionnez la bonne réponse.');
       }
-      const out: any = {
+      return {
         id: targetId,
-        kind: 'mcq-single',
+        kind: 'mcq-single' as NonNullable<QuizQuestion['kind']>,
         prompt,
         choices: cleaned,
         correct: idx,
+        correctIndex: idx, // keep mirror for compatibility
+        ...(this.draft.imageUrl?.trim()
+          ? { imageUrl: this.draft.imageUrl.trim() }
+          : {}),
+        ...(this.draft.imageFile ? { __file: this.draft.imageFile } : {}),
       };
-      if (this.draft.imageUrl?.trim())
-        out.imageUrl = this.draft.imageUrl.trim();
-      if (this.draft.imageFile) out.__file = this.draft.imageFile;
-      return out;
-    } else {
-      // mcq-multi
-      const corr = Array.from(this.draft.correctMulti.values())
-        .filter((i) => i >= 0 && i < cleaned.length)
-        .sort((a, b) => a - b);
-      if (!corr.length)
-        throw new Error('Sélectionnez au moins une bonne réponse.');
-      const out: any = {
-        id: targetId,
-        kind: 'mcq-multi',
-        prompt,
-        choices: cleaned,
-        correctMulti: corr,
-      };
-      if (this.draft.imageUrl?.trim())
-        out.imageUrl = this.draft.imageUrl.trim();
-      if (this.draft.imageFile) out.__file = this.draft.imageFile;
-      return out;
     }
+
+    // mcq-multi
+    const corr = Array.from(this.draft.correctMulti.values())
+      .filter((i) => i >= 0 && i < cleaned.length)
+      .sort((a, b) => a - b);
+    if (!corr.length)
+      throw new Error('Sélectionnez au moins une bonne réponse.');
+
+    return {
+      id: targetId,
+      kind: 'mcq-multi' as NonNullable<QuizQuestion['kind']>,
+      prompt,
+      choices: cleaned,
+      correctMulti: corr,
+      ...(this.draft.imageUrl?.trim()
+        ? { imageUrl: this.draft.imageUrl.trim() }
+        : {}),
+      ...(this.draft.imageFile ? { __file: this.draft.imageFile } : {}),
+    };
   }
 
   /** Existing: add-as-new (keep your current body, but simplified to reuse builder) */
@@ -1495,6 +1510,239 @@ export class ClassComponent implements OnInit {
     } catch (e: any) {
       alert(e?.message || 'Impossible de mettre à jour la question.');
     }
+  }
+
+  async beginEditQuiz(classId: string, assignmentId: string) {
+    try {
+      const a: any = await this.asgn.getCustomQuizForEdit(
+        classId,
+        assignmentId
+      );
+      if (!a) throw new Error('Quiz introuvable.');
+
+      // Top-level fields (same as you had)
+      this.builderTitle = a.title || '';
+      this.builderPoints = (a.points ?? null) as number | null;
+
+      this.builderTimed = !!a.timed;
+      this.builderTimeMin = this.builderTimed
+        ? Math.max(1, Math.round((a.timeLimitSec || 0) / 60))
+        : null;
+
+      const maxAttempts =
+        typeof a.maxAttempts === 'number' ? a.maxAttempts : null;
+      this.builderMaxAttempts =
+        maxAttempts && maxAttempts < 10000 ? maxAttempts : null;
+
+      this.builderAudience = (a.audience as 'all' | 'subset') || 'all';
+      this.builderAssignees.clear();
+      (Array.isArray(a.assignedTo) ? a.assignedTo : []).forEach((uid: string) =>
+        this.builderAssignees.add(uid)
+      );
+
+      // 💡 Pull questions with robust fallbacks (pool → questions → subcollection)
+      let rawQs: any[] = [];
+      if (Array.isArray(a.pool) && a.pool.length) {
+        rawQs = a.pool; // ✅ primary
+      } else if (Array.isArray(a.questions) && a.questions.length) {
+        rawQs = a.questions; // legacy inline field
+      } else {
+        rawQs = await this.asgn.getCustomQuizQuestions(classId, assignmentId); // subcollection
+      }
+
+      // Normalize to builder shape
+      this.builderQuestions = rawQs.map((q, i) =>
+        this.normalizeForBuilder(q, i)
+      );
+
+      // Open modal
+      this.draft = this.newDraft();
+      this.builderEditingId = null;
+      this.editingQuizId = assignmentId;
+      this.builderOpen = true;
+
+      setTimeout(() => {
+        document
+          .querySelector('[role="dialog"]')
+          ?.scrollTo?.({ top: 0, behavior: 'smooth' });
+      }, 0);
+    } catch (e: any) {
+      alert(e?.message || 'Impossible de charger le quiz à éditer.');
+    }
+  }
+
+  private normalizeForBuilder(raw: any, idx: number): EditorQuestion {
+    const id = raw?.id ?? raw?.qid ?? `q${idx + 1}`;
+    const prompt = raw?.prompt ?? '';
+    const imageUrl = raw?.imageUrl ?? '';
+
+    const hasChoices = Array.isArray(raw?.choices) && raw.choices.length > 0;
+    const isMulti = Array.isArray(raw?.correctMulti);
+
+    // Cast kind to whatever your QuizQuestion['kind'] union is
+    const kind = (raw?.kind ??
+      (hasChoices
+        ? isMulti
+          ? 'mcq-multi'
+          : 'mcq-single'
+        : 'text')) as NonNullable<QuizQuestion['kind']>;
+
+    if (kind === 'text') {
+      return {
+        id,
+        kind,
+        prompt,
+        imageUrl,
+        correctText: raw?.correctText ?? '',
+      };
+    }
+
+    if (kind === 'mcq-multi') {
+      return {
+        id,
+        kind,
+        prompt,
+        imageUrl,
+        choices: [...(raw.choices || [])],
+        correctMulti: Array.isArray(raw.correctMulti) ? raw.correctMulti : [],
+      };
+    }
+
+    // mcq-single
+    const correct =
+      typeof raw?.correct === 'number'
+        ? raw.correct
+        : typeof raw?.correctIndex === 'number'
+        ? raw.correctIndex
+        : null;
+
+    return {
+      id,
+      kind,
+      prompt,
+      imageUrl,
+      choices: [...(raw.choices || [])],
+      // keep both for compatibility; editor uses `correct`
+      ...(typeof correct === 'number'
+        ? { correct, correctIndex: correct }
+        : {}),
+    } as EditorQuestion;
+  }
+
+  async updateCustomQuiz(classId: string) {
+    if (!this.editingQuizId) return;
+
+    // Validate like create()
+    if (!this.builderTitle.trim()) {
+      alert('Titre du quiz requis');
+      return;
+    }
+    if (!this.builderQuestions.length) {
+      alert('Ajoutez des questions');
+      return;
+    }
+
+    const aid = this.editingQuizId;
+
+    // Compute options
+    let timeLimitSec: number | undefined;
+    if (this.builderTimed) {
+      const m = Math.max(1, Math.floor(this.builderTimeMin ?? 0));
+      if (!m) {
+        alert('Durée invalide');
+        return;
+      }
+      timeLimitSec = m * 60;
+    }
+
+    const audience = this.builderAudience;
+    const assignedTo =
+      audience === 'subset' ? Array.from(this.builderAssignees) : [];
+    const maxAttemptsNum = Number(this.builderMaxAttempts);
+    const maxAttempts =
+      Number.isFinite(maxAttemptsNum) && maxAttemptsNum > 0
+        ? Math.floor(maxAttemptsNum)
+        : 10000;
+
+    // Prepare questions and upload any new files chosen during edits
+    const updatedQuestions: any[] = [];
+    for (const q of this.builderQuestions) {
+      const qq: any = { ...q };
+      if (qq.__file) {
+        // store new image under the existing assignment id (tidy path)
+        const url = await this.uploadQuestionImage(
+          classId,
+          aid,
+          qq.id,
+          qq.__file
+        );
+        qq.imageUrl = url;
+        delete qq.__file;
+      }
+      updatedQuestions.push(qq);
+    }
+
+    // Persist
+    try {
+      if (this.asgn.updateCustomQuiz) {
+        await this.asgn.updateCustomQuiz(
+          classId,
+          aid,
+          this.builderTitle.trim(),
+          updatedQuestions,
+          this.builderPoints ?? undefined,
+          {
+            timed: this.builderTimed,
+            timeLimitSec,
+            audience,
+            assignedTo,
+            maxAttempts,
+          }
+        );
+      } else {
+        // Fallback: naive Firestore update (inline questions)
+        await this.afs.doc(`classes/${classId}/assignments/${aid}`).update({
+          title: this.builderTitle.trim(),
+          points: this.builderPoints ?? null,
+          numQuestions: updatedQuestions.length,
+          timed: this.builderTimed,
+          timeLimitSec: timeLimitSec ?? null,
+          audience,
+          assignedTo,
+          maxAttempts,
+          questions: updatedQuestions,
+          updatedAt: new Date(),
+        });
+      }
+
+      // Reset & close
+      this.resetBuilder();
+      this.editingQuizId = null;
+      this.builderOpen = false;
+    } catch (e: any) {
+      alert(e?.message || 'Impossible de mettre à jour le quiz.');
+    }
+  }
+  cancelQuizEdit() {
+    this.editingQuizId = null;
+    this.resetBuilder();
+    this.builderOpen = false;
+  }
+  private resetBuilder() {
+    this.builderTitle = '';
+    this.builderPoints = null;
+    this.builderQuestions = [];
+    this.builderTimed = false;
+    this.builderTimeMin = null;
+    this.builderMaxAttempts = null;
+    this.builderAudience = 'all';
+    this.builderAssignees.clear();
+    this.assigneeQuery = '';
+    this.assigneeQuery$.next('');
+    this.builderEditingId = null;
+    if (this.draft.imagePreviewUrl)
+      URL.revokeObjectURL(this.draft.imagePreviewUrl);
+    this.draft = this.newDraft();
   }
 }
 interface ClassMessageWithMeta extends ClassMessage {

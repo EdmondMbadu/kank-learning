@@ -261,6 +261,13 @@
                           class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                           Ouvrir
                         </a>
+
+                        <!-- NEW: Edit -->
+                        <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                                (click)="beginEditQuiz(cl.id!, a.id!)"
+                                class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+                          Éditer
+                        </button>
                         <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
                                 (click)="confirmDeleteAssignment(cl.id!, a.id!)"
                                 [disabled]="deleting[a.id!]"
@@ -286,7 +293,14 @@
                           <div class="absolute right-0 mt-1 w-44 rounded-xl overflow-hidden bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-xl">
                             <a [routerLink]="['/class', cl.id, 'quiz', a.id]"
                               class="block px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">Ouvrir</a>
-                            <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                            <!-- NEW: Edit -->
+                              <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
+                                      (click)="beginEditQuiz(cl.id!, a.id!)"
+                                      class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                Éditer
+                              </button>
+
+                              <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
                                     (click)="confirmDeleteAssignment(cl.id!, a.id!)"
                                     [disabled]="deleting[a.id!]"
                                     class="w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 disabled:opacity-60">
@@ -919,7 +933,10 @@
     <div class="sticky top-0 z-10 flex items-center justify-between gap-3
                 p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800
                 bg-white/90 dark:bg-slate-900/80 backdrop-blur">
-      <h3 class="text-base sm:text-lg font-semibold">Créer un quiz personnalisé</h3>
+          <h3 class="text-base sm:text-lg font-semibold">
+            {{ editingQuizId ? 'Éditer un quiz' : 'Créer un quiz personnalisé' }}
+          </h3>
+
       <button (click)="builderOpen = false"
               class="rounded-md p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
               aria-label="Fermer">
@@ -1179,6 +1196,13 @@
                     class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
               Enregistrer le quiz
             </button>
+
+            <!-- NEW: Update path -->
+              <button *ngIf="editingQuizId"
+                      (click)="updateCustomQuiz(classId)"
+                      class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+                Mettre à jour le quiz
+              </button>
           </ng-container>
         </div>
 

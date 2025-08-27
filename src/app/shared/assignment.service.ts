@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import firebase from 'firebase/compat/app';
 import { map, switchMap } from 'rxjs/operators';
-import { Observable, of } from 'rxjs';
+import { firstValueFrom, Observable, of } from 'rxjs';
 import { QuizAssignment, QuizAttempt, QuizQuestion } from 'src/app/model/user';
 
 // --- ADD: helper to normalize text answers (diacritics-insensitive) ---
@@ -853,6 +853,59 @@ export class AssignmentService {
       (submitted === 0 && (att?.status === 'in-progress' || hasAnyAnswers));
 
     return submitted + (addUnsubmitted ? 1 : 0);
+  }
+
+  async getCustomQuizForEdit(classId: string, aid: string): Promise<any> {
+    return await firstValueFrom(
+      this.afs.doc(`classes/${classId}/assignments/${aid}`).valueChanges()
+    );
+  }
+
+  async getCustomQuizQuestions(classId: string, aid: string): Promise<any[]> {
+    // Use if you store questions in a subcollection
+    return await firstValueFrom(
+      this.afs
+        .collection(`classes/${classId}/assignments/${aid}/questions`)
+        .valueChanges({ idField: 'id' })
+    );
+  }
+
+  async updateCustomQuiz(
+    classId: string,
+    aid: string,
+    title: string,
+    questions: any[],
+    points: number | undefined,
+    opts: {
+      timed?: boolean;
+      timeLimitSec?: number;
+      audience: 'all' | 'subset';
+      assignedTo: string[];
+      maxAttempts: number;
+    }
+  ) {
+    // Normalize: keep compatibility with grader (accepts correct OR correctIndex)
+    const pool = questions.map((q) => ({
+      ...q,
+      // if editor produced `correct`, mirror it to `correctIndex` for older consumers
+      ...(typeof q.correct === 'number' && typeof q.correctIndex !== 'number'
+        ? { correctIndex: q.correct }
+        : {}),
+    }));
+
+    await this.afs.doc(`classes/${classId}/assignments/${aid}`).update({
+      title,
+      points: points ?? null,
+      numQuestions: pool.length,
+      timed: !!opts.timed,
+      timeLimitSec: opts.timeLimitSec ?? null,
+      audience: opts.audience,
+      assignedTo: opts.assignedTo,
+      maxAttempts: opts.maxAttempts,
+      pool, // ✅ write to POOL (the single source of truth)
+      updatedAt: new Date(),
+      questions: firebase.firestore.FieldValue.delete(), // ✅ remove old field if present
+    });
   }
 }
 
