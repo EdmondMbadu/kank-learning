@@ -47,6 +47,8 @@ export class ClassComponent implements OnInit {
   builderPoints: number | null = null;
   deleting: Record<string, boolean> = {};
 
+  builderEditingId: string | null = null;
+
   addReadingOpen = false;
   reading = {
     title: '',
@@ -719,87 +721,6 @@ export class ClassComponent implements OnInit {
     else this.draft.correctMulti.add(i);
   }
 
-  pushDraftToQuiz() {
-    const id = crypto?.randomUUID
-      ? crypto.randomUUID()
-      : Math.random().toString(36).slice(2);
-    const prompt = this.draft.prompt.trim();
-    if (!prompt) {
-      alert('Écrivez l’énoncé.');
-      return;
-    }
-
-    let q: QuizQuestion | null = null;
-
-    if (this.draft.kind === 'text') {
-      if (!this.draft.correctText.trim()) {
-        alert('Réponse exacte requise.');
-        return;
-      }
-      q = {
-        id,
-        kind: 'text',
-        prompt,
-        correctText: this.draft.correctText.trim(),
-      };
-    } else {
-      const cleaned = (this.draft.choices || [])
-        .map((c) => c.trim())
-        .filter((c) => c.length);
-      if (cleaned.length < 2) {
-        alert('Ajoutez au moins 2 choix.');
-        return;
-      }
-
-      if (this.draft.kind === 'mcq-single') {
-        if (
-          this.draft.correctSingle == null ||
-          this.draft.correctSingle < 0 ||
-          this.draft.correctSingle >= cleaned.length
-        ) {
-          alert('Sélectionnez la bonne réponse.');
-          return;
-        }
-        q = {
-          id,
-          kind: 'mcq-single',
-          prompt,
-          choices: cleaned,
-          correct: this.draft.correctSingle,
-        };
-      } else {
-        // mcq-multi
-        const corr = Array.from(this.draft.correctMulti.values())
-          .filter((i) => i >= 0 && i < cleaned.length)
-          .sort((a, b) => a - b);
-        if (!corr.length) {
-          alert('Sélectionnez au moins une bonne réponse.');
-          return;
-        }
-        q = {
-          id,
-          kind: 'mcq-multi',
-          prompt,
-          choices: cleaned,
-          correctMulti: corr,
-        };
-      }
-    }
-    if (this.draft.imageUrl?.trim()) {
-      (q as any).imageUrl = this.draft.imageUrl.trim(); // already-hosted URL case
-    }
-    if (this.draft.imageFile) {
-      (q as any).__file = this.draft.imageFile; // temp field for upload
-    }
-
-    this.builderQuestions.push(q!);
-
-    // cleanup preview blob
-    if (this.draft.imagePreviewUrl)
-      URL.revokeObjectURL(this.draft.imagePreviewUrl);
-    this.draft = this.newDraft();
-  }
-
   removeBuilderQuestion(qid: string) {
     this.builderQuestions = this.builderQuestions.filter((q) => q.id !== qid);
   }
@@ -1402,6 +1323,178 @@ export class ClassComponent implements OnInit {
     const u = m?.user;
     const full = [u?.firstName, u?.lastName].filter(Boolean).join(' ').trim();
     return full || u?.name || u?.email || m?.uid || '—';
+  }
+
+  /** Load an existing question back into the draft editor */
+  private loadDraftFromQuestion(q: QuizQuestion & { imageUrl?: string }) {
+    this.draft = this.newDraft();
+
+    this.draft.prompt = q.prompt ?? '';
+    this.draft.imageUrl = (q as any).imageUrl ?? '';
+    this.draft.imageFile = null;
+    this.draft.imagePreviewUrl = undefined;
+
+    if (q.kind === 'text') {
+      this.draft.kind = 'text';
+      this.draft.correctText = (q as any).correctText ?? '';
+      return;
+    }
+
+    const rawChoices = (q as any).choices as string[] | undefined;
+    const choices =
+      Array.isArray(rawChoices) && rawChoices.length > 0
+        ? rawChoices
+        : ['', ''];
+
+    if (q.kind === 'mcq-single') {
+      this.draft.kind = 'mcq-single';
+      this.draft.choices = [...choices];
+      this.draft.correctSingle =
+        typeof (q as any).correct === 'number' ? (q as any).correct : null;
+      this.draft.correctMulti = new Set<number>();
+    } else {
+      // mcq-multi
+      this.draft.kind = 'mcq-multi';
+      this.draft.choices = [...choices];
+      const corr = Array.isArray((q as any).correctMulti)
+        ? ((q as any).correctMulti as number[])
+        : [];
+      this.draft.correctMulti = new Set<number>(corr);
+      this.draft.correctSingle = null;
+    }
+  }
+
+  /** Start editing an existing question (open the modal if closed) */
+  editBuilderQuestion(qid: string) {
+    const q = this.builderQuestions.find((x) => x.id === qid);
+    if (!q) return;
+    this.builderEditingId = qid;
+    this.loadDraftFromQuestion(q as any);
+    this.builderOpen = true;
+
+    // Optional: scroll modal back to top for convenience
+    setTimeout(() => {
+      const el = document.querySelector(
+        '[role="dialog"] .p-4, [role="dialog"] .p-5'
+      ) as HTMLElement;
+      el?.scrollTo?.({ top: 0, behavior: 'smooth' });
+    }, 0);
+  }
+
+  /** Cancel current edit, keep the list unchanged */
+  cancelEditDraft() {
+    // cleanup preview blob if any
+    if (this.draft.imagePreviewUrl)
+      URL.revokeObjectURL(this.draft.imagePreviewUrl);
+    this.builderEditingId = null;
+    this.draft = this.newDraft();
+  }
+
+  /** Build a question object from the current draft (shared by add/update) */
+  private buildQuestionFromDraft(
+    targetId: string
+  ): QuizQuestion & { imageUrl?: string; __file?: File } {
+    const prompt = (this.draft.prompt || '').trim();
+
+    if (!prompt) throw new Error('Écrivez l’énoncé.');
+
+    if (this.draft.kind === 'text') {
+      const ct = (this.draft.correctText || '').trim();
+      if (!ct) throw new Error('Réponse exacte requise.');
+      const out: any = {
+        id: targetId,
+        kind: 'text',
+        prompt,
+        correctText: ct,
+      };
+      if (this.draft.imageUrl?.trim())
+        out.imageUrl = this.draft.imageUrl.trim();
+      if (this.draft.imageFile) out.__file = this.draft.imageFile;
+      return out;
+    }
+
+    // MCQ kinds
+    const cleaned = (this.draft.choices || [])
+      .map((c) => c.trim())
+      .filter((c) => c.length);
+
+    if (cleaned.length < 2) throw new Error('Ajoutez au moins 2 choix.');
+
+    if (this.draft.kind === 'mcq-single') {
+      const idx = this.draft.correctSingle;
+      if (idx == null || idx < 0 || idx >= cleaned.length) {
+        throw new Error('Sélectionnez la bonne réponse.');
+      }
+      const out: any = {
+        id: targetId,
+        kind: 'mcq-single',
+        prompt,
+        choices: cleaned,
+        correct: idx,
+      };
+      if (this.draft.imageUrl?.trim())
+        out.imageUrl = this.draft.imageUrl.trim();
+      if (this.draft.imageFile) out.__file = this.draft.imageFile;
+      return out;
+    } else {
+      // mcq-multi
+      const corr = Array.from(this.draft.correctMulti.values())
+        .filter((i) => i >= 0 && i < cleaned.length)
+        .sort((a, b) => a - b);
+      if (!corr.length)
+        throw new Error('Sélectionnez au moins une bonne réponse.');
+      const out: any = {
+        id: targetId,
+        kind: 'mcq-multi',
+        prompt,
+        choices: cleaned,
+        correctMulti: corr,
+      };
+      if (this.draft.imageUrl?.trim())
+        out.imageUrl = this.draft.imageUrl.trim();
+      if (this.draft.imageFile) out.__file = this.draft.imageFile;
+      return out;
+    }
+  }
+
+  /** Existing: add-as-new (keep your current body, but simplified to reuse builder) */
+  pushDraftToQuiz() {
+    try {
+      const id = crypto?.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2);
+      const q = this.buildQuestionFromDraft(id);
+      this.builderQuestions.push(q);
+
+      // cleanup & reset
+      if (this.draft.imagePreviewUrl)
+        URL.revokeObjectURL(this.draft.imagePreviewUrl);
+      this.draft = this.newDraft();
+    } catch (e: any) {
+      alert(e?.message || 'Impossible d’ajouter la question.');
+    }
+  }
+
+  /** NEW: apply edits to the existing question (replace in-place, keep same id) */
+  applyEditToQuiz() {
+    if (!this.builderEditingId) return;
+    try {
+      const id = this.builderEditingId;
+      const q = this.buildQuestionFromDraft(id);
+
+      const idx = this.builderQuestions.findIndex((x) => x.id === id);
+      if (idx >= 0) {
+        this.builderQuestions[idx] = q;
+      }
+
+      // cleanup & exit edit mode
+      if (this.draft.imagePreviewUrl)
+        URL.revokeObjectURL(this.draft.imagePreviewUrl);
+      this.draft = this.newDraft();
+      this.builderEditingId = null;
+    } catch (e: any) {
+      alert(e?.message || 'Impossible de mettre à jour la question.');
+    }
   }
 }
 interface ClassMessageWithMeta extends ClassMessage {

@@ -1109,13 +1109,35 @@
 
           <div class="pt-1 flex items-center justify-between">
             <div class="text-[11px] text-slate-500">
-              {{ draft.kind === 'text' ? 'Réponse exacte requise.' : 'Cochez la/les bonne(s) réponse(s).' }}
+              <ng-container *ngIf="builderEditingId; else hint">
+                ✏️ Édition en cours — modifications non enregistrées
+              </ng-container>
+              <ng-template #hint>
+                {{ draft.kind === 'text' ? 'Réponse exacte requise.' : 'Cochez la/les bonne(s) réponse(s).' }}
+              </ng-template>
             </div>
-            <button (click)="pushDraftToQuiz()"
-                    class="rounded-md px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-              Ajouter la question
-            </button>
+
+            <div class="flex items-center gap-2">
+              <button *ngIf="builderEditingId"
+                      (click)="cancelEditDraft()"
+                      class="rounded-md px-3 py-1.5 text-xs font-semibold ring-1 ring-slate-200 dark:ring-slate-700">
+                Annuler
+              </button>
+
+              <button *ngIf="!builderEditingId; else updateBtn"
+                      (click)="pushDraftToQuiz()"
+                      class="rounded-md px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                Ajouter la question
+              </button>
+              <ng-template #updateBtn>
+                <button (click)="applyEditToQuiz()"
+                        class="rounded-md px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                  Mettre à jour
+                </button>
+              </ng-template>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -1136,6 +1158,13 @@
                 {{ q.kind }} <ng-container *ngIf="q.kind !== 'text'">• {{ q.choices?.length }} choix</ng-container>
               </div>
             </div>
+            <div class="shrink-0 flex items-center gap-2">
+            <button (click)="editBuilderQuestion(q.id)"
+                    class="rounded px-2 py-1 text-[11px] font-medium
+                          bg-sky-50 text-sky-700 ring-1 ring-sky-200
+                          hover:bg-sky-100 dark:bg-sky-900/20 dark:text-sky-200 dark:ring-sky-800">
+              Éditer
+            </button>
             <button (click)="removeBuilderQuestion(q.id)"
                     class="shrink-0 rounded px-2 py-1 text-[11px] font-medium bg-rose-50 text-rose-700 ring-1 ring-rose-200
                            hover:bg-rose-100 dark:bg-rose-900/20 dark:text-rose-200 dark:ring-rose-800">
