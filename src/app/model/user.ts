@@ -113,6 +113,7 @@ export interface ClassSection {
   createdAt?: FSDate;
   updatedAt?: FSDate;
   coverUrl?: string;
+  description?: string;
 }
 
 export interface ClassMessage {

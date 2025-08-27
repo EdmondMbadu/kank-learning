@@ -65,8 +65,9 @@ export class ClassService {
     title: string;
     instructorId: string;
     coverUrl: string;
+    description: string;
   }) {
-    const { courseId, title, instructorId } = params;
+    const { courseId, title, instructorId, description } = params;
     const id = this.afs.createId();
     const now = firebase.firestore.FieldValue.serverTimestamp();
 
@@ -83,6 +84,7 @@ export class ClassService {
       instructorId,
       title: title.trim(),
       status: 'active',
+      description: description,
       counts: { students: 0, instructors: 1 },
       createdAt: now,
       updatedAt: now,
@@ -528,6 +530,15 @@ export class ClassService {
           ref.where(`members.${uid}`, 'in', ['student', 'instructor', 'ta']) // or '!=', true depending on your schema
       )
       .valueChanges({ idField: 'id' });
+  }
+  updateClass(
+    classId: string,
+    patch: Partial<Pick<ClassSection, 'title' | 'description' | 'coverUrl'>>
+  ) {
+    return this.afs.doc(`classes/${classId}`).update({
+      ...patch,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
   }
 
   // class.service.ts

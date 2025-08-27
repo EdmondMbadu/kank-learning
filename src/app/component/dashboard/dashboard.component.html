@@ -185,6 +185,13 @@
                               bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                       Ouvrir
                     </a>
+                    <!-- under the Ouvrir button -->
+                    <button *ngIf="(isAdmin$ | async)" (click)="openEditClass(cl)"
+                            class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-medium
+                                  bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                      Modifier
+                    </button>
+
                     <button *ngIf="(isAdmin$ | async)" (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
                             class="hidden mx-2 sm:inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium
                                   bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100
@@ -410,18 +417,22 @@
              class="relative w-full max-w-md mx-4 rounded-2xl p-[1px] bg-gradient-to-br from-emerald-500/30 via-cyan-500/20 to-indigo-500/20 shadow-xl">
           <div class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white ring-1 ring-black/10 dark:bg-slate-900 dark:ring-slate-700 max-h-[85vh] overflow-y-auto">
             <div class="p-5">
-              <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">Nouvelle classe</h3>
+            <h3 class="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
+                {{ editClass ? 'Modifier la classe' : 'Nouvelle classe' }}
+              </h3>
+
               <form (ngSubmit)="saveClass()" class="space-y-4" novalidate>
                 <div>
                   <label class="block text-sm font-medium mb-1">Cours</label>
                   <ng-container *ngIf="myCourses$ | async as courses">
-                    <select
-                      [(ngModel)]="classForm.courseId" name="courseId"
-                      [disabled]="!!creatingFromCourse"
-                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
-                      <option value="" disabled>Choisir un cours…</option>
-                      <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
-                    </select>
+                  <select
+                    [(ngModel)]="classForm.courseId" name="courseId"
+                    [disabled]="!!creatingFromCourse || !!editClass"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                    <option value="" disabled>Choisir un cours…</option>
+                    <option *ngFor="let c of courses" [value]="c.id">{{ c.title }}</option>
+                  </select>
+
                   </ng-container>
                 </div>
                   <!-- NEW: Image de couverture (optionnel) -->
@@ -469,16 +480,24 @@
                          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                          placeholder="Ex.: Intro Microfinance — Session A">
                 </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Description</label>
+                    <textarea [(ngModel)]="classForm.description" name="classDescription" rows="3"
+                              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
+                              placeholder="Résumé de la classe…"></textarea>
+                  </div>
+
                 <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
                   <button type="button" (click)="closeClassDialog()"
                           class="w-full sm:w-auto rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-white/70 dark:text-slate-200 dark:ring-slate-700 dark:hover:bg-slate-800/60">
                     Annuler
                   </button>
-                 <button type="submit"
-                        [disabled]="!classForm.courseId || !classForm.title || classForm.title.length < 3 || uploadingClassCover"
-                        class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                  Créer la classe
-                </button>
+                <button type="submit"
+                      [disabled]="!classForm.courseId || !classForm.title || classForm.title.length < 3 || uploadingClassCover"
+                      class="w-full sm:w-auto rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                {{ editClass ? 'Enregistrer' : 'Créer la classe' }}
+              </button>
+
 
                 </div>
               </form>

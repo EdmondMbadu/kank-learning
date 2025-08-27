@@ -25,6 +25,15 @@ export class DashboardComponent implements OnInit {
   myCourses$!: Observable<Course[]>;
   myClasses$!: Observable<ClassSection[]>;
 
+  // NEW: edit state for classes
+  editClass: ClassSection | null = null;
+
+  // Add description into the form model
+  classForm = { courseId: '', title: '', description: '' };
+
+  // Track when the user explicitly removed the cover during edit
+  private classCoverRemoved = false;
+
   DEFAULT_COURSE_COVER = 'assets/img/course.jpg';
   courseCoverFile: File | null = null;
   courseCoverPreview: string | null = null;
@@ -42,7 +51,6 @@ export class DashboardComponent implements OnInit {
 
   // Class dialog
   showClassDialog = false;
-  classForm = { courseId: '', title: '' };
   creatingFromCourse: Course | null = null;
   membersByClass: Record<
     string,
@@ -243,40 +251,87 @@ export class DashboardComponent implements OnInit {
   closeClassDialog() {
     this.showClassDialog = false;
     this.creatingFromCourse = null;
-    this.classCoverFile = null; // NEW
-    this.classCoverPreview = null; // NEW
-    this.uploadingClassCover = false; // NEW
+    this.editClass = null; // NEW
+    this.classForm = { courseId: '', title: '', description: '' }; // NEW
+    this.classCoverFile = null;
+    this.classCoverPreview = null;
+    this.classCoverRemoved = false; // NEW
+    this.uploadingClassCover = false;
   }
 
   async saveClass() {
     const me = await firstValueFrom(this.auth.user$.pipe(take(1)));
     if (!me?.uid) return;
-    const { courseId, title } = this.classForm;
+    const { courseId, title, description } = this.classForm;
     if (!courseId || !title.trim()) return;
+
+    // Permission check: creating (admin only) OR editing (admin or instructor)
+    if (this.editClass) {
+      const [isAdmin] = await Promise.all([
+        firstValueFrom(this.isAdmin$.pipe(take(1))),
+      ]);
+      const can = isAdmin || this.editClass.instructorId === me.uid;
+      if (!can) {
+        alert('Action non autorisée.');
+        return;
+      }
+    } else {
+      const isAdmin = await firstValueFrom(this.isAdmin$.pipe(take(1)));
+      if (!isAdmin) {
+        alert('Action non autorisée.');
+        return;
+      }
+    }
 
     try {
       this.uploadingClassCover = true;
 
       let coverUrl: string | undefined;
-      if (this.classCoverFile) {
-        coverUrl = await this.uploadClassCover(this.classCoverFile, me.uid);
-      } else {
-        coverUrl = this.DEFAULT_CLASS_COVER; // fallback on create
-      }
 
-      await this.classes.createClass({
-        courseId,
-        title: title.trim(),
-        instructorId: me.uid,
-        coverUrl, // NEW
-      });
+      if (this.editClass?.id) {
+        // UPDATE
+        // 1) Decide the final cover
+        if (this.classCoverFile) {
+          // new upload wins
+          coverUrl = await this.uploadClassCover(this.classCoverFile, me.uid);
+        } else if (this.classCoverRemoved) {
+          // explicit removal → default cover
+          coverUrl = this.DEFAULT_CLASS_COVER;
+        } else {
+          // keep old one if any, else default
+          coverUrl = this.editClass.coverUrl || this.DEFAULT_CLASS_COVER;
+        }
+
+        await this.classes.updateClass(this.editClass.id, {
+          title: title.trim(),
+          description: (description || '').trim(),
+          coverUrl,
+        });
+      } else {
+        // CREATE
+        if (this.classCoverFile) {
+          coverUrl = await this.uploadClassCover(this.classCoverFile, me.uid);
+        } else {
+          coverUrl = this.DEFAULT_CLASS_COVER;
+        }
+
+        await this.classes.createClass({
+          courseId,
+          title: title.trim(),
+          instructorId: me.uid,
+          description: (description || '').trim(),
+          coverUrl,
+        });
+      }
     } finally {
       this.uploadingClassCover = false;
       this.showClassDialog = false;
       this.creatingFromCourse = null;
-      this.classForm = { courseId: '', title: '' };
+      this.editClass = null;
+      this.classForm = { courseId: '', title: '', description: '' };
       this.classCoverFile = null;
       this.classCoverPreview = null;
+      this.classCoverRemoved = false;
     }
   }
 
@@ -417,10 +472,10 @@ export class DashboardComponent implements OnInit {
     reader.onload = () => (this.classCoverPreview = reader.result as string);
     reader.readAsDataURL(file);
   }
-
   clearClassCover() {
     this.classCoverFile = null;
     this.classCoverPreview = null;
+    this.classCoverRemoved = true; // NEW: remember the user wants no custom cover
   }
 
   private async uploadClassCover(file: File, ownerId: string): Promise<string> {
@@ -459,5 +514,35 @@ export class DashboardComponent implements OnInit {
       .map((p) => p[0])
       .join('')
       .toUpperCase();
+  }
+
+  openEditClass(cl: ClassSection) {
+    // permissions: admin OR instructor of that class
+    Promise.all([
+      firstValueFrom(this.isAdmin$.pipe(take(1))),
+      firstValueFrom(this.auth.user$.pipe(take(1))),
+    ]).then(([isAdmin, me]) => {
+      const can = isAdmin || cl.instructorId === me?.uid;
+      if (!can) {
+        alert('Action non autorisée.');
+        return;
+      }
+      this.editClass = cl;
+      this.creatingFromCourse = null;
+
+      this.classForm = {
+        courseId: cl.courseId || '',
+        title: cl.title || '',
+        description: cl.description || '',
+      };
+
+      // cover preview shows existing cover if any
+      this.classCoverFile = null;
+      this.classCoverPreview = cl.coverUrl || null;
+      this.classCoverRemoved = false;
+      this.uploadingClassCover = false;
+
+      this.showClassDialog = true;
+    });
   }
 }
