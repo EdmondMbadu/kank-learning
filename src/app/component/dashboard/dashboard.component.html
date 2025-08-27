@@ -141,190 +141,207 @@
 
 
 
-    <!-- My Classes -->
-    <section class="pt-2 pb-8">
-      <div class="rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
-        <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-4 sm:p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
-          <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Mes classes</h2>
-            <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass()"
-                    class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm font-semibold bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-              Créer une classe
-            </button>
-          </div>
+        <!-- My Classes -->
+        <section class="pt-2 pb-8">
+          <div class="rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
+            <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-4 sm:p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
+              <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Mes classes</h2>
+                <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass()"
+                        class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm font-semibold bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                  Créer une classe
+                </button>
+              </div>
 
-          <ng-container *ngIf="myClasses$ | async as classes; else classesLoading">
-            <div *ngIf="classes.length; else noClasses"
-                class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <ng-container *ngIf="myClasses$ | async as classes; else classesLoading">
+                <div *ngIf="classes.length; else noClasses"
+                    class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
-              <article *ngFor="let cl of classes; trackBy: byId"
-                      class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
-                <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
-                  <img
-                    [src]="cl.coverUrl || DEFAULT_CLASS_COVER"
-                    [alt]="cl.title || 'Couverture de la classe'"
-                    class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
-                    loading="lazy" />
-                  <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
-                  <div class="absolute left-2 top-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-[11px] ring-1 ring-slate-200 dark:bg-slate-900/70 dark:ring-slate-700">
-                    Classe
-                  </div>
-                </div>
-
-                <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-                  <div class="min-w-0">
-                    <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-2">{{ cl.title }}</div>
-                    <div class="text-xs text-slate-500 mt-1 break-all">
-                      Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
+                  <article *ngFor="let cl of classes; trackBy: byId"
+                          class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
+                    <!-- Cover -->
+                    <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
+                      <img
+                        [src]="cl.coverUrl || DEFAULT_CLASS_COVER"
+                        [alt]="cl.title || 'Couverture de la classe'"
+                        class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
+                        loading="lazy" />
+                      <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
+                      <div class="absolute left-2 top-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-[11px] ring-1 ring-slate-200 dark:bg-slate-900/70 dark:ring-slate-700">
+                        Classe
+                      </div>
                     </div>
-                  </div>
 
-                  <div class="flex sm:block items-center gap-2">
-                    <a [routerLink]="['/class', cl.id]"
-                      class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-medium
-                              bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                      Ouvrir
-                    </a>
-                    <!-- under the Ouvrir button -->
-                    <button *ngIf="(isAdmin$ | async)" (click)="openEditClass(cl)"
-                            class="w-full sm:w-auto inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-medium
-                                  bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                      Modifier
-                    </button>
+                    <!-- Info -->
+                    <div class="min-w-0">
+                      <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-2">{{ cl.title }}</div>
+                      <div class="text-xs text-slate-500 mt-1 break-all">
+                        Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
+                      </div>
+                    </div>
 
-                    <button *ngIf="(isAdmin$ | async)" (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
-                            class="hidden mx-2 sm:inline-flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium
-                                  bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100
-                                  disabled:opacity-60 disabled:cursor-not-allowed
-                                  dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
-                      <svg *ngIf="deletingClass[cl.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                      </svg>
-                      <span>Supprimer</span>
-                    </button>
-                  </div>
-                </div>
+                    <!-- Actions (phone-first) -->
+                    <div class="mt-3 flex items-center gap-2">
+                      <!-- Primary open -->
+                      <a [routerLink]="['/class', cl.id]"
+                        class="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs sm:text-sm font-medium
+                                bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                        Ouvrir
+                      </a>
 
-                <!-- Invites -->
-                <div class="mt-3">
-                  <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Invitations en attente</div>
-                  <ng-container *ngIf="invitesByClass[cl.id!] | async as invites">
-                    <div *ngIf="invites.length; else noInvites"
-                        class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                      <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
-                        <li *ngFor="let inv of invites" class="px-3 py-2">
-                          <div class="flex items-center gap-3">
-                            <div class="h-8 w-8 grid place-items-center rounded-full bg-amber-50 text-amber-700 text-[11px] font-semibold uppercase ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                              {{ (inv.email || '??') | slice:0:2 }}
-                            </div>
-                            <div class="min-w-0 flex-1">
-                              <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ inv.email }}</div>
-                              <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
-                            </div>
-                            <div class="flex items-center gap-2 shrink-0">
-                              <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">En attente</span>
-                              <button *ngIf="(isAdmin$ | async)" (click)="cancelInvite(cl, inv)"
-                                      [disabled]="cancelingInvite[inv.id!]"
-                                      class="inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium
+                      <!-- Edit (icon) -->
+                      <button *ngIf="(isAdmin$ | async)" (click)="openEditClass(cl)"
+                              class="shrink-0 inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-emerald-200 text-emerald-700 bg-white
+                                    hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
+                                    dark:bg-slate-800 dark:text-emerald-300 dark:ring-emerald-900/40 dark:hover:bg-slate-800/70"
+                              aria-label="Modifier" title="Modifier">
+                        <!-- pencil icon -->
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                        </svg>
+                        <span class="sr-only">Modifier</span>
+                      </button>
+
+                      <!-- Delete (icon) -->
+                      <button *ngIf="(isAdmin$ | async)" (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
+                              class="shrink-0 inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-rose-200 text-rose-600 bg-white
+                                    hover:bg-rose-50 disabled:opacity-60 disabled:cursor-not-allowed
+                                    focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                                    dark:bg-slate-800 dark:text-rose-300 dark:ring-rose-900/40 dark:hover:bg-slate-800/70"
+                              aria-label="Supprimer" title="Supprimer">
+                        <svg *ngIf="!deletingClass[cl.id!]" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 6h18" />
+                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        </svg>
+                        <svg *ngIf="deletingClass[cl.id!]" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                        </svg>
+                        <span class="sr-only">Supprimer</span>
+                      </button>
+                    </div>
+
+                    <!-- Invites -->
+                    <div class="mt-4">
+                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Invitations en attente</div>
+                      <ng-container *ngIf="invitesByClass[cl.id!] | async as invites">
+                        <div *ngIf="invites.length; else noInvites"
+                            class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                          <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                            <li *ngFor="let inv of invites" class="px-3 py-2">
+                              <div class="flex items-center gap-3">
+                                <div class="h-8 w-8 grid place-items-center rounded-full bg-amber-50 text-amber-700 text-[11px] font-semibold uppercase ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                                  {{ (inv.email || '??') | slice:0:2 }}
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                  <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ inv.email }}</div>
+                                  <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                  <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">En attente</span>
+                                  <button *ngIf="(isAdmin$ | async)" (click)="cancelInvite(cl, inv)"
+                                          [disabled]="cancelingInvite[inv.id!]"
+                                          class="inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium
+                                                text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                                disabled:opacity-60 disabled:cursor-not-allowed
+                                                dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                                    <svg *ngIf="cancelingInvite[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                                    </svg>
+                                    <span>Annuler</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </li>
+                          </ul>
+                        </div>
+                        <ng-template #noInvites>
+                          <div class="mt-2 text-xs text-slate-500">Aucune invitation en attente.</div>
+                        </ng-template>
+                      </ng-container>
+                    </div>
+
+                    <!-- Members with avatars -->
+                    <div class="mt-4">
+                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Membres</div>
+                      <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
+                        <div *ngIf="members.length; else noMembers"
+                            class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                          <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                            <li *ngFor="let m of members; trackBy: trackMember"
+                                class="flex items-center justify-between gap-3 px-3 py-2">
+                              <div class="flex items-center gap-3 min-w-0">
+                                <div class="shrink-0">
+                                  <img *ngIf="avatar(m.user) as src; else noPhoto"
+                                      [src]="src" [alt]="displayName(m.user)"
+                                      class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                                      referrerpolicy="no-referrer" loading="lazy" />
+                                </div>
+                                <ng-template #noPhoto>
+                                  <div class="h-9 w-9 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase ring-1 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:ring-indigo-800">
+                                    {{ initialsFromName(displayName(m.user)) }}
+                                  </div>
+                                </ng-template>
+                                <div class="min-w-0">
+                                  <div class="text-xs font-medium text-slate-900 dark:text-slate-200 truncate">
+                                    {{ displayName(m.user) }}
+                                  </div>
+                                  <div class="text-[11px] text-slate-500 truncate">
+                                    {{ m.user?.email || m.uid }}
+                                    <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                                      {{ m.role | titlecase }}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
+                                      [disabled]="isRemoving(cl.id!, m.uid)"
+                                      class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
                                             text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
                                             disabled:opacity-60 disabled:cursor-not-allowed
                                             dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
-                                <svg *ngIf="cancelingInvite[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
                                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
                                   <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
                                 </svg>
-                                <span>Annuler</span>
+                                <span>Retirer</span>
                               </button>
-                            </div>
-                          </div>
-                        </li>
-                      </ul>
+                            </li>
+                          </ul>
+                        </div>
+
+                        <ng-template #noMembers>
+                          <div class="mt-2 text-xs text-slate-500">Aucun membre pour l’instant.</div>
+                        </ng-template>
+                      </ng-container>
+
+                      <ng-template #membersLoading>
+                        <div class="mt-2 h-10 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
+                      </ng-template>
                     </div>
-                    <ng-template #noInvites>
-                      <div class="mt-2 text-xs text-slate-500">Aucune invitation en attente.</div>
-                    </ng-template>
-                  </ng-container>
+                  </article>
                 </div>
 
-                <!-- Members with avatars -->
-                <div class="mt-4">
-                  <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Membres</div>
-                  <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
-                    <div *ngIf="members.length; else noMembers"
-                        class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                      <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
-                        <li *ngFor="let m of members; trackBy: trackMember"
-                            class="flex items-center justify-between gap-3 px-3 py-2">
-                          <div class="flex items-center gap-3 min-w-0">
-                            <div class="shrink-0">
-                              <img *ngIf="avatar(m.user) as src; else noPhoto"
-                                  [src]="src" [alt]="displayName(m.user)"
-                                  class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                                  referrerpolicy="no-referrer" loading="lazy"/>
-                            </div>
-                            <ng-template #noPhoto>
-                              <div class="h-9 w-9 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase ring-1 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:ring-indigo-800">
-                                {{ initialsFromName(displayName(m.user)) }}
-                              </div>
-                            </ng-template>
-                            <div class="min-w-0">
-                              <div class="text-xs font-medium text-slate-900 dark:text-slate-200 truncate">
-                                {{ displayName(m.user) }}
-                              </div>
-                              <div class="text-[11px] text-slate-500 truncate">
-                                {{ m.user?.email || m.uid }}
-                                <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                                  {{ m.role | titlecase }}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
+                <ng-template #noClasses>
+                  <div class="text-sm text-slate-600 dark:text-slate-400">
+                    Aucune classe pour l’instant.
+                    <button (click)="openCreateClass()" class="text-emerald-600 hover:underline">Créer une classe</button>
+                  </div>
+                </ng-template>
+              </ng-container>
 
-                          <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
-                                  [disabled]="isRemoving(cl.id!, m.uid)"
-                                  class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
-                                        text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
-                                        disabled:opacity-60 disabled:cursor-not-allowed
-                                        dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
-                            <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                              <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                            </svg>
-                            <span>Retirer</span>
-                          </button>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <ng-template #noMembers>
-                      <div class="mt-2 text-xs text-slate-500">Aucun membre pour l’instant.</div>
-                    </ng-template>
-                  </ng-container>
-
-                  <ng-template #membersLoading>
-                    <div class="mt-2 h-10 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
-                  </ng-template>
+              <ng-template #classesLoading>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div *ngFor="let i of [1,2,3]" class="rounded-2xl ring-1 ring-slate-200/80 p-4 h-28 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
                 </div>
-              </article>
+              </ng-template>
             </div>
-
-            <ng-template #noClasses>
-              <div class="text-sm text-slate-600 dark:text-slate-400">
-                Aucune classe pour l’instant.
-                <button (click)="openCreateClass()" class="text-emerald-600 hover:underline">Créer une classe</button>
-              </div>
-            </ng-template>
-          </ng-container>
-
-          <ng-template #classesLoading>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <div *ngFor="let i of [1,2,3]" class="rounded-2xl ring-1 ring-slate-200/80 p-4 h-28 animate-pulse bg-slate-100/60 dark:ring-slate-800 dark:bg-slate-800/40"></div>
-            </div>
-          </ng-template>
-        </div>
-      </div>
-    </section>
+          </div>
+        </section>
 
 
 
