@@ -330,7 +330,7 @@
 
                             <!-- Members with avatars -->
                             <div class="mt-4">
-                              <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Membres</div>
+                              <div   *ngIf="membersByClass[cl.id!] | async as members; else membersLoading" class="text-sm font-medium text-slate-900 dark:text-slate-100">Participants ({{members.length}})</div>
                               <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
                                 <div *ngIf="members.length; else noMembers"
                                     class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
