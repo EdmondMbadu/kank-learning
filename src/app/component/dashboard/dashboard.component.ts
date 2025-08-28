@@ -405,10 +405,28 @@ export class DashboardComponent implements OnInit {
     this.inviteForms[id] ??= { email: '', role: 'student' };
     this.inviteForms[id].role = role;
   }
-  async removeMember(cl: ClassSection, m: { uid: string; role: any }) {
+  async removeMember(
+    cl: ClassSection,
+    m: { uid: string; role?: any; user?: Partial<User> | null }
+  ) {
     if (!cl.id) return;
+
+    // Build a friendly name for the dialog
+    const name =
+      (m.user && this.displayName(m.user)) || m.uid || 'cet utilisateur';
+
+    // Extra warning for staff roles
+    let msg = `Retirer ${name} de « ${cl.title || 'cette classe'} » ?`;
+    if (m.role && String(m.role).toLowerCase() !== 'student') {
+      msg += `\n⚠️ Rôle: ${String(m.role).toUpperCase()}.`;
+    }
+
+    // Confirm first — bail out if cancelled
+    if (!confirm(msg)) return;
+
     this.removingMember[cl.id] ??= {};
     this.removingMember[cl.id][m.uid] = true;
+
     try {
       await this.classes.removeMember(cl.id, m.uid);
     } finally {
