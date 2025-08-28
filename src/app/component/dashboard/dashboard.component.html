@@ -23,6 +23,8 @@
     <section class="pt-6">
       <div class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
         <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl ring-1 ring-black/5 dark:ring-white/10 p-4 sm:p-6">
+          
+          
           <div class="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
             <!-- Me avatar (phone-first) -->
             <div class="flex items-center gap-3">
@@ -79,77 +81,99 @@
         <section *ngIf="(isAdmin$ | async)" class="pt-2">
           <div class="rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
             <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-4 sm:p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
-              <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Mes cours</h2>
-                <button *ngIf="(isAdmin$ | async)" (click)="openCreateCourse()"
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                  Créer un cours
+              <!-- Collapsible header -->
+                <button type="button"
+                        (click)="togglePanel('courses')"
+                        [attr.aria-expanded]="panelOpen.courses"
+                        class="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 group">
+                  <div class="flex items-center gap-3">
+                    <span class="grid place-items-center h-8 w-8 rounded-xl ring-1 ring-indigo-200 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 dark:ring-indigo-900/40">
+                      <!-- book icon -->
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M20 22H6.5A2.5 2.5 0 0 1 4 19.5V5.5A2.5 2.5 0 0 1 6.5 3H20v19Z"/>
+                      </svg>
+                    </span>
+                    <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Mes cours</h2>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button *ngIf="(isAdmin$ | async)" (click)="openCreateCourse(); $event.stopPropagation()"
+                            class=" hidden md:block rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                      + Nouveau cours
+                    </button>
+                    <svg class="h-5 w-5 text-slate-500 transition-transform duration-200 group-hover:text-slate-700 dark:text-slate-300"
+                        [class.rotate-180]="panelOpen.courses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </div>
                 </button>
-              </div>
+                <div *ngIf="panelOpen.courses" class="px-4 sm:px-5 pb-4 sm:pb-5">
+                    <ng-container *ngIf="myCourses$ | async as courses; else coursesLoading">
+                                <div *ngIf="courses.length; else noCourses"
+                                    class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
-              <ng-container *ngIf="myCourses$ | async as courses; else coursesLoading">
-                <div *ngIf="courses.length; else noCourses"
-                    class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                                  <article *ngFor="let c of courses"
+                                          class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
+                                    <!-- Cover -->
+                                    <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
+                                      <img [src]="c.coverUrl || DEFAULT_COURSE_COVER"
+                                          [alt]="c.title || 'Couverture du cours'"
+                                          class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
+                                          loading="lazy"/>
+                                      <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
+                                      <div class="absolute left-2 top-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-[11px] ring-1 ring-slate-200 dark:bg-slate-900/70 dark:ring-slate-700">
+                                        Cours
+                                      </div>
+                                    </div>
 
-                  <article *ngFor="let c of courses"
-                          class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
-                    <!-- Cover -->
-                    <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
-                      <img [src]="c.coverUrl || DEFAULT_COURSE_COVER"
-                          [alt]="c.title || 'Couverture du cours'"
-                          class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
-                          loading="lazy"/>
-                      <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
-                      <div class="absolute left-2 top-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-[11px] ring-1 ring-slate-200 dark:bg-slate-900/70 dark:ring-slate-700">
-                        Cours
-                      </div>
-                    </div>
+                                    <!-- Info -->
+                                    <div class="min-w-0">
+                                      <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-1">{{ c.title }}</div>
+                                      <div class="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">{{ c.description || '—' }}</div>
+                                    </div>
 
-                    <!-- Info -->
-                    <div class="min-w-0">
-                      <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-1">{{ c.title }}</div>
-                      <div class="text-sm text-slate-600 dark:text-slate-400 mt-1 line-clamp-2">{{ c.description || '—' }}</div>
-                    </div>
+                                    <!-- Actions (icon-only, phone-first) -->
+                                    <div class="mt-3 flex items-center justify-end gap-2">
+                                      <!-- Edit -->
+                                      <button *ngIf="(isAdmin$ | async)" (click)="openEditCourse(c)"
+                                              class="inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-indigo-200 text-indigo-700 bg-white
+                                                    hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
+                                                    dark:bg-slate-800 dark:text-indigo-300 dark:ring-indigo-900/40 dark:hover:bg-slate-800/70"
+                                              aria-label="Modifier le cours" title="Modifier">
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                          <path d="M12 20h9"/>
+                                          <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                                        </svg>
+                                        <span class="sr-only">Modifier</span>
+                                      </button>
 
-                    <!-- Actions (icon-only, phone-first) -->
-                    <div class="mt-3 flex items-center justify-end gap-2">
-                      <!-- Edit -->
-                      <button *ngIf="(isAdmin$ | async)" (click)="openEditCourse(c)"
-                              class="inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-indigo-200 text-indigo-700 bg-white
-                                    hover:bg-indigo-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
-                                    dark:bg-slate-800 dark:text-indigo-300 dark:ring-indigo-900/40 dark:hover:bg-slate-800/70"
-                              aria-label="Modifier le cours" title="Modifier">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M12 20h9"/>
-                          <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
-                        </svg>
-                        <span class="sr-only">Modifier</span>
-                      </button>
+                                      <!-- Delete -->
+                                      <button *ngIf="(isAdmin$ | async)" (click)="deleteCourse(c)"
+                                              class="inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-rose-200 text-rose-600 bg-white
+                                                    hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                                                    dark:bg-slate-800 dark:text-rose-300 dark:ring-rose-900/40 dark:hover:bg-slate-800/70"
+                                              aria-label="Supprimer le cours" title="Supprimer">
+                                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                          <path d="M3 6h18"/>
+                                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                        </svg>
+                                        <span class="sr-only">Supprimer</span>
+                                      </button>
+                                    </div>
+                                  </article>
+                                </div>
 
-                      <!-- Delete -->
-                      <button *ngIf="(isAdmin$ | async)" (click)="deleteCourse(c)"
-                              class="inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-rose-200 text-rose-600 bg-white
-                                    hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
-                                    dark:bg-slate-800 dark:text-rose-300 dark:ring-rose-900/40 dark:hover:bg-slate-800/70"
-                              aria-label="Supprimer le cours" title="Supprimer">
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M3 6h18"/>
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        </svg>
-                        <span class="sr-only">Supprimer</span>
-                      </button>
-                    </div>
-                  </article>
+                                <ng-template #noCourses>
+                                  <div class="text-sm text-slate-600 dark:text-slate-400">
+                                    Aucun cours pour l’instant.
+                                    <button (click)="openCreateCourse()" class="text-indigo-600 hover:underline dark:text-indigo-400">Créer un cours</button>
+                                  </div>
+                                </ng-template>
+                    </ng-container>
                 </div>
 
-                <ng-template #noCourses>
-                  <div class="text-sm text-slate-600 dark:text-slate-400">
-                    Aucun cours pour l’instant.
-                    <button (click)="openCreateCourse()" class="text-indigo-600 hover:underline dark:text-indigo-400">Créer un cours</button>
-                  </div>
-                </ng-template>
-              </ng-container>
+          
 
               <ng-template #coursesLoading>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -165,160 +189,177 @@
       <section *ngIf="(isAdmin$ | async)" class="pt-2">
         <div class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg">
           <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-4 sm:p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
-            <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
-                Transférer des participants
-              </h2>
-            </div>
-
-            <ng-container *ngIf="myClasses$ | async as classes">
-              <div class="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
-                <!-- Class A (source) -->
-                <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Classe A (source)</label>
-                  <select [(ngModel)]="transferA"
-                          (ngModelChange)="rebuildRemovalCandidates()"
-                          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
-                    <option value="" disabled>Choisir une classe…</option>
-                    <option *ngFor="let cl of classes" [value]="cl.id">{{ cl.title }}</option>
-                  </select>
-                </div>
-
-                <!-- Swap button -->
-                <div class="flex justify-center">
-                  <button type="button" (click)="swapAB()"
-                          class="mt-6 inline-flex items-center gap-2 rounded-xl px-3 py-2 ring-1 ring-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
-                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 7h13l-4-4M21 17H8l4 4"></path>
+           
+              <!-- Collapsible header -->
+              <button type="button"
+                      (click)="togglePanel('transfer')"
+                      [attr.aria-expanded]="panelOpen.transfer"
+                      class="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 group">
+                <div class="flex items-center gap-3">
+                  <span class="grid place-items-center h-8 w-8 rounded-xl ring-1 ring-indigo-200 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 dark:ring-indigo-900/40">
+                    <!-- arrows icon -->
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 7h13l-4-4M21 17H8l4 4"/>
                     </svg>
-                    Inverser
-                  </button>
+                  </span>
+                  <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Transférer des participants</h2>
                 </div>
+                <svg class="h-5 w-5 text-slate-500 transition-transform duration-200 group-hover:text-slate-700 dark:text-slate-300"
+                    [class.rotate-180]="panelOpen.transfer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
+              </button>
 
-                <!-- Class B (destination) -->
-                <div class="space-y-1">
-                  <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Classe B (destination)</label>
-                  <select [(ngModel)]="transferB"
-                          [disabled]="transferMode==='remove'"
-                          class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
-                    <option value="" disabled>Choisir une classe…</option>
-                    <option *ngFor="let cl of classes" [value]="cl.id">{{ cl.title }}</option>
-                  </select>
-                </div>
-              </div>
+            <div *ngIf="panelOpen.transfer" class="px-4 sm:px-5 pb-4 sm:pb-5">
+                <ng-container *ngIf="myClasses$ | async as classes">
+                  <div class="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
+                    <!-- Class A (source) -->
+                    <div class="space-y-1">
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Classe A (source)</label>
+                      <select [(ngModel)]="transferA"
+                              (ngModelChange)="rebuildRemovalCandidates()"
+                              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                        <option value="" disabled>Choisir une classe…</option>
+                        <option *ngFor="let cl of classes" [value]="cl.id">{{ cl.title }}</option>
+                      </select>
+                    </div>
 
-              <!-- Options -->
-              <div class="mt-3 grid gap-3 sm:grid-cols-4">
-                <div class="flex items-center gap-2">
-                  <input type="radio" name="mode" id="modeCopy" [(ngModel)]="transferMode" value="copy" class="h-4 w-4"
-                        (ngModelChange)="onModeChanged()">
-                  <label for="modeCopy" class="text-sm text-slate-700 dark:text-slate-300">Copier (garder A)</label>
-                </div>
-                <div class="flex items-center gap-2">
-                  <input type="radio" name="mode" id="modeMove" [(ngModel)]="transferMode" value="move" class="h-4 w-4"
-                        (ngModelChange)="onModeChanged()">
-                  <label for="modeMove" class="text-sm text-slate-700 dark:text-slate-300">Déplacer (retirer de A)</label>
-                </div>
-                <div class="flex items-center gap-2">
-                  <input type="radio" name="mode" id="modeRemove" [(ngModel)]="transferMode" value="remove" class="h-4 w-4"
-                        (ngModelChange)="onModeChanged()">
-                  <label for="modeRemove" class="text-sm text-slate-700 dark:text-slate-300">Supprimer (sélection)</label>
-                </div>
-                <div class="flex items-center gap-2">
-                  <input type="checkbox" id="includeStaff" [(ngModel)]="includeStaff" class="h-4 w-4"
-                        (ngModelChange)="onIncludeStaffChanged()">
-                  <label for="includeStaff" class="text-sm text-slate-700 dark:text-slate-300">Inclure instructeurs / TAs</label>
-                </div>
-              </div>
+                    <!-- Swap button -->
+                    <div class="flex justify-center">
+                      <button type="button" (click)="swapAB()"
+                              class="mt-6 inline-flex items-center gap-2 rounded-xl px-3 py-2 ring-1 ring-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 7h13l-4-4M21 17H8l4 4"></path>
+                        </svg>
+                        Inverser
+                      </button>
+                    </div>
 
-              <!-- Removal selection list -->
-              <div *ngIf="transferMode==='remove' && transferA" class="mt-4 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white/80 dark:bg-slate-800/50">
-                <div class="flex items-center justify-between gap-2 px-3 py-2">
-                  <div class="text-sm font-medium text-slate-800 dark:text-slate-100">
-                    Sélection à supprimer — {{ selectedCount }}/{{ candidateCount }}
-                    <span class="ml-2 text-xs text-slate-500">(rôles: {{ includeStaff ? 'élèves + staff' : 'élèves' }})</span>
+                    <!-- Class B (destination) -->
+                    <div class="space-y-1">
+                      <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Classe B (destination)</label>
+                      <select [(ngModel)]="transferB"
+                              [disabled]="transferMode==='remove'"
+                              class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                        <option value="" disabled>Choisir une classe…</option>
+                        <option *ngFor="let cl of classes" [value]="cl.id">{{ cl.title }}</option>
+                      </select>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <button type="button" (click)="selectAllRemoval(true)"
-                            class="text-xs rounded px-2 py-1 ring-1 ring-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
-                      Tout cocher
-                    </button>
-                    <button type="button" (click)="selectAllRemoval(false)"
-                            class="text-xs rounded px-2 py-1 ring-1 ring-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
-                      Tout décocher
-                    </button>
-                  </div>
-                </div>
 
-                <div class="max-h-60 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
-                  <label *ngFor="let m of removalCandidates" class="flex items-center gap-3 px-3 py-2">
-                    <input type="checkbox"
-                          [(ngModel)]="selectedToRemove[m.uid]"
-                          [ngModelOptions]="{standalone:true}"
-                          class="h-4 w-4">
-                    <div class="min-w-0">
-                      <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ m.name }}</div>
-                      <div class="text-[11px] text-slate-500 truncate">
-                        {{ m.email || m.uid }}
-                        <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                          {{ m.role | titlecase }}
-                        </span>
+                  <!-- Options -->
+                  <div class="mt-3 grid gap-3 sm:grid-cols-4">
+                    <div class="flex items-center gap-2">
+                      <input type="radio" name="mode" id="modeCopy" [(ngModel)]="transferMode" value="copy" class="h-4 w-4"
+                            (ngModelChange)="onModeChanged()">
+                      <label for="modeCopy" class="text-sm text-slate-700 dark:text-slate-300">Copier (garder A)</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input type="radio" name="mode" id="modeMove" [(ngModel)]="transferMode" value="move" class="h-4 w-4"
+                            (ngModelChange)="onModeChanged()">
+                      <label for="modeMove" class="text-sm text-slate-700 dark:text-slate-300">Déplacer (retirer de A)</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input type="radio" name="mode" id="modeRemove" [(ngModel)]="transferMode" value="remove" class="h-4 w-4"
+                            (ngModelChange)="onModeChanged()">
+                      <label for="modeRemove" class="text-sm text-slate-700 dark:text-slate-300">Supprimer (sélection)</label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <input type="checkbox" id="includeStaff" [(ngModel)]="includeStaff" class="h-4 w-4"
+                            (ngModelChange)="onIncludeStaffChanged()">
+                      <label for="includeStaff" class="text-sm text-slate-700 dark:text-slate-300">Inclure instructeurs / TAs</label>
+                    </div>
+                  </div>
+
+                  <!-- Removal selection list -->
+                  <div *ngIf="transferMode==='remove' && transferA" class="mt-4 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 bg-white/80 dark:bg-slate-800/50">
+                    <div class="flex items-center justify-between gap-2 px-3 py-2">
+                      <div class="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        Sélection à supprimer — {{ selectedCount }}/{{ candidateCount }}
+                        <span class="ml-2 text-xs text-slate-500">(rôles: {{ includeStaff ? 'élèves + staff' : 'élèves' }})</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <button type="button" (click)="selectAllRemoval(true)"
+                                class="text-xs rounded px-2 py-1 ring-1 ring-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
+                          Tout cocher
+                        </button>
+                        <button type="button" (click)="selectAllRemoval(false)"
+                                class="text-xs rounded px-2 py-1 ring-1 ring-slate-200 bg-white hover:bg-slate-50 dark:bg-slate-800 dark:ring-slate-700">
+                          Tout décocher
+                        </button>
                       </div>
                     </div>
-                  </label>
-                </div>
-              </div>
 
-              <!-- Action -->
-              <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
-                <!-- Remove mode button -->
-                <button *ngIf="transferMode==='remove'"
-                        type="button"
-                        [disabled]="!transferA || transferring || selectedCount===0"
-                        (click)="runBulkRemoval()
-                        "
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
-                              bg-rose-600 text-white shadow hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
-                              disabled:opacity-60 disabled:cursor-not-allowed">
-                  <svg *ngIf="transferring" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                  </svg>
-                  <span>Supprimer la sélection (A)</span>
-                </button>
+                    <div class="max-h-60 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+                      <label *ngFor="let m of removalCandidates" class="flex items-center gap-3 px-3 py-2">
+                        <input type="checkbox"
+                              [(ngModel)]="selectedToRemove[m.uid]"
+                              [ngModelOptions]="{standalone:true}"
+                              class="h-4 w-4">
+                        <div class="min-w-0">
+                          <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ m.name }}</div>
+                          <div class="text-[11px] text-slate-500 truncate">
+                            {{ m.email || m.uid }}
+                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                              {{ m.role | titlecase }}
+                            </span>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
 
-                <!-- Transfer button -->
-                <button *ngIf="transferMode!=='remove'"
-                        type="button"
-                        [disabled]="!transferA || !transferB || transferA === transferB || transferring"
-                        (click)="runTransfer()"
-                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
-                              bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
-                              disabled:opacity-60 disabled:cursor-not-allowed">
-                  <svg *ngIf="transferring" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                    <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                  </svg>
-                  <span>Transférer (A → B)</span>
-                </button>
-              </div>
+                  <!-- Action -->
+                  <div class="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <!-- Remove mode button -->
+                    <button *ngIf="transferMode==='remove'"
+                            type="button"
+                            [disabled]="!transferA || transferring || selectedCount===0"
+                            (click)="runBulkRemoval()
+                            "
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+                                  bg-rose-600 text-white shadow hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                                  disabled:opacity-60 disabled:cursor-not-allowed">
+                      <svg *ngIf="transferring" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                      </svg>
+                      <span>Supprimer la sélection (A)</span>
+                    </button>
 
-              <!-- Result / logs -->
-              <div *ngIf="transferResult" class="mt-3 rounded-xl bg-slate-50 p-3 text-xs ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700">
-                <div class="font-medium text-slate-700 dark:text-slate-200">Résultat</div>
-                <ul class="mt-1 text-slate-600 dark:text-slate-300 space-y-0.5">
-                  <li>Ajoutés: {{ transferResult.added }}</li>
-                  <li>Déjà présents (ignorés): {{ transferResult.skipped }}</li>
-                  <li *ngIf="transferMode==='move' || transferMode==='remove'">
-                    Retirés de A: {{ transferResult.removedFromA || 0 }}
-                  </li>
-                </ul>
-              </div>
+                    <!-- Transfer button -->
+                    <button *ngIf="transferMode!=='remove'"
+                            type="button"
+                            [disabled]="!transferA || !transferB || transferA === transferB || transferring"
+                            (click)="runTransfer()"
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+                                  bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
+                                  disabled:opacity-60 disabled:cursor-not-allowed">
+                      <svg *ngIf="transferring" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                      </svg>
+                      <span>Transférer (A → B)</span>
+                    </button>
+                  </div>
 
-              <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                Les doublons sont ignorés automatiquement côté B. En mode « Supprimer (sélection) », tous les membres sont présélectionnés — décochez ceux à conserver.
-              </p>
-            </ng-container>
+                  <!-- Result / logs -->
+                  <div *ngIf="transferResult" class="mt-3 rounded-xl bg-slate-50 p-3 text-xs ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700">
+                    <div class="font-medium text-slate-700 dark:text-slate-200">Résultat</div>
+                    <ul class="mt-1 text-slate-600 dark:text-slate-300 space-y-0.5">
+                      <li>Ajoutés: {{ transferResult.added }}</li>
+                      <li>Déjà présents (ignorés): {{ transferResult.skipped }}</li>
+                      <li *ngIf="transferMode==='move' || transferMode==='remove'">
+                        Retirés de A: {{ transferResult.removedFromA || 0 }}
+                      </li>
+                    </ul>
+                  </div>
+
+                  <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                    Les doublons sont ignorés automatiquement côté B. En mode « Supprimer (sélection) », tous les membres sont présélectionnés — décochez ceux à conserver.
+                  </p>
+                </ng-container>
+            </div>
           </div>
         </div>
       </section>
@@ -328,89 +369,114 @@
         <section *ngIf="(isAdmin$ | async)" class="pt-2">
           <div class="rounded-3xl p-[1px] bg-gradient-to-br from-cyan-500/30 via-indigo-500/20 to-fuchsia-500/20 shadow-lg">
             <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-4 sm:p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
-              <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
-                  Importer des membres via CSV
-                </h2>
-              </div>
-
-              <ng-container *ngIf="myClasses$ | async as classes">
-                <div class="grid gap-3 sm:grid-cols-3">
-                  <!-- Target class -->
-                  <div class="space-y-1">
-                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Classe cible</label>
-                    <select [(ngModel)]="csvTargetClassId"
-                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
-                      <option value="" disabled>Choisir une classe…</option>
-                      <option *ngFor="let cl of classes" [value]="cl.id">{{ cl.title }}</option>
-                    </select>
-                  </div>
-
-                  <!-- Role -->
-                  <div class="space-y-1">
-                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Rôle attribué</label>
-                    <select [(ngModel)]="csvRole"
-                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
-                      <option value="student">Élève</option>
-                      <option value="ta">TA</option>
-                      <option value="instructor">Instructeur</option>
-                    </select>
-                  </div>
-
-                  <!-- Invite emails toggle -->
-                  <div class="flex items-end gap-2">
-                    <input id="csvInviteEmails" type="checkbox" class="h-4 w-4" [(ngModel)]="csvInviteEmails">
-                    <label for="csvInviteEmails" class="text-sm text-slate-700 dark:text-slate-300">
-                      Inviter les emails sans compte
-                    </label>
-                  </div>
-                </div>
-
-                <!-- File input -->
-                <div class="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
-                  <input #csvInput type="file" accept=".csv,text/csv" class="sr-only" (change)="onCsvFileSelected($event)">
-                  <button type="button" (click)="csvInput.click()"
-                          class="inline-flex items-center gap-2 rounded-xl px-3 py-2 ring-1 ring-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
-                    Choisir un fichier CSV
-                  </button>
-                  <div class="text-sm text-slate-600 dark:text-slate-300 truncate" *ngIf="csvFileName">
-                    Fichier: <span class="font-medium">{{ csvFileName }}</span>
-                  </div>
-
-                  <div class="sm:ml-auto">
-                    <button type="button"
-                            [disabled]="!csvTargetClassId || !csvFileText || importingCsv"
-                            (click)="runCsvImport()"
-                            class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
-                                  bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
-                                  disabled:opacity-60 disabled:cursor-not-allowed">
-                      <svg *ngIf="importingCsv" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+              <!-- Collapsible header -->
+                <button type="button"
+                        (click)="togglePanel('csv')"
+                        [attr.aria-expanded]="panelOpen.csv"
+                        class="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 group">
+                  <div class="flex items-center gap-3">
+                    <span class="grid place-items-center h-8 w-8 rounded-xl ring-1 ring-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-900/40">
+                      <!-- upload icon -->
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 16V4m0 0 4 4m-4-4-4 4"/>
+                        <path d="M20 16.5V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.5"/>
                       </svg>
-                      <span>Importer</span>
-                    </button>
+                    </span>
+                    <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                      Importer des membres via CSV
+                    </h2>
                   </div>
-                </div>
+                  <div class="flex items-center gap-3">
+                    <div *ngIf="csvFileName" class="hidden sm:block text-xs text-slate-500 dark:text-slate-300 truncate max-w-[12rem]">
+                      {{ csvFileName }}
+                    </div>
+                    <svg class="h-5 w-5 text-slate-500 transition-transform duration-200 group-hover:text-slate-700 dark:text-slate-300"
+                        [class.rotate-180]="panelOpen.csv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </div>
+                </button>
+ <!-- Collapsible body -->
+            <div *ngIf="panelOpen.csv" class="px-4 sm:px-5 pb-4 sm:pb-5">
+              <ng-container *ngIf="myClasses$ | async as classes">
+                          <div class="grid gap-3 sm:grid-cols-3">
+                            <!-- Target class -->
+                            <div class="space-y-1">
+                              <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Classe cible</label>
+                              <select [(ngModel)]="csvTargetClassId"
+                                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                                <option value="" disabled>Choisir une classe…</option>
+                                <option *ngFor="let cl of classes" [value]="cl.id">{{ cl.title }}</option>
+                              </select>
+                            </div>
 
-                <!-- Result -->
-                <div *ngIf="csvImportResult" class="mt-3 rounded-xl bg-slate-50 p-3 text-xs ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700">
-                  <div class="font-medium text-slate-700 dark:text-slate-200">Résumé de l’import</div>
-                  <ul class="mt-1 text-slate-600 dark:text-slate-300 space-y-0.5">
-                    <li>Total lignes analysées: {{ csvImportResult.totalParsed }}</li>
-                    <li>Ajoutés (comptes existants): {{ csvImportResult.addedExisting }}</li>
-                    <li>Invitations envoyées (emails): {{ csvImportResult.invitedEmails }}</li>
-                    <li>Déjà membres (ignorés): {{ csvImportResult.alreadyMembers }}</li>
-                    <li>Utilisateurs introuvables (usernames): {{ csvImportResult.skippedUnknownUsernames }}</li>
-                    <li>Entrées invalides: {{ csvImportResult.invalidTokens }}</li>
-                  </ul>
-                </div>
+                            <!-- Role -->
+                            <div class="space-y-1">
+                              <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Rôle attribué</label>
+                              <select [(ngModel)]="csvRole"
+                                      class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                                <option value="student">Élève</option>
+                                <option value="ta">TA</option>
+                                <option value="instructor">Instructeur</option>
+                              </select>
+                            </div>
 
-                <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  Format accepté: une colonne <code>email</code> <em>ou</em> <code>username</code>, ou un CSV avec en-têtes <code>email</code>, <code>username</code>.
-                  Séparateurs pris en charge: virgule, point-virgule, tabulation, retour ligne.
-                </p>
-              </ng-container>
+                            <!-- Invite emails toggle -->
+                            <div class="flex items-end gap-2">
+                              <input id="csvInviteEmails" type="checkbox" class="h-4 w-4" [(ngModel)]="csvInviteEmails">
+                              <label for="csvInviteEmails" class="text-sm text-slate-700 dark:text-slate-300">
+                                Inviter les emails sans compte
+                              </label>
+                            </div>
+                          </div>
+
+                          <!-- File input -->
+                          <div class="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                            <input #csvInput type="file" accept=".csv,text/csv" class="sr-only" (change)="onCsvFileSelected($event)">
+                            <button type="button" (click)="csvInput.click()"
+                                    class="inline-flex items-center gap-2 rounded-xl px-3 py-2 ring-1 ring-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                              Choisir un fichier CSV
+                            </button>
+                            <div class="text-sm text-slate-600 dark:text-slate-300 truncate" *ngIf="csvFileName">
+                              Fichier: <span class="font-medium">{{ csvFileName }}</span>
+                            </div>
+
+                            <div class="sm:ml-auto">
+                              <button type="button"
+                                      [disabled]="!csvTargetClassId || !csvFileText || importingCsv"
+                                      (click)="runCsvImport()"
+                                      class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+                                            bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
+                                            disabled:opacity-60 disabled:cursor-not-allowed">
+                                <svg *ngIf="importingCsv" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                                  <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                                </svg>
+                                <span>Importer</span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <!-- Result -->
+                          <div *ngIf="csvImportResult" class="mt-3 rounded-xl bg-slate-50 p-3 text-xs ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700">
+                            <div class="font-medium text-slate-700 dark:text-slate-200">Résumé de l’import</div>
+                            <ul class="mt-1 text-slate-600 dark:text-slate-300 space-y-0.5">
+                              <li>Total lignes analysées: {{ csvImportResult.totalParsed }}</li>
+                              <li>Ajoutés (comptes existants): {{ csvImportResult.addedExisting }}</li>
+                              <li>Invitations envoyées (emails): {{ csvImportResult.invitedEmails }}</li>
+                              <li>Déjà membres (ignorés): {{ csvImportResult.alreadyMembers }}</li>
+                              <li>Utilisateurs introuvables (usernames): {{ csvImportResult.skippedUnknownUsernames }}</li>
+                              <li>Entrées invalides: {{ csvImportResult.invalidTokens }}</li>
+                            </ul>
+                          </div>
+
+                          <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                            Format accepté: une colonne <code>email</code> <em>ou</em> <code>username</code>, ou un CSV avec en-têtes <code>email</code>, <code>username</code>.
+                            Séparateurs pris en charge: virgule, point-virgule, tabulation, retour ligne.
+                          </p>
+              </ng-container> 
+            </div>
+              
             </div>
           </div>
         </section>
@@ -420,194 +486,217 @@
         <section class="pt-2 pb-8">
           <div class="rounded-3xl p-[1px] bg-gradient-to-br from-slate-200/70 via-white/60 to-slate-200/70 dark:from-slate-800/60 dark:via-slate-900/60 dark:to-slate-800/60 shadow-lg">
             <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-4 sm:p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
-              <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Mes classes</h2>
-                <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass()"
-                        class="w-full sm:w-auto rounded-lg px-3 py-2 text-sm font-semibold bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
-                  Créer une classe
-                </button>
-              </div>
+              <!-- Collapsible header -->
+              <button type="button"
+                      (click)="togglePanel('classes')"
+                      [attr.aria-expanded]="panelOpen.classes"
+                      class="w-full flex items-center justify-between gap-3 px-4 sm:px-5 py-3 group">
+                <div class="flex items-center gap-3">
+                  <span class="grid place-items-center h-8 w-8 rounded-xl ring-1 ring-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200 dark:ring-emerald-900/40">
+                    <!-- layers icon -->
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="m12 3 8 4.5-8 4.5L4 7.5 12 3Z"/>
+                      <path d="m4 12 8 4.5 8-4.5"/>
+                      <path d="m4 16.5 8 4.5 8-4.5"/>
+                    </svg>
+                  </span>
+                  <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">Mes classes</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button *ngIf="(isAdmin$ | async)" (click)="openCreateClass(); $event.stopPropagation()"
+                          class="hidden md:block rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
+                    + Nouvelle classe
+                  </button>
+                  <svg class="h-5 w-5 text-slate-500 transition-transform duration-200 group-hover:text-slate-700 dark:text-slate-300"
+                      [class.rotate-180]="panelOpen.classes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </div>
+              </button>
+                    <!-- Collapsible body -->
+              <div *ngIf="panelOpen.classes" class="px-4 sm:px-5 pb-4 sm:pb-5">
+                      <ng-container *ngIf="myClasses$ | async as classes; else classesLoading">
+                        <div *ngIf="classes.length; else noClasses"
+                            class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 
-              <ng-container *ngIf="myClasses$ | async as classes; else classesLoading">
-                <div *ngIf="classes.length; else noClasses"
-                    class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-
-                  <article *ngFor="let cl of classes; trackBy: byId"
-                          class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
-                    <!-- Cover -->
-                    <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
-                      <img
-                        [src]="cl.coverUrl || DEFAULT_CLASS_COVER"
-                        [alt]="cl.title || 'Couverture de la classe'"
-                        class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
-                        loading="lazy" />
-                      <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
-                      <div class="absolute left-2 top-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-[11px] ring-1 ring-slate-200 dark:bg-slate-900/70 dark:ring-slate-700">
-                        Classe
-                      </div>
-                    </div>
-
-                    <!-- Info -->
-                    <div class="min-w-0">
-                      <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-2">{{ cl.title }}</div>
-                      <div class="text-xs text-slate-500 mt-1 break-all">
-                        Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
-                      </div>
-                    </div>
-
-                    <!-- Actions (phone-first) -->
-                    <div class="mt-3 flex items-center gap-2">
-                      <!-- Primary open -->
-                      <a [routerLink]="['/class', cl.id]"
-                        class="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs sm:text-sm font-medium
-                                bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-                        Ouvrir
-                      </a>
-
-                      <!-- Edit (icon) -->
-                      <button *ngIf="(isAdmin$ | async)" (click)="openEditClass(cl)"
-                              class="shrink-0 inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-emerald-200 text-emerald-700 bg-white
-                                    hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
-                                    dark:bg-slate-800 dark:text-emerald-300 dark:ring-emerald-900/40 dark:hover:bg-slate-800/70"
-                              aria-label="Modifier" title="Modifier">
-                        <!-- pencil icon -->
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M12 20h9" />
-                          <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                        </svg>
-                        <span class="sr-only">Modifier</span>
-                      </button>
-
-                      <!-- Delete (icon) -->
-                      <button *ngIf="(isAdmin$ | async)" (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
-                              class="shrink-0 inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-rose-200 text-rose-600 bg-white
-                                    hover:bg-rose-50 disabled:opacity-60 disabled:cursor-not-allowed
-                                    focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
-                                    dark:bg-slate-800 dark:text-rose-300 dark:ring-rose-900/40 dark:hover:bg-slate-800/70"
-                              aria-label="Supprimer" title="Supprimer">
-                        <svg *ngIf="!deletingClass[cl.id!]" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <path d="M3 6h18" />
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        </svg>
-                        <svg *ngIf="deletingClass[cl.id!]" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                        </svg>
-                        <span class="sr-only">Supprimer</span>
-                      </button>
-                    </div>
-
-                    <!-- Invites -->
-                    <div class="mt-4">
-                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Invitations en attente</div>
-                      <ng-container *ngIf="invitesByClass[cl.id!] | async as invites">
-                        <div *ngIf="invites.length; else noInvites"
-                            class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                          <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
-                            <li *ngFor="let inv of invites" class="px-3 py-2">
-                              <div class="flex items-center gap-3">
-                                <div class="h-8 w-8 grid place-items-center rounded-full bg-amber-50 text-amber-700 text-[11px] font-semibold uppercase ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                                  {{ (inv.email || '??') | slice:0:2 }}
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                  <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ inv.email }}</div>
-                                  <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                  <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">En attente</span>
-                                  <button *ngIf="(isAdmin$ | async)" (click)="cancelInvite(cl, inv)"
-                                          [disabled]="cancelingInvite[inv.id!]"
-                                          class="inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium
-                                                text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
-                                                disabled:opacity-60 disabled:cursor-not-allowed
-                                                dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
-                                    <svg *ngIf="cancelingInvite[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                                      <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                                    </svg>
-                                    <span>Annuler</span>
-                                  </button>
-                                </div>
+                          <article *ngFor="let cl of classes; trackBy: byId"
+                                  class="group rounded-2xl bg-white/70 dark:bg-slate-900/50 ring-1 ring-slate-200/70 dark:ring-slate-800 p-4 transition hover:-translate-y-0.5 hover:ring-indigo-300/60 hover:shadow-lg">
+                            <!-- Cover -->
+                            <div class="mb-3 relative overflow-hidden rounded-xl ring-1 ring-slate-200/70 dark:ring-slate-800">
+                              <img
+                                [src]="cl.coverUrl || DEFAULT_CLASS_COVER"
+                                [alt]="cl.title || 'Couverture de la classe'"
+                                class="h-36 w-full object-cover transition duration-300 ease-out group-hover:scale-[1.02]"
+                                loading="lazy" />
+                              <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent"></div>
+                              <div class="absolute left-2 top-2 inline-flex items-center rounded-full bg-white/90 px-2 py-0.5 text-[11px] ring-1 ring-slate-200 dark:bg-slate-900/70 dark:ring-slate-700">
+                                Classe
                               </div>
-                            </li>
-                          </ul>
-                        </div>
-                        <ng-template #noInvites>
-                          <div class="mt-2 text-xs text-slate-500">Aucune invitation en attente.</div>
-                        </ng-template>
-                      </ng-container>
-                    </div>
+                            </div>
 
-                    <!-- Members with avatars -->
-                    <div class="mt-4">
-                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Membres</div>
-                      <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
-                        <div *ngIf="members.length; else noMembers"
-                            class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                          <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
-                            <li *ngFor="let m of members; trackBy: trackMember"
-                                class="flex items-center justify-between gap-3 px-3 py-2">
-                              <div class="flex items-center gap-3 min-w-0">
-                                <div class="shrink-0">
-                                  <img *ngIf="avatar(m.user) as src; else noPhoto"
-                                      [src]="src" [alt]="displayName(m.user)"
-                                      class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                                      referrerpolicy="no-referrer" loading="lazy" />
-                                </div>
-                                <ng-template #noPhoto>
-                                  <div class="h-9 w-9 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase ring-1 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:ring-indigo-800">
-                                    {{ initialsFromName(displayName(m.user)) }}
-                                  </div>
-                                </ng-template>
-                                <div class="min-w-0">
-                                  <div class="text-xs font-medium text-slate-900 dark:text-slate-200 truncate">
-                                    {{ displayName(m.user) }}
-                                  </div>
-                                  <div class="text-[11px] text-slate-500 truncate">
-                                    {{ m.user?.email || m.uid }}
-                                    <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                                      {{ m.role | titlecase }}
-                                    </span>
-                                  </div>
-                                </div>
+                            <!-- Info -->
+                            <div class="min-w-0">
+                              <div class="font-medium text-slate-900 dark:text-slate-100 line-clamp-2">{{ cl.title }}</div>
+                              <div class="text-xs text-slate-500 mt-1 break-all">
+                                Cours: {{ cl.courseId }} • Étudiants: {{ cl.counts?.students || 0 }}
                               </div>
+                            </div>
 
-                              <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
-                                      [disabled]="isRemoving(cl.id!, m.uid)"
-                                      class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
-                                            text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
-                                            disabled:opacity-60 disabled:cursor-not-allowed
-                                            dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
-                                <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                            <!-- Actions (phone-first) -->
+                            <div class="mt-3 flex items-center gap-2">
+                              <!-- Primary open -->
+                              <a [routerLink]="['/class', cl.id]"
+                                class="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs sm:text-sm font-medium
+                                        bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                                Ouvrir
+                              </a>
+
+                              <!-- Edit (icon) -->
+                              <button *ngIf="(isAdmin$ | async)" (click)="openEditClass(cl)"
+                                      class="shrink-0 inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-emerald-200 text-emerald-700 bg-white
+                                            hover:bg-emerald-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
+                                            dark:bg-slate-800 dark:text-emerald-300 dark:ring-emerald-900/40 dark:hover:bg-slate-800/70"
+                                      aria-label="Modifier" title="Modifier">
+                                <!-- pencil icon -->
+                                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path d="M12 20h9" />
+                                  <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                                </svg>
+                                <span class="sr-only">Modifier</span>
+                              </button>
+
+                              <!-- Delete (icon) -->
+                              <button *ngIf="(isAdmin$ | async)" (click)="deleteClass(cl)" [disabled]="deletingClass[cl.id!]"
+                                      class="shrink-0 inline-flex items-center justify-center rounded-lg p-2 ring-1 ring-rose-200 text-rose-600 bg-white
+                                            hover:bg-rose-50 disabled:opacity-60 disabled:cursor-not-allowed
+                                            focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                                            dark:bg-slate-800 dark:text-rose-300 dark:ring-rose-900/40 dark:hover:bg-slate-800/70"
+                                      aria-label="Supprimer" title="Supprimer">
+                                <svg *ngIf="!deletingClass[cl.id!]" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                  <path d="M3 6h18" />
+                                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                                </svg>
+                                <svg *ngIf="deletingClass[cl.id!]" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
                                   <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
                                 </svg>
-                                <span>Retirer</span>
+                                <span class="sr-only">Supprimer</span>
                               </button>
-                            </li>
-                          </ul>
+                            </div>
+
+                            <!-- Invites -->
+                            <div class="mt-4">
+                              <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Invitations en attente</div>
+                              <ng-container *ngIf="invitesByClass[cl.id!] | async as invites">
+                                <div *ngIf="invites.length; else noInvites"
+                                    class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                                    <li *ngFor="let inv of invites" class="px-3 py-2">
+                                      <div class="flex items-center gap-3">
+                                        <div class="h-8 w-8 grid place-items-center rounded-full bg-amber-50 text-amber-700 text-[11px] font-semibold uppercase ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
+                                          {{ (inv.email || '??') | slice:0:2 }}
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                          <div class="text-xs font-medium text-slate-900 dark:text-slate-100 truncate">{{ inv.email }}</div>
+                                          <div class="text-[11px] text-slate-500">Rôle : {{ inv.role | titlecase }}</div>
+                                        </div>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                          <span class="rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">En attente</span>
+                                          <button *ngIf="(isAdmin$ | async)" (click)="cancelInvite(cl, inv)"
+                                                  [disabled]="cancelingInvite[inv.id!]"
+                                                  class="inline-flex items-center gap-1 rounded px-2.5 py-0.5 text-[11px] font-medium
+                                                        text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                                        disabled:opacity-60 disabled:cursor-not-allowed
+                                                        dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                                            <svg *ngIf="cancelingInvite[inv.id!]" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                                              <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                                            </svg>
+                                            <span>Annuler</span>
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </li>
+                                  </ul>
+                                </div>
+                                <ng-template #noInvites>
+                                  <div class="mt-2 text-xs text-slate-500">Aucune invitation en attente.</div>
+                                </ng-template>
+                              </ng-container>
+                            </div>
+
+                            <!-- Members with avatars -->
+                            <div class="mt-4">
+                              <div class="text-sm font-medium text-slate-900 dark:text-slate-100">Membres</div>
+                              <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
+                                <div *ngIf="members.length; else noMembers"
+                                    class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
+                                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                                    <li *ngFor="let m of members; trackBy: trackMember"
+                                        class="flex items-center justify-between gap-3 px-3 py-2">
+                                      <div class="flex items-center gap-3 min-w-0">
+                                        <div class="shrink-0">
+                                          <img *ngIf="avatar(m.user) as src; else noPhoto"
+                                              [src]="src" [alt]="displayName(m.user)"
+                                              class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                                              referrerpolicy="no-referrer" loading="lazy" />
+                                        </div>
+                                        <ng-template #noPhoto>
+                                          <div class="h-9 w-9 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase ring-1 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:ring-indigo-800">
+                                            {{ initialsFromName(displayName(m.user)) }}
+                                          </div>
+                                        </ng-template>
+                                        <div class="min-w-0">
+                                          <div class="text-xs font-medium text-slate-900 dark:text-slate-200 truncate">
+                                            {{ displayName(m.user) }}
+                                          </div>
+                                          <div class="text-[11px] text-slate-500 truncate">
+                                            {{ m.user?.email || m.uid }}
+                                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                                              {{ m.role | titlecase }}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
+                                              [disabled]="isRemoving(cl.id!, m.uid)"
+                                              class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
+                                                    text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                                    disabled:opacity-60 disabled:cursor-not-allowed
+                                                    dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                                        <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                                        </svg>
+                                        <span>Retirer</span>
+                                      </button>
+                                    </li>
+                                  </ul>
+                                </div>
+
+                                <ng-template #noMembers>
+                                  <div class="mt-2 text-xs text-slate-500">Aucun membre pour l’instant.</div>
+                                </ng-template>
+                              </ng-container>
+
+                              <ng-template #membersLoading>
+                                <div class="mt-2 h-10 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
+                              </ng-template>
+                            </div>
+                          </article>
                         </div>
 
-                        <ng-template #noMembers>
-                          <div class="mt-2 text-xs text-slate-500">Aucun membre pour l’instant.</div>
+                        <ng-template #noClasses>
+                          <div class="text-sm text-slate-600 dark:text-slate-400">
+                            Aucune classe pour l’instant.
+                            <button (click)="openCreateClass()" class="text-emerald-600 hover:underline">Créer une classe</button>
+                          </div>
                         </ng-template>
                       </ng-container>
-
-                      <ng-template #membersLoading>
-                        <div class="mt-2 h-10 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
-                      </ng-template>
-                    </div>
-                  </article>
-                </div>
-
-                <ng-template #noClasses>
-                  <div class="text-sm text-slate-600 dark:text-slate-400">
-                    Aucune classe pour l’instant.
-                    <button (click)="openCreateClass()" class="text-emerald-600 hover:underline">Créer une classe</button>
-                  </div>
-                </ng-template>
-              </ng-container>
+              </div>
+              
 
               <ng-template #classesLoading>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

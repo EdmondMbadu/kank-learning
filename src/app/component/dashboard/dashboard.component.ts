@@ -16,6 +16,8 @@ import { ClassService } from 'src/app/shared/class.service';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 type TransferMode = 'copy' | 'move' | 'remove';
+type PanelKey = 'courses' | 'transfer' | 'csv' | 'classes';
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -25,6 +27,16 @@ export class DashboardComponent implements OnInit {
   me$!: Observable<User | null>;
   myCourses$!: Observable<Course[]>;
   myClasses$!: Observable<ClassSection[]>;
+
+  // --- Collapsible panels state ---
+  panelOpen: Record<PanelKey, boolean> = {
+    courses: false,
+    transfer: false,
+    csv: false,
+    classes: false,
+  };
+
+  private PANELS_KEY = 'dash.panels.v1';
 
   // CSV import state
   csvTargetClassId = '';
@@ -104,6 +116,28 @@ export class DashboardComponent implements OnInit {
 
   cancelingInvite: Record<string, boolean> = {};
 
+  togglePanel(k: PanelKey) {
+    this.panelOpen[k] = !this.panelOpen[k];
+    this.persistPanels();
+  }
+
+  private persistPanels() {
+    try {
+      localStorage.setItem(this.PANELS_KEY, JSON.stringify(this.panelOpen));
+    } catch {}
+  }
+
+  private restorePanels() {
+    try {
+      const raw = localStorage.getItem(this.PANELS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<Record<PanelKey, boolean>>;
+      (Object.keys(this.panelOpen) as PanelKey[]).forEach((k) => {
+        if (typeof parsed[k] === 'boolean') this.panelOpen[k] = parsed[k]!;
+      });
+    } catch {}
+  }
+
   async cancelInvite(cl: ClassSection, inv: { id: string }) {
     if (!cl.id || !inv.id) return;
     this.cancelingInvite[inv.id] = true;
@@ -138,6 +172,7 @@ export class DashboardComponent implements OnInit {
   ) {}
   isAdmin$!: Observable<boolean>;
   ngOnInit(): void {
+    this.restorePanels();
     this.me$ = this.auth.effectiveUser$;
     this.isAdmin$ = this.auth.user$.pipe(
       map((u) => (u?.platformRole || '').toLowerCase() === 'admin')
