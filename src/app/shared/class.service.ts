@@ -565,7 +565,7 @@ export class ClassService {
 
     const db = getFirestore();
 
-    // Load all members of A and B
+    // Load A and B
     const [srcSnap, dstSnap] = await Promise.all([
       getDocs(collection(db, `classes/${sourceId}/members`)),
       getDocs(collection(db, `classes/${destId}/members`)),
@@ -573,7 +573,7 @@ export class ClassService {
 
     const destUIDs = new Set(dstSnap.docs.map((d) => d.id));
 
-    // Filter by roles if provided
+    // Filter by role
     const srcMembers = srcSnap.docs
       .map((d) => ({ uid: d.id, ...(d.data() as any) }))
       .filter((m) => {
@@ -584,31 +584,44 @@ export class ClassService {
     const toAdd = srcMembers.filter((m) => !destUIDs.has(m.uid));
     const skipped = srcMembers.length - toAdd.length;
 
-    // 1) Add missing to destination
-    const batchAdd = writeBatch(db);
-    toAdd.forEach((m) => {
-      const ref = doc(db, `classes/${destId}/members/${m.uid}`);
-      batchAdd.set(
-        ref,
+    // --- Add to destination with required fields + user index ---
+    const addBatch = writeBatch(db);
+    for (const m of toAdd) {
+      const role = (m.role || 'student') as Role;
+
+      const memRef = doc(db, `classes/${destId}/members/${m.uid}`);
+      addBatch.set(
+        memRef,
         {
-          role: m.role || 'student',
-          joinedAt: serverTimestamp(),
+          uid: m.uid,
+          role,
+          status: 'active',
+          enrolledAt: serverTimestamp(),
         },
         { merge: true }
       );
-    });
-    await batchAdd.commit();
 
-    // 2) If moving, remove from A (all that match includeRoles)
+      const idxRef = doc(db, `users/${m.uid}/classIndex/${destId}`);
+      addBatch.set(
+        idxRef,
+        {
+          classId: destId,
+          role,
+          status: 'active',
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+    if (toAdd.length) await addBatch.commit();
+
+    // --- If moving, remove from A using your existing helper to keep counters/index tidy ---
     let removedFromA = 0;
     if (mode === 'move') {
-      const batchDel = writeBatch(db);
-      srcMembers.forEach((m) => {
-        const ref = doc(db, `classes/${sourceId}/members/${m.uid}`);
-        batchDel.delete(ref);
-      });
-      await batchDel.commit();
-      removedFromA = srcMembers.length;
+      for (const m of srcMembers) {
+        await this.removeMember(sourceId, m.uid); // uses your counter + index cleanup
+        removedFromA++;
+      }
     }
 
     return {
@@ -624,16 +637,16 @@ export class ClassService {
    */
   async bulkRemoveMembers(classId: string, uids: string[]): Promise<number> {
     const db = getFirestore();
-    const CHUNK = 450; // keep below 500 to leave headroom
+    const CHUNK = 450;
     let removed = 0;
 
     for (let i = 0; i < uids.length; i += CHUNK) {
       const slice = uids.slice(i, i + CHUNK);
       const batch = writeBatch(db);
-      slice.forEach((uid) => {
-        const ref = doc(db, `classes/${classId}/members/${uid}`);
-        batch.delete(ref);
-      });
+      for (const uid of slice) {
+        batch.delete(doc(db, `classes/${classId}/members/${uid}`));
+        batch.delete(doc(db, `users/${uid}/classIndex/${classId}`)); // keep index clean
+      }
       await batch.commit();
       removed += slice.length;
     }
@@ -673,14 +686,14 @@ export class ClassService {
     if (!items.length) return 0;
 
     const db = getFirestore();
+
     // Build existing set
     const existingSnap = await getDocs(
       collection(db, `classes/${classId}/members`)
     );
     const existing = new Set(existingSnap.docs.map((d) => d.id));
 
-    // Chunked writes
-    const CHUNK = 450; // below 500 limit
+    const CHUNK = 450;
     let added = 0;
 
     for (let i = 0; i < items.length; i += CHUNK) {
@@ -690,12 +703,33 @@ export class ClassService {
 
       for (const m of slice) {
         if (existing.has(m.uid)) continue;
-        const ref = doc(db, `classes/${classId}/members/${m.uid}`);
+
+        // --- FIX: write uid + status + enrolledAt (use your schema names) ---
+        const memRef = doc(db, `classes/${classId}/members/${m.uid}`);
         batch.set(
-          ref,
-          { role: m.role || 'student', joinedAt: serverTimestamp() },
+          memRef,
+          {
+            uid: m.uid,
+            role: m.role || 'student',
+            status: 'active',
+            enrolledAt: serverTimestamp(), // (you used enrolledAt elsewhere)
+          },
           { merge: true }
         );
+
+        // --- Recommended: keep user index in sync (matches your create/add paths) ---
+        const idxRef = doc(db, `users/${m.uid}/classIndex/${classId}`);
+        batch.set(
+          idxRef,
+          {
+            classId,
+            role: m.role || 'student',
+            status: 'active',
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+
         existing.add(m.uid);
         added++;
         writes++;
