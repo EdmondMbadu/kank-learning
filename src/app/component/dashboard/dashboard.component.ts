@@ -26,6 +26,28 @@ export class DashboardComponent implements OnInit {
   myCourses$!: Observable<Course[]>;
   myClasses$!: Observable<ClassSection[]>;
 
+  // CSV import state
+  csvTargetClassId = '';
+  csvRole: Role = 'student';
+  csvInviteEmails = true;
+
+  // ---- CSV helpers (hardened) ----
+
+  private MAX_CSV_BYTES = 1_000_000; // 1 MB safety cap
+
+  csvFileText: string | null = null;
+  csvFileName = '';
+  importingCsv = false;
+
+  csvImportResult: {
+    addedExisting: number;
+    invitedEmails: number;
+    alreadyMembers: number;
+    skippedUnknownUsernames: number;
+    invalidTokens: number;
+    totalParsed: number;
+  } | null = null;
+
   transferA = '';
   transferB = '';
   transferMode: TransferMode = 'copy';
@@ -734,6 +756,366 @@ export class DashboardComponent implements OnInit {
       alert(e?.message || 'Erreur pendant la suppression');
     } finally {
       this.transferring = false;
+    }
+  }
+
+  private isLikelyCsvFile(file: File): boolean {
+    // some browsers don't set type; prefer name check as well
+    const nameOk = /\.csv$/i.test(file.name);
+    const typeOk = /^(text\/csv|text\/plain|application\/vnd\.ms-excel)$/i.test(
+      file.type || ''
+    );
+    return nameOk || typeOk;
+  }
+
+  onCsvFileSelected(evt: Event) {
+    const input = evt.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    // Basic guards to avoid loading binary formats by mistake
+    if (!this.isLikelyCsvFile(file)) {
+      alert(
+        'Le fichier sélectionné ne semble pas être un CSV. Exportez au format .csv depuis Excel/Sheets.'
+      );
+      input.value = '';
+      return;
+    }
+    if (file.size > this.MAX_CSV_BYTES) {
+      alert(
+        `Fichier CSV trop volumineux (${Math.round(
+          file.size / 1024
+        )} KB). Limite ≈ ${Math.round(this.MAX_CSV_BYTES / 1024)} KB.`
+      );
+      input.value = '';
+      return;
+    }
+
+    this.csvFileName = file.name;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      let text = String(reader.result || '');
+
+      // Strip BOM if present
+      text = text.replace(/^\uFEFF/, '');
+
+      // Quick sanity: if the text contains tons of NULs or non-text characters,
+      // it's probably a binary file opened as text.
+      const nonTextRatio =
+        (text.match(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u00FF]/g)?.length || 0) /
+        Math.max(1, text.length);
+      if (nonTextRatio > 0.1) {
+        alert(
+          'Le fichier ne semble pas être du texte pur (probablement un fichier binaire comme .xlsx). Réexportez en .csv.'
+        );
+        input.value = '';
+        return;
+      }
+
+      this.csvFileText = text;
+
+      // Optional: preview in console to debug
+      const lines = this.splitLines(text);
+      console.debug(
+        '[CSV] bytes=',
+        text.length,
+        'lines=',
+        lines.length,
+        'first line preview=',
+        (lines[0] || '').slice(0, 120)
+      );
+    };
+    reader.readAsText(file);
+  }
+
+  private splitLines(text: string): string[] {
+    // robust line split: CRLF | LF | CR
+    return text.split(/\r\n|\n|\r/);
+  }
+
+  private detectSeparator(sampleLine: string): ',' | ';' | '\t' {
+    // detect by count
+    const counts = {
+      ',': (sampleLine.match(/,/g) || []).length,
+      ';': (sampleLine.match(/;/g) || []).length,
+      '\t': (sampleLine.match(/\t/g) || []).length,
+    };
+    let sep: ',' | ';' | '\t' = ',';
+    let best = -1;
+    (Object.keys(counts) as Array<',' | ';' | '\t'>).forEach((k) => {
+      if (counts[k] > best) {
+        best = counts[k];
+        sep = k;
+      }
+    });
+    return sep;
+  }
+
+  private unquote(cell: string): string {
+    let c = cell.trim();
+    if (c.startsWith('"') && c.endsWith('"')) {
+      c = c.slice(1, -1).replace(/""/g, '"'); // RFC4180
+    }
+    return c.trim();
+  }
+
+  private parseCsvTokens(text: string): {
+    emails: string[];
+    usernames: string[];
+    invalid: string[];
+    total: number;
+  } {
+    const lines = this.splitLines(text)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+    if (!lines.length)
+      return { emails: [], usernames: [], invalid: [], total: 0 };
+
+    // Separator detection on the first *non-empty* line
+    const sep = this.detectSeparator(lines[0]);
+
+    // Header detection
+    const headerCells = lines[0]
+      .split(sep)
+      .map((x) => this.unquote(x).toLowerCase());
+    const hasHeader = headerCells.some(
+      (h) =>
+        h === 'email' ||
+        h === 'emails' ||
+        h === 'username' ||
+        h === 'user' ||
+        h === 'login'
+    );
+
+    const emails: string[] = [];
+    const usernames: string[] = [];
+    const invalid: string[] = [];
+
+    const start = hasHeader ? 1 : 0;
+    for (let i = start; i < lines.length; i++) {
+      const raw = lines[i];
+      const cells = raw
+        .split(sep)
+        .map((c) => this.unquote(c))
+        .filter((c) => c.length > 0);
+
+      // If header: prefer named columns
+      if (hasHeader) {
+        const eIdx = headerCells.findIndex(
+          (h) => h === 'email' || h === 'emails'
+        );
+        const uIdx = headerCells.findIndex(
+          (h) => h === 'username' || h === 'user' || h === 'login'
+        );
+
+        const take = (idx: number | -1) =>
+          idx >= 0 && idx < cells.length ? cells[idx] : '';
+
+        const e = take(eIdx);
+        const u = take(uIdx);
+
+        if (e) {
+          const t = e.toLowerCase();
+          this.isEmail(t) ? emails.push(t) : invalid.push(t);
+          continue;
+        }
+        if (u) {
+          this.isEmail(u) ? emails.push(u.toLowerCase()) : usernames.push(u);
+          continue;
+        }
+        // Fall through to “treat all cells”
+      }
+
+      // No header mapping — treat every cell in the row as token
+      for (const token of cells) {
+        if (this.isEmail(token)) emails.push(token.toLowerCase());
+        else usernames.push(token);
+      }
+    }
+
+    // De-dupe but keep order
+    const dedupe = (arr: string[]) => Array.from(new Set(arr));
+    return {
+      emails: dedupe(emails),
+      usernames: dedupe(usernames),
+      invalid: dedupe(invalid),
+      total: lines.length - start,
+    };
+  }
+
+  private isEmail(s: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+  }
+
+  async runCsvImport() {
+    if (!(await this.requireAdmin())) return;
+    if (!this.csvTargetClassId || !this.csvFileText) return;
+
+    this.importingCsv = true;
+    this.csvImportResult = null;
+
+    try {
+      const { emails, usernames, invalid, total } = this.parseCsvTokens(
+        this.csvFileText
+      );
+
+      const TOKEN_CAP = 2000;
+      const tokenCount = emails.length + usernames.length;
+      if (tokenCount > TOKEN_CAP) {
+        throw new Error(
+          `Ce CSV contient ${tokenCount} entrées (> ${TOKEN_CAP}). Vérifiez que le fichier est bien un .csv texte.`
+        );
+      }
+
+      console.debug('[CSV parsed]', {
+        total,
+        emails: emails.length,
+        usernames: usernames.length,
+        invalid: invalid.length,
+      });
+
+      // --- Feature-detect optional helpers on ClassService ---
+      const svc: any = this.classes as any;
+      const canResolveEmail = typeof svc.resolveUidByEmail === 'function';
+      const canResolveUsername = typeof svc.resolveUidByUsername === 'function';
+      const canBulkAdd = typeof svc.bulkAddMembers === 'function';
+
+      // Stats we’ll report
+      let addedExisting = 0;
+      let invitedEmails = 0;
+      let alreadyMembers = 0;
+      let skippedUnknownUsernames = 0;
+
+      // Always refresh streams after we’re done
+      const refreshStreams = () => {
+        this.loadMembersFor(this.csvTargetClassId);
+        this.loadInvitesFor(this.csvTargetClassId);
+      };
+
+      // -------- FULL MODE (preferred) --------
+      if (canResolveEmail && canBulkAdd) {
+        // Build a set of current members to avoid duplicate writes
+        this.loadMembersFor(this.csvTargetClassId);
+        const currentMembers =
+          (await firstValueFrom(
+            this.membersByClass[this.csvTargetClassId].pipe(take(1))
+          )) || [];
+        const existingUids = new Set(currentMembers.map((m: any) => m.uid));
+
+        const toAdd: { uid: string; role: Role }[] = [];
+
+        // Resolve usernames → uid (only add if found)
+        for (const uname of usernames) {
+          if (!canResolveUsername) {
+            skippedUnknownUsernames++;
+            continue;
+          }
+          const uid = await svc.resolveUidByUsername(uname);
+          if (uid) {
+            if (!existingUids.has(uid)) {
+              toAdd.push({ uid, role: this.csvRole });
+              existingUids.add(uid);
+            } else {
+              alreadyMembers++;
+            }
+          } else {
+            skippedUnknownUsernames++;
+          }
+        }
+
+        // Emails: resolve by email first; add if account exists, else invite if toggle enabled
+        for (const email of emails) {
+          const uid = await svc.resolveUidByEmail(email);
+          if (uid) {
+            if (!existingUids.has(uid)) {
+              toAdd.push({ uid, role: this.csvRole });
+              existingUids.add(uid);
+            } else {
+              alreadyMembers++;
+            }
+          } else if (this.csvInviteEmails) {
+            await this.classes.inviteByEmailOrCreatePending(
+              this.csvTargetClassId,
+              email,
+              this.csvRole
+            );
+            invitedEmails++;
+          } else {
+            // Toggle off → skip unknown emails
+          }
+        }
+
+        // Batch add all resolvable accounts
+        if (toAdd.length) {
+          addedExisting += await svc.bulkAddMembers(
+            this.csvTargetClassId,
+            toAdd
+          );
+        }
+
+        refreshStreams();
+      }
+      // -------- FALLBACK MODE (no resolvers) --------
+      else {
+        if (!this.csvInviteEmails && emails.length) {
+          alert(
+            "Pour ne pas inviter les emails sans compte, ajoutez 'resolveUidByEmail' + 'bulkAddMembers' dans ClassService (voir mon message précédent)."
+          );
+          // We abort to respect the toggle; remove this return if you prefer inviting anyway.
+          return;
+        }
+
+        // We can still process emails via your existing invite method:
+        for (const email of emails) {
+          try {
+            const uidOrNull = await this.classes.inviteByEmailOrCreatePending(
+              this.csvTargetClassId,
+              email,
+              this.csvRole
+            );
+            if (uidOrNull) addedExisting++;
+            else invitedEmails++;
+          } catch (err: any) {
+            const msg = String(err?.message || '');
+            // Try to classify "already a member" as a soft-duplicate
+            if (/already|existe|dupli/i.test(msg)) {
+              alreadyMembers++;
+            } else {
+              throw err;
+            }
+          }
+        }
+
+        // Without resolvers we can’t map usernames → uid, so we skip them
+        skippedUnknownUsernames += usernames.length;
+
+        refreshStreams();
+      }
+
+      // Report & bind to UI
+      this.csvImportResult = {
+        addedExisting,
+        invitedEmails,
+        alreadyMembers,
+        skippedUnknownUsernames,
+        invalidTokens: invalid.length,
+        totalParsed: total,
+      };
+
+      alert(
+        `Import terminé ✅\n` +
+          `Ajoutés (comptes existants): ${addedExisting}\n` +
+          `Invitations (emails): ${invitedEmails}\n` +
+          `Déjà membres: ${alreadyMembers}\n` +
+          `Usernames introuvables: ${skippedUnknownUsernames}\n` +
+          `Entrées invalides: ${invalid.length}`
+      );
+    } catch (e: any) {
+      console.error('CSV import error:', e);
+      alert(e?.message || 'Erreur lors de l’import CSV');
+    } finally {
+      this.importingCsv = false;
     }
   }
 }

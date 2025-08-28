@@ -11,6 +11,8 @@ import {
   setDoc,
   deleteDoc,
   serverTimestamp,
+  query,
+  where,
 } from 'firebase/firestore';
 import firebase from 'firebase/compat/app';
 import { combineLatest, of, switchMap } from 'rxjs';
@@ -636,6 +638,73 @@ export class ClassService {
       removed += slice.length;
     }
     return removed;
+  }
+
+  async resolveUidByEmail(email: string): Promise<string | null> {
+    const db = getFirestore();
+    const usersCol = collection(db, 'users');
+    // assuming you store a lowercase field for fast lookups
+    const qy = query(usersCol, where('emailLower', '==', email.toLowerCase()));
+    const snap = await getDocs(qy);
+    if (snap.empty) return null;
+    return snap.docs[0].id;
+  }
+
+  async resolveUidByUsername(username: string): Promise<string | null> {
+    const db = getFirestore();
+    const usersCol = collection(db, 'users');
+    const qy = query(
+      usersCol,
+      where('usernameLower', '==', username.toLowerCase())
+    );
+    const snap = await getDocs(qy);
+    if (snap.empty) return null;
+    return snap.docs[0].id;
+  }
+
+  /**
+   * Batch add members to a class. Skips existing members.
+   * Returns number of newly added docs.
+   */
+  async bulkAddMembers(
+    classId: string,
+    items: { uid: string; role: Role }[]
+  ): Promise<number> {
+    if (!items.length) return 0;
+
+    const db = getFirestore();
+    // Build existing set
+    const existingSnap = await getDocs(
+      collection(db, `classes/${classId}/members`)
+    );
+    const existing = new Set(existingSnap.docs.map((d) => d.id));
+
+    // Chunked writes
+    const CHUNK = 450; // below 500 limit
+    let added = 0;
+
+    for (let i = 0; i < items.length; i += CHUNK) {
+      const slice = items.slice(i, i + CHUNK);
+      const batch = writeBatch(db);
+      let writes = 0;
+
+      for (const m of slice) {
+        if (existing.has(m.uid)) continue;
+        const ref = doc(db, `classes/${classId}/members/${m.uid}`);
+        batch.set(
+          ref,
+          { role: m.role || 'student', joinedAt: serverTimestamp() },
+          { merge: true }
+        );
+        existing.add(m.uid);
+        added++;
+        writes++;
+      }
+
+      if (writes > 0) await batch.commit();
+    }
+
+    return added;
   }
 
   // class.service.ts

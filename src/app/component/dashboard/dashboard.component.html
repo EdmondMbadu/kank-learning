@@ -324,6 +324,97 @@
       </section>
 
 
+              <!-- CSV Import (Admin only) -->
+        <section *ngIf="(isAdmin$ | async)" class="pt-2">
+          <div class="rounded-3xl p-[1px] bg-gradient-to-br from-cyan-500/30 via-indigo-500/20 to-fuchsia-500/20 shadow-lg">
+            <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 p-4 sm:p-5 ring-1 ring-black/5 shadow-md dark:bg-slate-900/70 dark:ring-white/10">
+              <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 class="text-base sm:text-lg font-semibold text-slate-900 dark:text-white">
+                  Importer des membres via CSV
+                </h2>
+              </div>
+
+              <ng-container *ngIf="myClasses$ | async as classes">
+                <div class="grid gap-3 sm:grid-cols-3">
+                  <!-- Target class -->
+                  <div class="space-y-1">
+                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Classe cible</label>
+                    <select [(ngModel)]="csvTargetClassId"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                      <option value="" disabled>Choisir une classe…</option>
+                      <option *ngFor="let cl of classes" [value]="cl.id">{{ cl.title }}</option>
+                    </select>
+                  </div>
+
+                  <!-- Role -->
+                  <div class="space-y-1">
+                    <label class="text-xs font-medium text-slate-600 dark:text-slate-300">Rôle attribué</label>
+                    <select [(ngModel)]="csvRole"
+                            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
+                      <option value="student">Élève</option>
+                      <option value="ta">TA</option>
+                      <option value="instructor">Instructeur</option>
+                    </select>
+                  </div>
+
+                  <!-- Invite emails toggle -->
+                  <div class="flex items-end gap-2">
+                    <input id="csvInviteEmails" type="checkbox" class="h-4 w-4" [(ngModel)]="csvInviteEmails">
+                    <label for="csvInviteEmails" class="text-sm text-slate-700 dark:text-slate-300">
+                      Inviter les emails sans compte
+                    </label>
+                  </div>
+                </div>
+
+                <!-- File input -->
+                <div class="mt-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <input #csvInput type="file" accept=".csv,text/csv" class="sr-only" (change)="onCsvFileSelected($event)">
+                  <button type="button" (click)="csvInput.click()"
+                          class="inline-flex items-center gap-2 rounded-xl px-3 py-2 ring-1 ring-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                    Choisir un fichier CSV
+                  </button>
+                  <div class="text-sm text-slate-600 dark:text-slate-300 truncate" *ngIf="csvFileName">
+                    Fichier: <span class="font-medium">{{ csvFileName }}</span>
+                  </div>
+
+                  <div class="sm:ml-auto">
+                    <button type="button"
+                            [disabled]="!csvTargetClassId || !csvFileText || importingCsv"
+                            (click)="runCsvImport()"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+                                  bg-emerald-600 text-white shadow hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500
+                                  disabled:opacity-60 disabled:cursor-not-allowed">
+                      <svg *ngIf="importingCsv" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                        <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                      </svg>
+                      <span>Importer</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Result -->
+                <div *ngIf="csvImportResult" class="mt-3 rounded-xl bg-slate-50 p-3 text-xs ring-1 ring-slate-200 dark:bg-slate-800/40 dark:ring-slate-700">
+                  <div class="font-medium text-slate-700 dark:text-slate-200">Résumé de l’import</div>
+                  <ul class="mt-1 text-slate-600 dark:text-slate-300 space-y-0.5">
+                    <li>Total lignes analysées: {{ csvImportResult.totalParsed }}</li>
+                    <li>Ajoutés (comptes existants): {{ csvImportResult.addedExisting }}</li>
+                    <li>Invitations envoyées (emails): {{ csvImportResult.invitedEmails }}</li>
+                    <li>Déjà membres (ignorés): {{ csvImportResult.alreadyMembers }}</li>
+                    <li>Utilisateurs introuvables (usernames): {{ csvImportResult.skippedUnknownUsernames }}</li>
+                    <li>Entrées invalides: {{ csvImportResult.invalidTokens }}</li>
+                  </ul>
+                </div>
+
+                <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  Format accepté: une colonne <code>email</code> <em>ou</em> <code>username</code>, ou un CSV avec en-têtes <code>email</code>, <code>username</code>.
+                  Séparateurs pris en charge: virgule, point-virgule, tabulation, retour ligne.
+                </p>
+              </ng-container>
+            </div>
+          </div>
+        </section>
+
 
         <!-- My Classes -->
         <section class="pt-2 pb-8">
