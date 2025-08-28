@@ -127,17 +127,6 @@ export class DashboardComponent implements OnInit {
     } catch {}
   }
 
-  private restorePanels() {
-    try {
-      const raw = localStorage.getItem(this.PANELS_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as Partial<Record<PanelKey, boolean>>;
-      (Object.keys(this.panelOpen) as PanelKey[]).forEach((k) => {
-        if (typeof parsed[k] === 'boolean') this.panelOpen[k] = parsed[k]!;
-      });
-    } catch {}
-  }
-
   async cancelInvite(cl: ClassSection, inv: { id: string }) {
     if (!cl.id || !inv.id) return;
     this.cancelingInvite[inv.id] = true;
@@ -172,7 +161,7 @@ export class DashboardComponent implements OnInit {
   ) {}
   isAdmin$!: Observable<boolean>;
   ngOnInit(): void {
-    this.restorePanels();
+    // this.restorePanels();
     this.me$ = this.auth.effectiveUser$;
     this.isAdmin$ = this.auth.user$.pipe(
       map((u) => (u?.platformRole || '').toLowerCase() === 'admin')
