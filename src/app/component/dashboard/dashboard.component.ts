@@ -25,6 +25,17 @@ export class DashboardComponent implements OnInit {
   myCourses$!: Observable<Course[]>;
   myClasses$!: Observable<ClassSection[]>;
 
+  transferA = '';
+  transferB = '';
+  transferMode: 'copy' | 'move' = 'copy';
+  includeStaff = false;
+  transferring = false;
+  transferResult: {
+    added: number;
+    skipped: number;
+    removedFromA?: number;
+  } | null = null;
+
   // NEW: edit state for classes
   editClass: ClassSection | null = null;
 
@@ -544,5 +555,48 @@ export class DashboardComponent implements OnInit {
 
       this.showClassDialog = true;
     });
+  }
+
+  swapAB() {
+    [this.transferA, this.transferB] = [this.transferB, this.transferA];
+  }
+
+  // Run transfer using ClassService
+  async runTransfer() {
+    if (!(await this.requireAdmin())) return;
+    if (!this.transferA || !this.transferB || this.transferA === this.transferB)
+      return;
+
+    this.transferring = true;
+    this.transferResult = null;
+
+    try {
+      const roles = this.includeStaff
+        ? (['student', 'instructor', 'ta'] as Role[])
+        : (['student'] as Role[]);
+      const res = await this.classes.transferMembers({
+        sourceId: this.transferA,
+        destId: this.transferB,
+        mode: this.transferMode,
+        includeRoles: roles,
+      });
+
+      this.transferResult = res;
+      // Refresh member lists for both classes so UI updates
+      if (this.transferA) this.loadMembersFor(this.transferA);
+      if (this.transferB) this.loadMembersFor(this.transferB);
+
+      alert(
+        `Transfert terminé ✅\nAjoutés: ${res.added}\nIgnorés: ${res.skipped}${
+          this.transferMode === 'move'
+            ? `\nRetirés de A: ${res.removedFromA}`
+            : ''
+        }`
+      );
+    } catch (e: any) {
+      alert(e?.message || 'Erreur pendant le transfert');
+    } finally {
+      this.transferring = false;
+    }
   }
 }

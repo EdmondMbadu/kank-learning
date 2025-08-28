@@ -1,7 +1,17 @@
 // src/app/shared/class.service.ts
 import { Injectable } from '@angular/core';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
-import { serverTimestamp } from '@angular/fire/firestore';
+
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDocs,
+  writeBatch,
+  setDoc,
+  deleteDoc,
+  serverTimestamp,
+} from 'firebase/firestore';
 import firebase from 'firebase/compat/app';
 import { combineLatest, of, switchMap } from 'rxjs';
 import { map } from 'rxjs';
@@ -539,6 +549,71 @@ export class ClassService {
       ...patch,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
+  }
+
+  async transferMembers(opts: {
+    sourceId: string;
+    destId: string;
+    mode: 'copy' | 'move';
+    includeRoles?: ('student' | 'instructor' | 'ta')[];
+  }): Promise<{ added: number; skipped: number; removedFromA?: number }> {
+    const { sourceId, destId, mode, includeRoles } = opts;
+    if (sourceId === destId)
+      throw new Error('Source et destination identiques');
+
+    const db = getFirestore();
+
+    // Load all members of A and B
+    const [srcSnap, dstSnap] = await Promise.all([
+      getDocs(collection(db, `classes/${sourceId}/members`)),
+      getDocs(collection(db, `classes/${destId}/members`)),
+    ]);
+
+    const destUIDs = new Set(dstSnap.docs.map((d) => d.id));
+
+    // Filter by roles if provided
+    const srcMembers = srcSnap.docs
+      .map((d) => ({ uid: d.id, ...(d.data() as any) }))
+      .filter((m) => {
+        if (!includeRoles || includeRoles.length === 0) return true;
+        return includeRoles.includes((m.role || 'student') as any);
+      });
+
+    const toAdd = srcMembers.filter((m) => !destUIDs.has(m.uid));
+    const skipped = srcMembers.length - toAdd.length;
+
+    // 1) Add missing to destination
+    const batchAdd = writeBatch(db);
+    toAdd.forEach((m) => {
+      const ref = doc(db, `classes/${destId}/members/${m.uid}`);
+      batchAdd.set(
+        ref,
+        {
+          role: m.role || 'student',
+          joinedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+    await batchAdd.commit();
+
+    // 2) If moving, remove from A (all that match includeRoles)
+    let removedFromA = 0;
+    if (mode === 'move') {
+      const batchDel = writeBatch(db);
+      srcMembers.forEach((m) => {
+        const ref = doc(db, `classes/${sourceId}/members/${m.uid}`);
+        batchDel.delete(ref);
+      });
+      await batchDel.commit();
+      removedFromA = srcMembers.length;
+    }
+
+    return {
+      added: toAdd.length,
+      skipped,
+      ...(mode === 'move' ? { removedFromA } : {}),
+    };
   }
 
   // class.service.ts
