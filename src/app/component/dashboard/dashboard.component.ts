@@ -15,6 +15,7 @@ import { ClassService } from 'src/app/shared/class.service';
 // This version uses the Firebase Web SDK directly:
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
+type TransferMode = 'copy' | 'move' | 'remove';
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -27,7 +28,7 @@ export class DashboardComponent implements OnInit {
 
   transferA = '';
   transferB = '';
-  transferMode: 'copy' | 'move' = 'copy';
+  transferMode: TransferMode = 'copy';
   includeStaff = false;
   transferring = false;
   transferResult: {
@@ -35,6 +36,17 @@ export class DashboardComponent implements OnInit {
     skipped: number;
     removedFromA?: number;
   } | null = null;
+
+  // Removal UI state
+  removalCandidates: Array<{
+    uid: string;
+    name: string;
+    email?: string;
+    role: Role;
+  }> = [];
+  selectedToRemove: Record<string, boolean> = {};
+  candidateCount = 0;
+  selectedCount = 0;
 
   // NEW: edit state for classes
   editClass: ClassSection | null = null;
@@ -579,11 +591,13 @@ export class DashboardComponent implements OnInit {
     [this.transferA, this.transferB] = [this.transferB, this.transferA];
   }
 
-  // Run transfer using ClassService
   async runTransfer() {
     if (!(await this.requireAdmin())) return;
     if (!this.transferA || !this.transferB || this.transferA === this.transferB)
       return;
+
+    // Narrow the union for TypeScript:
+    if (this.transferMode === 'remove') return;
 
     this.transferring = true;
     this.transferResult = null;
@@ -592,15 +606,15 @@ export class DashboardComponent implements OnInit {
       const roles = this.includeStaff
         ? (['student', 'instructor', 'ta'] as Role[])
         : (['student'] as Role[]);
+
       const res = await this.classes.transferMembers({
         sourceId: this.transferA,
         destId: this.transferB,
-        mode: this.transferMode,
+        mode: this.transferMode, // now narrowed to 'copy' | 'move'
         includeRoles: roles,
       });
 
       this.transferResult = res;
-      // Refresh member lists for both classes so UI updates
       if (this.transferA) this.loadMembersFor(this.transferA);
       if (this.transferB) this.loadMembersFor(this.transferB);
 
@@ -613,6 +627,111 @@ export class DashboardComponent implements OnInit {
       );
     } catch (e: any) {
       alert(e?.message || 'Erreur pendant le transfert');
+    } finally {
+      this.transferring = false;
+    }
+  }
+
+  public async rebuildRemovalCandidates() {
+    if (!this.transferA || this.transferMode !== 'remove') {
+      this.removalCandidates = [];
+      this.selectedToRemove = {};
+      this.candidateCount = this.selectedCount = 0;
+      return;
+    }
+
+    // ensure stream exists
+    this.loadMembersFor(this.transferA);
+
+    // one-shot read from existing observable
+    const members = await firstValueFrom(
+      this.membersByClass[this.transferA].pipe(take(1))
+    );
+
+    const allowRoles: Role[] = this.includeStaff
+      ? (['student', 'instructor', 'ta'] as Role[])
+      : ['student'];
+    const list = (members || [])
+      .filter((m) => allowRoles.includes((m.role || 'student') as Role))
+      .map((m) => ({
+        uid: m.uid,
+        name: this.displayName(m.user),
+        email: (m.user as any)?.email,
+        role: (m.role || 'student') as Role,
+      }));
+
+    this.removalCandidates = list;
+    // Preselect everyone
+    this.selectedToRemove = {};
+    list.forEach((m) => (this.selectedToRemove[m.uid] = true));
+
+    this.candidateCount = list.length;
+    this.selectedCount = list.length;
+  }
+
+  selectAllRemoval(on: boolean) {
+    this.removalCandidates.forEach((m) => (this.selectedToRemove[m.uid] = on));
+    this.selectedCount = on ? this.candidateCount : 0;
+  }
+
+  onIncludeStaffChanged() {
+    // when checkbox toggles, rebuild if we are in remove mode
+    if (this.transferMode === 'remove') this.rebuildRemovalCandidates();
+  }
+
+  onModeChanged() {
+    // whenever mode changes, rebuild/clear
+    this.rebuildRemovalCandidates();
+  }
+
+  // keep counters in sync if user clicks individual checkboxes
+  ngDoCheck() {
+    if (this.transferMode === 'remove' && this.removalCandidates.length) {
+      const before = this.selectedCount;
+      this.selectedCount = this.removalCandidates.reduce(
+        (acc, m) => acc + (this.selectedToRemove[m.uid] ? 1 : 0),
+        0
+      );
+      if (before !== this.selectedCount) {
+        // no-op; the UI will re-render counts
+      }
+    }
+  }
+
+  async runBulkRemoval() {
+    if (!(await this.requireAdmin())) return;
+    if (!this.transferA) return;
+
+    const selectedUids = this.removalCandidates
+      .filter((m) => this.selectedToRemove[m.uid])
+      .map((m) => m.uid);
+
+    if (selectedUids.length === 0) {
+      alert('Aucun membre sélectionné.');
+      return;
+    }
+
+    const confirmMsg =
+      `Supprimer ${selectedUids.length} membre(s) de la classe sélectionnée ?\n` +
+      (this.includeStaff
+        ? '⚠️ Les instructeurs/TA sélectionnés seront aussi retirés.'
+        : '');
+    if (!confirm(confirmMsg)) return;
+
+    this.transferring = true;
+    this.transferResult = null;
+
+    try {
+      const removed = await this.classes.bulkRemoveMembers(
+        this.transferA,
+        selectedUids
+      );
+      this.transferResult = { added: 0, skipped: 0, removedFromA: removed };
+      this.loadMembersFor(this.transferA);
+      await this.rebuildRemovalCandidates(); // refresh list after deletion
+      alert(`Suppression terminée ✅\nRetirés de A: ${removed}`);
+    } catch (e: any) {
+      alert(e?.message || 'Erreur pendant la suppression');
     } finally {
       this.transferring = false;
     }

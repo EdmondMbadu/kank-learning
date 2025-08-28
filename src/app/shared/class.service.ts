@@ -616,5 +616,27 @@ export class ClassService {
     };
   }
 
+  /**
+   * Bulk remove members from a class (chunked for Firestore batch limits).
+   * @returns number of removed documents
+   */
+  async bulkRemoveMembers(classId: string, uids: string[]): Promise<number> {
+    const db = getFirestore();
+    const CHUNK = 450; // keep below 500 to leave headroom
+    let removed = 0;
+
+    for (let i = 0; i < uids.length; i += CHUNK) {
+      const slice = uids.slice(i, i + CHUNK);
+      const batch = writeBatch(db);
+      slice.forEach((uid) => {
+        const ref = doc(db, `classes/${classId}/members/${uid}`);
+        batch.delete(ref);
+      });
+      await batch.commit();
+      removed += slice.length;
+    }
+    return removed;
+  }
+
   // class.service.ts
 }
