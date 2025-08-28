@@ -717,7 +717,7 @@
 
                       <button
                         *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
-                        (click)="removeMember(cl.id!, m.uid)"
+                       (click)="removeMember(cl.id!, m.uid, m.user?.firstName || m.user?.email)"
                         [disabled]="removing[m.uid]"
                         class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
                               text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200 whitespace-nowrap shrink-0

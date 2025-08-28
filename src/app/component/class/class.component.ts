@@ -588,11 +588,15 @@ export class ClassComponent implements OnInit {
       this.inviting = false;
     }
   }
+  async removeMember(classId: string, uid: string, label?: string) {
+    const who = (label || uid || 'cet utilisateur').trim();
+    if (!confirm(`Retirer ${who} de cette classe ?`)) return;
 
-  async removeMember(classId: string, uid: string) {
     this.removing[uid] = true;
     try {
       await this.classes.removeMember(classId, uid);
+    } catch (e: any) {
+      alert(e?.message || 'Erreur lors du retrait');
     } finally {
       delete this.removing[uid];
     }
