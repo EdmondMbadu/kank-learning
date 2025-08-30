@@ -553,6 +553,12 @@ export class ClassService {
       updatedAt: serverTimestamp(),
     });
   }
+  // class.service.ts
+  classDoc$(classId: string) {
+    return this.afs
+      .doc<any>(`classes/${classId}`)
+      .valueChanges({ idField: 'id' });
+  }
 
   async transferMembers(opts: {
     sourceId: string;

@@ -182,6 +182,7 @@ export interface UserClassIndex {
   role: Role;
   status: 'active' | 'dropped';
   title?: string; // class title snapshot
+  classTitle?: string;
   updatedAt?: FSDate;
 }
 

@@ -28,35 +28,29 @@ export class NavbarComponent {
     this.me$ = this.auth.effectiveUser$;
 
     // navbar.component.ts (constructor)
+    // navbar.component.ts
     this.myClassesIndex$ = this.auth.effectiveUid$.pipe(
       switchMap((uid) => {
         if (!uid) return of([]);
 
-        // First try the user-side index (fast path)
+        // get the user's index (ids/roles)
         return this.classes.userClassIndex$(uid).pipe(
           switchMap((idx) => {
-            if (idx.length) return of(idx);
+            if (!idx.length) return of([]);
 
-            // Fallback: derive an index from memberships so navbar shows up today
-            return this.classes.navClasses$(uid).pipe(
-              switchMap((rows) =>
-                rows.length
-                  ? combineLatest(
-                      rows.map((r) =>
-                        this.classes.memberRole$(r.id, uid).pipe(
-                          map(
-                            (role) =>
-                              ({
-                                classId: r.id,
-                                title: r.title || r.id,
-                                role: role || 'student',
-                                status: 'active',
-                              } as UserClassIndex)
-                          )
-                        )
-                      )
-                    )
-                  : of([])
+            // join live class docs for titles
+            return combineLatest(
+              idx.map((item) =>
+                this.classes.classDoc$(item.classId).pipe(
+                  map((cl) => ({
+                    ...item,
+                    title:
+                      cl?.title ||
+                      item.title ||
+                      item.classTitle ||
+                      item.classId,
+                  }))
+                )
               )
             );
           })
