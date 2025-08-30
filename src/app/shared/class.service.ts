@@ -13,6 +13,7 @@ import {
   serverTimestamp,
   query,
   where,
+  getDoc,
 } from 'firebase/firestore';
 import firebase from 'firebase/compat/app';
 import { combineLatest, of, switchMap } from 'rxjs';
@@ -549,7 +550,7 @@ export class ClassService {
   ) {
     return this.afs.doc(`classes/${classId}`).update({
       ...patch,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
   }
 
@@ -571,9 +572,12 @@ export class ClassService {
       getDocs(collection(db, `classes/${destId}/members`)),
     ]);
 
-    const destUIDs = new Set(dstSnap.docs.map((d) => d.id));
+    const classRef = doc(db, `classes/${destId}`);
+    const classDoc = await getDoc(classRef);
+    const dstClass = classDoc.exists() ? (classDoc.data() as any) : {};
+    const classTitle = (dstClass?.title || String(destId)).trim();
 
-    // Filter by role
+    const destUIDs = new Set(dstSnap.docs.map((d) => d.id));
     const srcMembers = srcSnap.docs
       .map((d) => ({ uid: d.id, ...(d.data() as any) }))
       .filter((m) => {
@@ -584,28 +588,30 @@ export class ClassService {
     const toAdd = srcMembers.filter((m) => !destUIDs.has(m.uid));
     const skipped = srcMembers.length - toAdd.length;
 
-    // --- Add to destination with required fields + user index ---
+    // Add to destination + user index (+ keep root members map in sync)
     const addBatch = writeBatch(db);
     for (const m of toAdd) {
       const role = (m.role || 'student') as Role;
 
-      const memRef = doc(db, `classes/${destId}/members/${m.uid}`);
       addBatch.set(
-        memRef,
-        {
-          uid: m.uid,
-          role,
-          status: 'active',
-          enrolledAt: serverTimestamp(),
-        },
+        doc(db, `classes/${destId}/members/${m.uid}`),
+        { uid: m.uid, role, status: 'active', enrolledAt: serverTimestamp() },
         { merge: true }
       );
 
-      const idxRef = doc(db, `users/${m.uid}/classIndex/${destId}`);
+      // keep the root class members map updated (for queries like members.{uid})
       addBatch.set(
-        idxRef,
+        classRef,
+        { [`members.${m.uid}`]: role, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+
+      addBatch.set(
+        doc(db, `users/${m.uid}/classIndex/${destId}`),
         {
           classId: destId,
+          title: classTitle,
+          classTitle, // ← mirror the readable title
           role,
           status: 'active',
           updatedAt: serverTimestamp(),
@@ -615,11 +621,10 @@ export class ClassService {
     }
     if (toAdd.length) await addBatch.commit();
 
-    // --- If moving, remove from A using your existing helper to keep counters/index tidy ---
     let removedFromA = 0;
     if (mode === 'move') {
       for (const m of srcMembers) {
-        await this.removeMember(sourceId, m.uid); // uses your counter + index cleanup
+        await this.removeMember(sourceId, m.uid);
         removedFromA++;
       }
     }
@@ -630,7 +635,6 @@ export class ClassService {
       ...(mode === 'move' ? { removedFromA } : {}),
     };
   }
-
   /**
    * Bulk remove members from a class (chunked for Firestore batch limits).
    * @returns number of removed documents
