@@ -121,6 +121,19 @@ export class DashboardComponent implements OnInit {
     this.persistPanels();
   }
 
+  // Per-class open state for Participants dropdown
+  participantsOpen: Record<string, boolean> = {};
+
+  isParticipantsOpen(id: string): boolean {
+    return !!this.participantsOpen[id]; // default: closed
+  }
+
+  toggleParticipants(id: string): void {
+    // Optionally ensure members stream is hydrated (usually already done in ngOnInit)
+    this.loadMembersFor(id);
+    this.participantsOpen[id] = !this.participantsOpen[id];
+  }
+
   private persistPanels() {
     try {
       localStorage.setItem(this.PANELS_KEY, JSON.stringify(this.panelOpen));

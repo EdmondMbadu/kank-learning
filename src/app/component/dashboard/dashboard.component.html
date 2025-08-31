@@ -328,65 +328,91 @@
                               </ng-container>
                             </div>
 
-                            <!-- Members with avatars -->
+                           <!-- Participants dropdown (initially closed) -->
                             <div class="mt-4">
-                              <div   *ngIf="membersByClass[cl.id!] | async as members; else membersLoading" class="text-sm font-medium text-slate-900 dark:text-slate-100">Participants ({{members.length}})</div>
                               <ng-container *ngIf="membersByClass[cl.id!] | async as members; else membersLoading">
-                                <div *ngIf="members.length; else noMembers"
+                                <!-- Header / Toggle -->
+                                <button
+                                  type="button"
+                                  (click)="toggleParticipants(cl.id!)"
+                                  [attr.aria-expanded]="isParticipantsOpen(cl.id!)"
+                                  class="w-full flex items-center justify-between rounded-lg px-3 py-2
+                                        ring-1 ring-slate-200 bg-white/70 hover:bg-white/90 transition
+                                        dark:bg-slate-800/60 dark:ring-slate-700 dark:hover:bg-slate-800"
+                                >
+                                  <div class="flex items-center gap-2">
+                                    <span class="text-sm font-medium text-slate-900 dark:text-slate-100">Participants</span>
+                                    <span class="text-xs text-slate-500 dark:text-slate-400">({{ members.length }})</span>
+                                  </div>
+                                  <!-- Chevron -->
+                                  <svg class="h-4 w-4 transition-transform duration-200"
+                                      [class.rotate-180]="isParticipantsOpen(cl.id!)"
+                                      viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m6 9 6 6 6-6"/>
+                                  </svg>
+                                </button>
+
+                                <!-- Body -->
+                                <div *ngIf="isParticipantsOpen(cl.id!)"
                                     class="mt-2 rounded-xl ring-1 ring-slate-200 overflow-hidden dark:ring-slate-700">
-                                  <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
-                                    <li *ngFor="let m of members; trackBy: trackMember"
-                                        class="flex items-center justify-between gap-3 px-3 py-2">
-                                      <div class="flex items-center gap-3 min-w-0">
-                                        <div class="shrink-0">
-                                          <img *ngIf="avatar(m.user) as src; else noPhoto"
-                                              [src]="src" [alt]="displayName(m.user)"
-                                              class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                                              referrerpolicy="no-referrer" loading="lazy" />
-                                        </div>
-                                        <ng-template #noPhoto>
-                                          <div class="h-9 w-9 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase ring-1 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:ring-indigo-800">
-                                            {{ initialsFromName(displayName(m.user)) }}
+                                  <ng-container *ngIf="members.length; else noMembers">
+                                    <ul class="divide-y divide-slate-200 dark:divide-slate-700 bg-white/90 dark:bg-slate-800/70 backdrop-blur">
+                                      <li *ngFor="let m of members; trackBy: trackMember"
+                                          class="flex items-center justify-between gap-3 px-3 py-2">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                          <div class="shrink-0">
+                                            <img *ngIf="avatar(m.user) as src; else noPhoto"
+                                                [src]="src" [alt]="displayName(m.user)"
+                                                class="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                                                referrerpolicy="no-referrer" loading="lazy" />
                                           </div>
-                                        </ng-template>
-                                        <div class="min-w-0">
-                                          <div class="text-xs font-medium text-slate-900 dark:text-slate-200 truncate">
-                                            {{ displayName(m.user) }}
-                                          </div>
-                                          <div class="text-[11px] text-slate-500 truncate">
-                                            {{ m.user?.email || m.uid }}
-                                            <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                                              {{ m.role | titlecase }}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
+                                          <ng-template #noPhoto>
+                                            <div class="h-9 w-9 grid place-items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold uppercase ring-1 ring-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-200 dark:ring-indigo-800">
+                                              {{ initialsFromName(displayName(m.user)) }}
+                                            </div>
+                                          </ng-template>
 
-                                      <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
-                                              [disabled]="isRemoving(cl.id!, m.uid)"
-                                              class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
-                                                    text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
-                                                    disabled:opacity-60 disabled:cursor-not-allowed
-                                                    dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
-                                        <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
-                                          <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
-                                        </svg>
-                                        <span>Retirer</span>
-                                      </button>
-                                    </li>
-                                  </ul>
+                                          <div class="min-w-0">
+                                            <div class="text-xs font-medium text-slate-900 dark:text-slate-200 truncate">
+                                              {{ displayName(m.user) }}
+                                            </div>
+                                            <div class="text-[11px] text-slate-500 truncate">
+                                              {{ m.user?.email || m.uid }}
+                                              <span class="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                                                {{ m.role | titlecase }}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                        <button *ngIf="(isAdmin$ | async)" (click)="removeMember(cl, m)"
+                                                [disabled]="isRemoving(cl.id!, m.uid)"
+                                                class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
+                                                      text-rose-600 hover:bg-rose-50 ring-1 ring-rose-200
+                                                      disabled:opacity-60 disabled:cursor-not-allowed
+                                                      dark:text-rose-300 dark:hover:bg-rose-900/20 dark:ring-rose-800">
+                                          <svg *ngIf="isRemoving(cl.id!, m.uid)" class="h-3.5 w-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity=".2" stroke-width="4"></circle>
+                                            <path d="M22 12a10 10 0 0 1-10 10" stroke="currentColor" stroke-width="4"></path>
+                                          </svg>
+                                          <span>Retirer</span>
+                                        </button>
+                                      </li>
+                                    </ul>
+                                  </ng-container>
+
+                                  <ng-template #noMembers>
+                                    <div class="p-3 text-xs text-slate-500">Aucun membre pour l’instant.</div>
+                                  </ng-template>
                                 </div>
-
-                                <ng-template #noMembers>
-                                  <div class="mt-2 text-xs text-slate-500">Aucun membre pour l’instant.</div>
-                                </ng-template>
                               </ng-container>
 
+                              <!-- Keep your existing loading skeleton -->
                               <ng-template #membersLoading>
                                 <div class="mt-2 h-10 w-full rounded bg-slate-200 animate-pulse dark:bg-slate-700"></div>
                               </ng-template>
                             </div>
+
                           </article>
                         </div>
 
