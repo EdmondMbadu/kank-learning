@@ -387,10 +387,12 @@ export class AssignmentService {
           }
         }
 
+        // Start a fresh run but KEEP the previous score/grade metadata
         tx.update(tRef, {
           selectedIds: newSelectedIds,
           answers: newAnswers,
-          score: null,
+          // score: null,            // ← remove this line
+          // submittedAt / gradedAt (if you store them) are intentionally left intact
           startedAt: firebase.firestore.FieldValue.serverTimestamp(),
           expiresAt: newExpiresAt,
           status: 'in-progress',

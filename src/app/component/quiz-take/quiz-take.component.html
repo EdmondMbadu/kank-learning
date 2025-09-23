@@ -43,12 +43,16 @@
             <ng-container *ngIf="{ att: (myAttempt$ | async) } as vm">
               <!-- Status banners -->
               <div *ngIf="vm.att?.score != null; else notDone"
-                   class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                          dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/></svg>
-                <span>Votre score : <b>{{ vm.att!.score }}/{{ a.numQuestions }}</b>
-                  ({{ (vm.att!.score! / a.numQuestions * 100) | number:'1.0-0' }}%)</span>
-              </div>
+                class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                        dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/></svg>
+              <span>
+                {{ vm.att?.status === 'in-progress' ? 'Dernière note :' : 'Votre score :' }}
+                <b>{{ vm.att!.score }}/{{ a.numQuestions }}</b>
+                ({{ (vm.att!.score! / a.numQuestions * 100) | number:'1.0-0' }}%)
+              </span>
+            </div>
+
 
               <ng-template #notDone>
                 <div *ngIf="answeredCount(vm.att) > 0; else notStarted"
