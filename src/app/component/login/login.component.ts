@@ -16,6 +16,7 @@ export class LoginComponent implements OnInit {
   showPassword = false;
   loading = false;
   error = '';
+  private returnUrl?: string; // ⬅️ keep it in the component
 
   constructor(private auth: AuthService, private route: ActivatedRoute) {}
 
@@ -23,6 +24,8 @@ export class LoginComponent implements OnInit {
     window.scroll(0, 0);
     const q = this.route.snapshot.queryParamMap.get('returnUrl');
     if (q && q.startsWith('/')) {
+      this.returnUrl = q; // ⬅️ capture for guaranteed handoff
+      // (Optional fallbacks — keep them, they don’t hurt)
       try {
         sessionStorage.setItem('auth:redirect', q);
       } catch {}
@@ -35,21 +38,16 @@ export class LoginComponent implements OnInit {
     this.error = '';
     if (this.loading) return;
 
-    const id =
-      this.mode === 'username' ? this.username?.trim() : this.email?.trim();
+    const id = (this.mode === 'username' ? this.username : this.email)?.trim();
     if (!id || !this.password) return;
 
     this.loading = true;
     try {
       if (this.mode === 'username') {
-        // Replace with your real method for username-based auth:
-        await this.auth.loginWithUsername(id, this.password);
+        await this.auth.loginWithUsername(id, this.password, this.returnUrl); // ⬅️ pass it
       } else {
-        // Replace with your real method for email-based auth:
-        await this.auth.login(id.toLowerCase(), this.password);
+        await this.auth.login(id.toLowerCase(), this.password, this.returnUrl); // ⬅️ pass it
       }
-      // navigate if needed
-      // this.router.navigateByUrl('/dashboard');
     } catch (e: any) {
       this.error = e?.message || 'Impossible de se connecter.';
     } finally {

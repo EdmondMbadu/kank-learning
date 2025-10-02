@@ -68,12 +68,12 @@ export class AuthService {
   // -------- AUTH --------
   private sanitizeRedirect(url?: string | null): string | null {
     if (!url) return null;
-    // Only allow same-app paths
     if (!url.startsWith('/')) return null;
     if (url.startsWith('/login') || url.startsWith('/verify-email'))
       return null;
     return url;
   }
+
   private consumeRedirect(): string | null {
     // 1) Router state (if this navigation provided one)
     const nav = this.router.getCurrentNavigation();
@@ -116,14 +116,20 @@ export class AuthService {
     return null;
   }
 
-  async login(email: string, password: string): Promise<void> {
+  async login(
+    email: string,
+    password: string,
+    returnUrlOverride?: string
+  ): Promise<void> {
     const cred = await this.afAuth.signInWithEmailAndPassword(email, password);
     this.clearActivePersona();
     try {
       localStorage.setItem('token', 'true');
     } catch {}
 
-    const stored = this.consumeRedirect();
+    // ⬅️ prefer the URL explicitly passed from LoginComponent
+    const fromOverride = this.sanitizeRedirect(returnUrlOverride);
+    const stored = fromOverride ?? this.consumeRedirect();
 
     if (cred.user?.emailVerified) {
       await this.router.navigateByUrl(stored || '/dashboard', {
@@ -271,7 +277,11 @@ export class AuthService {
   }
 
   // ---- Student login with username + code
-  async loginWithUsername(username: string, code: string) {
+  async loginWithUsername(
+    username: string,
+    code: string,
+    returnUrlOverride?: string
+  ) {
     const uname = sanitizeUsername(username);
     if (!uname) throw new Error('Nom d’utilisateur requis.');
 
@@ -288,7 +298,9 @@ export class AuthService {
       localStorage.setItem('token', 'true');
     } catch {}
 
-    const stored = this.consumeRedirect();
+    const fromOverride = this.sanitizeRedirect(returnUrlOverride);
+    const stored = fromOverride ?? this.consumeRedirect();
+
     await this.router.navigateByUrl(stored || '/dashboard', {
       replaceUrl: true,
     });
