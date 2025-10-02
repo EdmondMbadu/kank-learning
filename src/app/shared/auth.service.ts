@@ -1,6 +1,6 @@
 // src/app/services/auth.service.ts
 import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import {
   AngularFirestore,
@@ -44,7 +44,8 @@ export class AuthService {
     private afAuth: AngularFireAuth,
     private afs: AngularFirestore,
     private router: Router,
-    private storage: AngularFireStorage
+    private storage: AngularFireStorage,
+    private route: ActivatedRoute
   ) {
     // Read Firestore user doc when auth state changes
     this.user$ = this.afAuth.authState.pipe(
@@ -65,41 +66,76 @@ export class AuthService {
   }
 
   // -------- AUTH --------
-  private sanitizeRedirect(url: string | null | undefined): string | null {
+  private sanitizeRedirect(url?: string | null): string | null {
     if (!url) return null;
-    if (!url.startsWith('/')) return null; // same-origin only
+    // Only allow same-app paths
+    if (!url.startsWith('/')) return null;
     if (url.startsWith('/login') || url.startsWith('/verify-email'))
       return null;
     return url;
   }
+  private consumeRedirect(): string | null {
+    // 1) Router state (if this navigation provided one)
+    const nav = this.router.getCurrentNavigation();
+    const fromState = this.sanitizeRedirect(
+      (nav?.extras?.state as { returnUrl?: string } | undefined)?.returnUrl ??
+        (window.history?.state as { returnUrl?: string } | undefined)?.returnUrl // also try the browser's history state
+    );
+    if (fromState) return fromState;
 
-  async login(email: string, password: string): Promise<void> {
+    // 2) Query param on the current route (covers hard reload at /login?returnUrl=...)
+    const fromQuery = this.sanitizeRedirect(
+      this.route?.snapshot?.queryParamMap?.get('returnUrl')
+    );
+    if (fromQuery) return fromQuery;
+
+    // 3) sessionStorage
+    let raw: string | null = null;
     try {
-      const cred = await this.afAuth.signInWithEmailAndPassword(
-        email,
-        password
-      );
-      this.clearActivePersona();
-      localStorage.setItem('token', 'true');
-
-      const stored = this.consumeRedirect(); // ⬅️ use helper
-
-      if (cred.user?.emailVerified) {
-        await this.router.navigateByUrl(stored || '/dashboard', {
-          replaceUrl: true,
-        });
-      } else {
-        await this.router.navigate(['/verify-email'], {
-          queryParams: stored ? { returnUrl: stored } : undefined,
-          replaceUrl: true,
-        });
-      }
-    } catch (err: any) {
-      alert(err?.message || 'Une erreur est survenue.');
-      throw err;
+      raw = sessionStorage.getItem('auth:redirect');
+    } catch {}
+    const fromSession = this.sanitizeRedirect(raw);
+    if (fromSession) {
+      try {
+        sessionStorage.removeItem('auth:redirect');
+      } catch {}
+      return fromSession;
     }
+
+    // 4) localStorage
+    try {
+      raw = localStorage.getItem('auth:redirect');
+    } catch {}
+    const fromLocal = this.sanitizeRedirect(raw);
+    if (fromLocal) {
+      try {
+        localStorage.removeItem('auth:redirect');
+      } catch {}
+      return fromLocal;
+    }
+    return null;
   }
 
+  async login(email: string, password: string): Promise<void> {
+    const cred = await this.afAuth.signInWithEmailAndPassword(email, password);
+    this.clearActivePersona();
+    try {
+      localStorage.setItem('token', 'true');
+    } catch {}
+
+    const stored = this.consumeRedirect();
+
+    if (cred.user?.emailVerified) {
+      await this.router.navigateByUrl(stored || '/dashboard', {
+        replaceUrl: true,
+      });
+    } else {
+      await this.router.navigate(['/verify-email'], {
+        queryParams: stored ? { returnUrl: stored } : undefined,
+        replaceUrl: true,
+      });
+    }
+  }
   async register(
     email: string,
     password: string,
@@ -248,9 +284,11 @@ export class AuthService {
 
     const { authEmail } = snap.data()!;
     await this.afAuth.signInWithEmailAndPassword(authEmail, code);
-    localStorage.setItem('token', 'true');
+    try {
+      localStorage.setItem('token', 'true');
+    } catch {}
 
-    const stored = this.consumeRedirect(); // ⬅️ now respects deep links
+    const stored = this.consumeRedirect();
     await this.router.navigateByUrl(stored || '/dashboard', {
       replaceUrl: true,
     });
@@ -459,12 +497,4 @@ export class AuthService {
     }),
     shareReplay(1)
   );
-
-  // Read-and-clear pattern to avoid reusing old redirects
-  private consumeRedirect(): string | null {
-    const raw = localStorage.getItem('auth:redirect');
-    const sanitized = this.sanitizeRedirect(raw);
-    if (sanitized) localStorage.removeItem('auth:redirect');
-    return sanitized;
-  }
 }

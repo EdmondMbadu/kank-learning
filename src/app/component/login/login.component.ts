@@ -23,7 +23,12 @@ export class LoginComponent implements OnInit {
     window.scroll(0, 0);
     const q = this.route.snapshot.queryParamMap.get('returnUrl');
     if (q && q.startsWith('/')) {
-      localStorage.setItem('auth:redirect', q);
+      try {
+        sessionStorage.setItem('auth:redirect', q);
+      } catch {}
+      try {
+        localStorage.setItem('auth:redirect', q);
+      } catch {}
     }
   }
   async login() {
