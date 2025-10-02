@@ -41,11 +41,20 @@ export class AuthGuard implements CanActivate, CanLoad {
     );
   }
 
+  // src/app/auth/auth.guard.ts
   canLoad(route: Route, segments: UrlSegment[]): Observable<boolean | UrlTree> {
     const url = '/' + segments.map((s) => s.path).join('/');
     return this.afAuth.authState.pipe(
       take(1),
-      map((user) => (user ? true : this.toLoginTree(url)))
+      map((user) => {
+        if (user) return true;
+
+        // 🔴 previously missing — remember the deep link for lazy-loaded modules
+        if (!url.startsWith('/login')) {
+          localStorage.setItem('auth:redirect', url);
+        }
+        return this.toLoginTree(url);
+      })
     );
   }
 }

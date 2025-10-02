@@ -82,12 +82,9 @@ export class AuthService {
       this.clearActivePersona();
       localStorage.setItem('token', 'true');
 
-      const stored = this.sanitizeRedirect(
-        localStorage.getItem('auth:redirect')
-      );
+      const stored = this.consumeRedirect(); // ⬅️ use helper
 
       if (cred.user?.emailVerified) {
-        if (stored) localStorage.removeItem('auth:redirect');
         await this.router.navigateByUrl(stored || '/dashboard', {
           replaceUrl: true,
         });
@@ -241,17 +238,22 @@ export class AuthService {
   async loginWithUsername(username: string, code: string) {
     const uname = sanitizeUsername(username);
     if (!uname) throw new Error('Nom d’utilisateur requis.');
+
     const snap = await this.afs
       .doc<{ uid: string; authEmail: string; ownerUid: string }>(
         `usernames/${uname}`
       )
       .ref.get();
     if (!snap.exists) throw new Error('Utilisateur introuvable.');
+
     const { authEmail } = snap.data()!;
-    const cred = await this.afAuth.signInWithEmailAndPassword(authEmail, code);
+    await this.afAuth.signInWithEmailAndPassword(authEmail, code);
     localStorage.setItem('token', 'true');
-    // this.setActivePersona(studentUid);
-    await this.router.navigate(['/dashboard']);
+
+    const stored = this.consumeRedirect(); // ⬅️ now respects deep links
+    await this.router.navigateByUrl(stored || '/dashboard', {
+      replaceUrl: true,
+    });
   }
 
   // ---- List my child users (for admin view on profile)
@@ -457,4 +459,12 @@ export class AuthService {
     }),
     shareReplay(1)
   );
+
+  // Read-and-clear pattern to avoid reusing old redirects
+  private consumeRedirect(): string | null {
+    const raw = localStorage.getItem('auth:redirect');
+    const sanitized = this.sanitizeRedirect(raw);
+    if (sanitized) localStorage.removeItem('auth:redirect');
+    return sanitized;
+  }
 }
