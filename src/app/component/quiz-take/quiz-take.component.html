@@ -398,8 +398,25 @@
 
                         <!-- Actions: toggle details (placed as a full-width row action) -->
                         <div
-                          class="md:col-span-12 mt-3 md:mt-2 flex justify-end"
+                          class="md:col-span-12 mt-3 md:mt-2 flex justify-end gap-2"
                         >
+                          <button
+                            type="button"
+                            (click)="downloadDetailsPdf(r)"
+                            class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] font-semibold ring-1 ring-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:ring-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
+                            title="Télécharger le détail en PDF"
+                          >
+                            <svg
+                              class="h-4 w-4"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path
+                                d="M5 20h14v-2H5v2zm7-18L5.33 9h3.92v4h5.5V9h3.92L12 2z"
+                              />
+                            </svg>
+                            PDF
+                          </button>
                           <button
                             type="button"
                             (click)="toggleDetails(r.uid)"

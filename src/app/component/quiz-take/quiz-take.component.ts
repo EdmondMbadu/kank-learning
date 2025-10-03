@@ -7,6 +7,7 @@ import { AssignmentService } from 'src/app/shared/assignment.service';
 import { ClassService } from 'src/app/shared/class.service';
 import { QuizAssignment, QuizAttempt } from 'src/app/model/user';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import jsPDF from 'jspdf';
 
 // Type helper (optional)
 type AttemptRow = QuizAttempt & { uid: string; name?: string };
@@ -672,5 +673,145 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
   }
   private toArray<T>(v: T | T[] | null | undefined): T[] {
     return v == null ? [] : Array.isArray(v) ? v : [v];
+  }
+
+  async downloadDetailsPdf(row: ScoreboardRow) {
+    const [assignment, attempts] = await firstValueFrom(
+      combineLatest([this.assignment$, this.instructorAttempts$])
+    );
+
+    const attempt = (attempts as AttemptRow[]).find((a) => a.uid === row.uid);
+    if (!assignment || !attempt) {
+      return;
+    }
+
+    const verdicts = this.buildVerdicts(assignment, attempt);
+    this.detailsVerdicts[row.uid] = verdicts;
+
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const marginX = 48;
+    const usableWidth = 515;
+    let y = 64;
+
+    doc.setFontSize(16);
+    doc.text(`Quiz : ${assignment.title ?? 'Sans titre'}`, marginX, y);
+    y += 22;
+
+    doc.setFontSize(12);
+    const metaLines: string[] = [];
+    metaLines.push(`Étudiant : ${row.name}`);
+    if (row.email) metaLines.push(`Courriel : ${row.email}`);
+    const total = assignment?.numQuestions ?? row.total;
+    const scoreLabel =
+      attempt.score != null ? `${attempt.score}/${total}` : 'Non disponible';
+    metaLines.push(`Score : ${scoreLabel}`);
+    metaLines.push(`Statut : ${row.status ?? '—'}`);
+
+    metaLines.forEach((line) => {
+      doc.text(line, marginX, y);
+      y += 16;
+    });
+
+    if (row.lastSubmittedAt) {
+      doc.text(
+        `Dernière remise : ${row.lastSubmittedAt.toLocaleString()}`,
+        marginX,
+        y
+      );
+      y += 16;
+    }
+
+    if (verdicts.length === 0) {
+      doc.text('Aucune question à afficher.', marginX, y);
+      doc.save(`${this.safeFileName(assignment.title ?? 'quiz')}-${row.uid}.pdf`);
+      return;
+    }
+
+    y += 8;
+    doc.setFontSize(14);
+    doc.text('Détails des questions', marginX, y);
+    y += 20;
+    doc.setFontSize(11);
+
+    verdicts.forEach((v) => {
+      const prompt = v.prompt?.trim().length
+        ? `${v.index + 1}. ${v.prompt}`
+        : `${v.index + 1}. Question supprimée`;
+
+      const promptLines = doc.splitTextToSize(prompt, usableWidth);
+      y = this.ensurePageSpace(doc, y, promptLines.length * 14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(promptLines, marginX, y);
+      y += promptLines.length * 14;
+
+      doc.setFont('helvetica', 'normal');
+      const resultLine = `Résultat : ${v.isCorrect ? 'Bonne réponse' : 'Mauvaise réponse'}`;
+      const userLine = `Réponse de l'étudiant : ${this.formatUserAnswer(v)}`;
+      const expectedLine = `Réponse attendue : ${this.formatCorrectAnswer(v)}`;
+
+      const blocks = [resultLine, userLine, expectedLine];
+      blocks.forEach((line) => {
+        const lines = doc.splitTextToSize(line, usableWidth);
+        y = this.ensurePageSpace(doc, y, lines.length * 14);
+        doc.text(lines, marginX, y);
+        y += lines.length * 14;
+      });
+
+      y += 6;
+    });
+
+    const filename = `${this.safeFileName(assignment.title ?? 'quiz')}-${this.safeFileName(row.name || row.uid)}.pdf`;
+    doc.save(filename);
+  }
+
+  private safeFileName(raw: string): string {
+    return raw
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      || 'export';
+  }
+
+  private ensurePageSpace(doc: jsPDF, currentY: number, needed: number): number {
+    const limit = doc.internal.pageSize.getHeight() - 72;
+    if (currentY + needed <= limit) {
+      return currentY;
+    }
+    doc.addPage();
+    return 64;
+  }
+
+  private formatUserAnswer(v: VerdictItem): string {
+    if (v.kind === 'mcq-single' || v.kind === 'mcq-multi') {
+      if (v.userLabels?.length) return v.userLabels.join(', ');
+      if (Array.isArray(v.user)) return (v.user as any[]).join(', ');
+      if (v.user != null) return String(v.user);
+      return '—';
+    }
+    if (v.kind === 'text') {
+      return v.userText?.trim().length ? v.userText : '—';
+    }
+    if (Array.isArray(v.userLabels) && v.userLabels.length) {
+      return v.userLabels.join(', ');
+    }
+    return v.user != null && String(v.user).trim().length
+      ? String(v.user)
+      : '—';
+  }
+
+  private formatCorrectAnswer(v: VerdictItem): string {
+    if (v.kind === 'mcq-single' || v.kind === 'mcq-multi') {
+      if (v.correctLabels?.length) return v.correctLabels.join(', ');
+      return '—';
+    }
+    if (v.kind === 'text') {
+      if (v.correctText?.length) return v.correctText.join(', ');
+      return '—';
+    }
+    if (v.correctLabels?.length) return v.correctLabels.join(', ');
+    if (v.correctText?.length) return v.correctText.join(', ');
+    return '—';
   }
 }
