@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest, of, Subscription, timer } from 'rxjs';
+import { combineLatest, firstValueFrom, of, Subscription, timer } from 'rxjs';
 import { map, switchMap, shareReplay, take } from 'rxjs/operators';
 import { AuthService } from 'src/app/shared/auth.service';
 import { AssignmentService } from 'src/app/shared/assignment.service';
@@ -23,11 +23,27 @@ type ScoreboardRow = {
   percent: number | null; // 0..100, null if not graded
   lastSubmittedAt: Date | null;
 };
+type VerdictItem = {
+  index: number;
+  qid: string | null;
+  prompt: string;
+  kind: 'mcq-single' | 'mcq-multi' | 'text' | string;
+  user: number | number[] | string | null;
+  userLabels?: string[]; // for single/multi
+  userText?: string; // for text
+  correctLabels?: string[]; // for single/multi
+  correctText?: string[]; // for text
+  isCorrect: boolean;
+  // correct: number[] | string[] | number | string | null;
+};
+
 @Component({
   selector: 'app-quiz-take',
   templateUrl: './quiz-take.component.html',
 })
 export class QuizTakeComponent implements OnInit, OnDestroy {
+  detailsOpen: Record<string, boolean> = {};
+  detailsVerdicts: Record<string, VerdictItem[]> = {};
   classId$ = this.route.paramMap.pipe(map((p) => p.get('classId')!));
   quizId$ = this.route.paramMap.pipe(map((p) => p.get('quizId')!));
   me$ = this.auth.effectiveUser$;
@@ -480,5 +496,181 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
   // (optional) trackBy for *ngFor
   trackByUid(_i: number, r: ScoreboardRow) {
     return r.uid;
+  }
+
+  private getCorrectKey(q: any) {
+    // normalize various schema flavors for "correct answer(s)"
+    // single choice → number
+    if (Number.isFinite(q?.answerIndex))
+      return { kind: 'single', value: q.answerIndex as number };
+    if (Number.isFinite(q?.correctIndex))
+      return { kind: 'single', value: q.correctIndex as number };
+    if (Number.isFinite(q?.answer))
+      return { kind: 'single', value: Number(q.answer) };
+
+    // multi choice → number[]
+    if (Array.isArray(q?.correctIndices))
+      return { kind: 'multi', value: q.correctIndices as number[] };
+    if (Array.isArray(q?.answers) && q?.kind === 'mcq-multi')
+      return { kind: 'multi', value: q.answers as number[] };
+    if (Array.isArray(q?.answer) && q?.kind === 'mcq-multi')
+      return { kind: 'multi', value: q.answer as number[] };
+
+    // text → string[]
+    if (Array.isArray(q?.acceptedAnswers))
+      return { kind: 'text', value: q.acceptedAnswers as string[] };
+    if (Array.isArray(q?.answers) && q?.kind === 'text')
+      return { kind: 'text', value: q.answers as string[] };
+    if (typeof q?.answer === 'string' && q?.kind === 'text')
+      return { kind: 'text', value: [q.answer as string] };
+
+    return { kind: 'unknown', value: null };
+  }
+
+  private eqArray(a?: number[] | string[], b?: number[] | string[]) {
+    if (!Array.isArray(a) || !Array.isArray(b)) return false;
+    if (a.length !== b.length) return false;
+    const A = [...a].sort();
+    const B = [...b].sort();
+    return A.every((v, i) => String(v) === String(B[i]));
+  }
+
+  private normalizeText(s: any): string {
+    return String(s ?? '')
+      .trim()
+      .toLowerCase();
+  }
+
+  private isTextCorrect(user: any, accepted: string[]) {
+    const u = this.normalizeText(user);
+    if (!u) return false;
+    return accepted.map((x) => this.normalizeText(x)).some((x) => x === u);
+  }
+
+  private isSingleCorrect(user: any, correctIndex: number) {
+    return Number.isFinite(user) && Number(user) === correctIndex;
+  }
+  private isMultiCorrect(user: any, correctIndices: number[]) {
+    const arr = Array.isArray(user) ? (user as number[]) : [];
+    return this.eqArray(arr, correctIndices);
+  }
+
+  private labelsForChoiceIndices(
+    q: any,
+    idxs: number[] | number | null
+  ): string[] {
+    if (!q?.choices) return [];
+    const arr = Array.isArray(idxs)
+      ? idxs
+      : Number.isFinite(idxs)
+      ? [Number(idxs)]
+      : [];
+    return arr
+      .map((i) =>
+        Number.isFinite(i) && q.choices[i] != null ? String(q.choices[i]) : ''
+      )
+      .filter(Boolean);
+  }
+
+  /** Build per-question verdicts for a given attempt */
+  /** Build per-question verdicts for a given attempt */
+  private buildVerdicts(a: any, att: any): VerdictItem[] {
+    if (!a?.pool || !att?.selectedIds || !Array.isArray(att.answers)) return [];
+    const byId = new Map((a.pool as any[]).map((q: any) => [q.id, q]));
+    const selected: string[] = att.selectedIds as string[];
+
+    const res: VerdictItem[] = [];
+    for (let i = 0; i < selected.length; i++) {
+      const qid = selected[i] ?? null;
+      const q = qid ? byId.get(qid) : null;
+      const user = att.answers[i] ?? null;
+
+      const kind: VerdictItem['kind'] = q?.kind || 'unknown';
+      const correct = this.getCorrectKey(q);
+
+      let isCorrect = false;
+      let userLabels: string[] | undefined;
+      let correctLabels: string[] | undefined;
+      let userText: string | undefined;
+      let correctText: string[] | undefined;
+
+      if (kind === 'mcq-single' && correct.kind === 'single') {
+        isCorrect = this.isSingleCorrect(user, correct.value as number);
+        userLabels = this.labelsForChoiceIndices(q, user);
+        correctLabels = this.labelsForChoiceIndices(q, correct.value as number);
+      } else if (kind === 'mcq-multi' && correct.kind === 'multi') {
+        isCorrect = this.isMultiCorrect(user, correct.value as number[]);
+        userLabels = this.labelsForChoiceIndices(
+          q,
+          Array.isArray(user) ? user : []
+        );
+        correctLabels = this.labelsForChoiceIndices(
+          q,
+          correct.value as number[]
+        );
+      } else if (kind === 'text' && correct.kind === 'text') {
+        const acceptedStrings: string[] = this.toArray<any>(correct.value)
+          .map((x) => String(x))
+          .filter((s) => s.trim().length > 0);
+
+        userText = String(user ?? '');
+        correctText = acceptedStrings;
+        isCorrect = this.isTextCorrect(userText, acceptedStrings);
+      } else {
+        // Best-effort fallback for schema mismatches
+        if (Number.isFinite(user) && Number.isFinite(correct.value)) {
+          isCorrect = Number(user) === Number(correct.value);
+          userLabels = this.labelsForChoiceIndices(q, user);
+          correctLabels = this.labelsForChoiceIndices(
+            q,
+            correct.value as number
+          );
+        } else if (Array.isArray(user) && Array.isArray(correct.value)) {
+          isCorrect = this.eqArray(user as any[], correct.value as any[]);
+          userLabels = this.labelsForChoiceIndices(q, user as number[]);
+          correctLabels = this.labelsForChoiceIndices(
+            q,
+            correct.value as number[]
+          );
+        } else {
+          const acceptedStrings: string[] = this.toArray<any>(correct.value)
+            .map((x) => String(x))
+            .filter((s) => s.trim().length > 0);
+
+          userText = String(user ?? '');
+          correctText = acceptedStrings;
+          isCorrect = this.isTextCorrect(userText, acceptedStrings);
+        }
+      }
+
+      res.push({
+        index: i,
+        qid,
+        prompt: q?.prompt ?? '',
+        kind,
+        user,
+        userLabels,
+        userText,
+        correctLabels,
+        correctText,
+        isCorrect,
+      });
+    }
+    return res;
+  }
+
+  async toggleDetails(uid: string) {
+    this.detailsOpen[uid] = !this.detailsOpen[uid];
+    if (!this.detailsOpen[uid]) return;
+
+    const [a, attempts] = await firstValueFrom(
+      combineLatest([this.assignment$, this.instructorAttempts$])
+    );
+
+    const att = (attempts as any[]).find((x) => x?.uid === uid) || null;
+    this.detailsVerdicts[uid] = this.buildVerdicts(a, att);
+  }
+  private toArray<T>(v: T | T[] | null | undefined): T[] {
+    return v == null ? [] : Array.isArray(v) ? v : [v];
   }
 }

@@ -1,38 +1,55 @@
 <app-navbar></app-navbar>
 
-<div class="pt-16 min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50
-            dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+<div
+  class="pt-16 min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+>
   <div class="mx-auto max-w-6xl px-4 py-6">
     <div class="mb-4 flex items-center gap-2 text-sm">
-      <a [routerLink]="['/class', (classId$ | async)!]"
-         class="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">
+      <a
+        [routerLink]="['/class', (classId$ | async)!]"
+        class="inline-flex items-center gap-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+      >
         ← Retour à la classe
       </a>
     </div>
 
-    <div class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10">
-      <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5">
-
+    <div
+      class="rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/30 via-cyan-500/20 to-fuchsia-500/20 shadow-lg shadow-indigo-500/10"
+    >
+      <div
+        class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white/85 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-5"
+      >
         <ng-container *ngIf="assignment$ | async as a; else loading">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <h1 class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white">{{ a.title }}</h1>
+              <h1
+                class="text-xl md:text-2xl font-bold text-slate-900 dark:text-white"
+              >
+                {{ a.title }}
+              </h1>
               <div class="text-xs text-slate-500 dark:text-slate-400">
                 {{ a.numQuestions }} questions
                 <span *ngIf="a.points">• {{ a.points }} pts</span>
-                <span *ngIf="a.timed && a.timeLimitSec" class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1
-                             bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
-                  ⏱ {{ a.timeLimitSec / 60 | number:'1.0-0' }} min
+                <span
+                  *ngIf="a.timed && a.timeLimitSec"
+                  class="ml-2 rounded-full px-2 py-0.5 text-[11px] ring-1 bg-indigo-50 text-indigo-700 ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800"
+                >
+                  ⏱ {{ a.timeLimitSec / 60 | number : "1.0-0" }} min
                 </span>
               </div>
             </div>
 
             <ng-container *ngIf="timeLeft$ | async as secs">
-              <div *ngIf="secs !== null"
-                   class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200
-                          dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M15 1H9v2h6V1zm-1 10h-2V8h2v3zm-2 2h2v6h-2v-6z"/></svg>
-                <span>Temps : <b>{{ clock(secs) }}</b></span>
+              <div
+                *ngIf="secs !== null"
+                class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:ring-indigo-800"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M15 1H9v2h6V1zm-1 10h-2V8h2v3zm-2 2h2v6h-2v-6z" />
+                </svg>
+                <span
+                  >Temps : <b>{{ clock(secs) }}</b></span
+                >
               </div>
             </ng-container>
           </div>
@@ -42,27 +59,41 @@
             <!-- This object is always truthy, even if att is null -->
             <ng-container *ngIf="{ att: (myAttempt$ | async) } as vm">
               <!-- Status banners -->
-              <div *ngIf="vm.att?.score != null; else notDone"
-                class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                        dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/></svg>
-              <span>
-                {{ vm.att?.status === 'in-progress' ? 'Dernière note :' : 'Votre score :' }}
-                <b>{{ vm.att!.score }}/{{ a.numQuestions }}</b>
-                ({{ (vm.att!.score! / a.numQuestions * 100) | number:'1.0-0' }}%)
-              </span>
-            </div>
-
+              <div
+                *ngIf="vm.att?.score != null; else notDone"
+                class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800"
+              >
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z" />
+                </svg>
+                <span>
+                  {{
+                    vm.att?.status === "in-progress"
+                      ? "Dernière note :"
+                      : "Votre score :"
+                  }}
+                  <b>{{ vm.att!.score }}/{{ a.numQuestions }}</b>
+                  ({{
+                    (vm.att!.score! / a.numQuestions) * 100 | number : "1.0-0"
+                  }}%)
+                </span>
+              </div>
 
               <ng-template #notDone>
-                <div *ngIf="answeredCount(vm.att) > 0; else notStarted"
-                     class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-amber-50 text-amber-700 ring-1 ring-amber-200
-                            dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                  <span>En cours : {{ answeredCount(vm.att) }}/{{ a.numQuestions }}</span>
+                <div
+                  *ngIf="answeredCount(vm.att) > 0; else notStarted"
+                  class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800"
+                >
+                  <span
+                    >En cours : {{ answeredCount(vm.att) }}/{{
+                      a.numQuestions
+                    }}</span
+                  >
                 </div>
                 <ng-template #notStarted>
-                  <div class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-slate-100 text-slate-700 ring-1 ring-slate-200
-                              dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
+                  <div
+                    class="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
+                  >
                     <span>Non commencé</span>
                   </div>
                 </ng-template>
@@ -73,15 +104,18 @@
                 <button
                   (click)="onStartClick(a, vm.att)"
                   [disabled]="lockTimed"
-                  class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60">
+                  class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
+                >
                   Démarrer / Continuer
                 </button>
 
                 <!-- Attempts info -->
-                <span class="text-[11px] text-slate-500 dark:text-slate-400"
-                      *ngIf="hasCap(a); else unlimitedInfo">
-                  Tentatives : {{ computeUsedAttempts(a, vm.att) }} / {{ getMaxAttempts(a) }}
+                <span
+                  class="text-[11px] text-slate-500 dark:text-slate-400"
+                  *ngIf="hasCap(a); else unlimitedInfo"
+                >
+                  Tentatives : {{ computeUsedAttempts(a, vm.att) }} /
+                  {{ getMaxAttempts(a) }}
                 </span>
                 <ng-template #unlimitedInfo>
                   <span class="text-[11px] text-slate-500 dark:text-slate-400">
@@ -91,54 +125,83 @@
               </div>
 
               <!-- Questions: render ONLY while the attempt is in progress -->
-              <ng-container *ngIf="vm.att?.status === 'in-progress'; else quizNotEditable">
+              <ng-container
+                *ngIf="vm.att?.status === 'in-progress'; else quizNotEditable"
+              >
                 <div *ngIf="vm.att?.selectedIds as ids" class="mt-4 space-y-4">
                   <div *ngFor="let qid of ids; let i = index">
                     <ng-container *ngIf="getById(a.pool, qid) as q">
-                      <img *ngIf="q.imageUrl"
-                           [src]="q.imageUrl"
-                           class="mb-2 w-full max-h-64 object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
+                      <img
+                        *ngIf="q.imageUrl"
+                        [src]="q.imageUrl"
+                        class="mb-2 w-full max-h-64 object-contain rounded-lg ring-1 ring-slate-200 dark:ring-slate-700"
+                      />
 
-                      <div class="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      <div
+                        class="text-sm font-medium text-slate-900 dark:text-slate-100"
+                      >
                         {{ i + 1 }}. {{ q.prompt }}
                       </div>
 
                       <!-- Single choice -->
-                      <div *ngIf="q.kind === 'mcq-single'" class="mt-1 grid gap-1">
-                        <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
-                          <input type="radio"
-                                 [attr.name]="'q-'+i"
-                                 [checked]="isSingleSelected(vm.att, i, j)"
-                                 (change)="selectSingle(i, j)" />
+                      <div
+                        *ngIf="q.kind === 'mcq-single'"
+                        class="mt-1 grid gap-1"
+                      >
+                        <label
+                          *ngFor="let opt of q.choices; let j = index"
+                          class="flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="radio"
+                            [attr.name]="'q-' + i"
+                            [checked]="isSingleSelected(vm.att, i, j)"
+                            (change)="selectSingle(i, j)"
+                          />
                           <span>{{ opt }}</span>
                         </label>
                       </div>
 
                       <!-- Multiple choice -->
-                      <div *ngIf="q.kind === 'mcq-multi'" class="mt-1 grid gap-1">
-                        <label *ngFor="let opt of q.choices; let j = index" class="flex items-center gap-2 text-sm">
-                          <input type="checkbox"
-                                 [checked]="isMultiChecked(vm.att, i, j)"
-                                 (change)="toggleMulti(i, j)" />
+                      <div
+                        *ngIf="q.kind === 'mcq-multi'"
+                        class="mt-1 grid gap-1"
+                      >
+                        <label
+                          *ngFor="let opt of q.choices; let j = index"
+                          class="flex items-center gap-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            [checked]="isMultiChecked(vm.att, i, j)"
+                            (change)="toggleMulti(i, j)"
+                          />
                           <span>{{ opt }}</span>
                         </label>
                       </div>
 
                       <!-- Text -->
                       <div *ngIf="q.kind === 'text'" class="mt-1">
-                        <input type="text"
-                               [value]="textAnswer(vm.att, i)"
-                               (input)="saveText(i, ($any($event.target).value || '').toString())"
-                               class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
-                                      dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100" />
+                        <input
+                          type="text"
+                          [value]="textAnswer(vm.att, i)"
+                          (input)="
+                            saveText(
+                              i,
+                              ($any($event.target).value || '').toString()
+                            )
+                          "
+                          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100"
+                        />
                       </div>
                     </ng-container>
                   </div>
 
                   <div class="pt-2 flex items-center gap-3">
-                    <button (click)="submit()"
-                            class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700
-                                   focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                    <button
+                      (click)="submit()"
+                      class="rounded-lg px-3 py-1.5 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
                       Envoyer
                     </button>
                   </div>
@@ -149,168 +212,448 @@
               <ng-template #quizNotEditable>
                 <div class="mt-4 text-sm text-slate-500 dark:text-slate-400">
                   Ce quiz n’est pas modifiable (terminé ou expiré).
-                  <span class="block" *ngIf="(assignment$ | async) as a">
-                    Cliquez sur “Démarrer / Continuer” pour retenter si autorisé par la limite de tentatives.
+                  <span class="block" *ngIf="assignment$ | async as a">
+                    Cliquez sur “Démarrer / Continuer” pour retenter si autorisé
+                    par la limite de tentatives.
                   </span>
                 </div>
               </ng-template>
-
             </ng-container>
           </div>
 
-                <!-- Instructor dashboard (mobile-first) -->
-            <ng-container *ngIf="isTeacher$ | async">
-              <ng-container *ngIf="scoreboardRows$ | async as rows">
-                <div class="mt-8 rounded-2xl p-[1px]
-                            bg-gradient-to-br from-slate-300/40 via-slate-200/30 to-slate-300/40
-                            dark:from-slate-700/30 dark:via-slate-800/30 dark:to-slate-700/30">
-                  <div class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white/90 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-4 md:p-5">
-
-                    <!-- Header -->
-                    <div class="mb-4 md:mb-3 flex items-start justify-between">
-                      <div>
-                        <div class="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400">
-                          Tableau de bord — Résultats des étudiants
-                        </div>
-                        <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                          {{ rows.length }} étudiants ayant une tentative
-                        </div>
+          <!-- Instructor dashboard (mobile-first) -->
+          <ng-container *ngIf="isTeacher$ | async">
+            <ng-container *ngIf="scoreboardRows$ | async as rows">
+              <div
+                class="mt-8 rounded-2xl p-[1px] bg-gradient-to-br from-slate-300/40 via-slate-200/30 to-slate-300/40 dark:from-slate-700/30 dark:via-slate-800/30 dark:to-slate-700/30"
+              >
+                <div
+                  class="rounded-[calc(theme(borderRadius.2xl)-1px)] bg-white/90 dark:bg-slate-900/70 ring-1 ring-black/5 dark:ring-white/10 p-4 md:p-5"
+                >
+                  <!-- Header -->
+                  <div class="mb-4 md:mb-3 flex items-start justify-between">
+                    <div>
+                      <div
+                        class="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-400"
+                      >
+                        Tableau de bord — Résultats des étudiants
+                      </div>
+                      <div
+                        class="text-[11px] text-slate-500 dark:text-slate-400"
+                      >
+                        {{ rows.length }} étudiants ayant une tentative
                       </div>
                     </div>
-
-                    <div *ngIf="rows.length; else noRows">
-                      <!-- Table header (md+) -->
-                      <div class="hidden md:grid grid-cols-12 gap-3 px-3 py-2 text-[11px] font-semibold
-                                  text-slate-500 uppercase tracking-wide">
-                        <div class="col-span-4">Étudiant</div>
-                        <div class="col-span-2">Statut</div>
-                        <div class="col-span-2">Progression</div>
-                        <div class="col-span-2">Score</div>
-                        <div class="col-span-1 text-center">Tentatives</div>
-                        <div class="col-span-1 text-right">Dernière</div>
-                      </div>
-
-                      <!-- Rows -->
-                      <div class="space-y-3 md:space-y-0 md:divide-y md:divide-slate-200 dark:md:divide-slate-700">
-                        <article *ngFor="let r of rows; trackBy: trackByUid"
-                                class="p-3 rounded-xl ring-1 ring-slate-200 bg-white/80 dark:bg-slate-800/40
-                                        md:ring-0 md:bg-transparent md:rounded-none md:p-0
-                                        md:grid md:grid-cols-12 md:items-center md:gap-3">
-
-                          <!-- Étudiant -->
-                          <div class="md:col-span-4 min-w-0">
-                            <div class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-                              {{ r.name }}
-                            </div>
-                            <div class="text-[11px] text-slate-500 truncate">
-                              {{ r.email || r.uid }}
-                            </div>
-                          </div>
-
-                          <!-- Statut -->
-                          <div class="md:col-span-2 mt-2 md:mt-0">
-                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Statut</div>
-                            <ng-container [ngSwitch]="r.status">
-                              <span *ngSwitchCase="'in-progress'"
-                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                          bg-amber-50 text-amber-700 ring-1 ring-amber-200
-                                          dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800">
-                                En cours
-                              </span>
-                              <span *ngSwitchCase="'submitted'"
-                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                          bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                                          dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-                                Soumis
-                              </span>
-                              <span *ngSwitchCase="'expired'"
-                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                          bg-rose-50 text-rose-700 ring-1 ring-rose-200
-                                          dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800">
-                                Expiré
-                              </span>
-                              <span *ngSwitchDefault
-                                    class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                          bg-slate-100 text-slate-600 ring-1 ring-slate-200
-                                          dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                                —
-                              </span>
-                            </ng-container>
-                          </div>
-
-                          <!-- Progression -->
-                          <div class="md:col-span-2 mt-2 md:mt-0">
-                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Progression</div>
-                            <div class="text-sm text-slate-700 dark:text-slate-200">
-                              {{ r.answered }}/{{ r.total }}
-                            </div>
-                            <div class="mt-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700/60 overflow-hidden">
-                              <div class="h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400"
-                                  [style.width.%]="r.total ? (r.answered / r.total) * 100 : 0"></div>
-                            </div>
-                          </div>
-
-                          <!-- Score -->
-                          <div class="md:col-span-2 mt-2 md:mt-0">
-                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Score</div>
-                            <span *ngIf="r.score !== null; else noScore"
-                                  class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                        bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
-                                        dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800">
-                              {{ r.score }}/{{ r.total }} • {{ r.percent }}%
-                            </span>
-                            <ng-template #noScore>
-                              <span class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                          bg-slate-100 text-slate-600 ring-1 ring-slate-200
-                                          dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700">
-                                —
-                              </span>
-                            </ng-template>
-                          </div>
-
-                          <!-- Tentatives -->
-                          <div class="md:col-span-1 mt-2 md:mt-0 md:text-center">
-                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Tentatives</div>
-                            <span class="rounded-full px-2 py-0.5 text-[11px] font-medium
-                                        bg-slate-100 text-slate-600 ring-1 ring-slate-200
-                                        dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
-                                  title="Nombre de retakes confirmés">
-                              ↻ {{ r.attemptCount }}
-                            </span>
-                          </div>
-
-                          <!-- Dernière -->
-                          <div class="md:col-span-1 mt-2 md:mt-0 md:text-right">
-                            <div class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1">Dernière</div>
-                            <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                              <ng-container *ngIf="r.lastSubmittedAt as d; else noDate">
-                                {{ d | date:'short' }}
-                              </ng-container>
-                              <ng-template #noDate>—</ng-template>
-                            </div>
-                          </div>
-
-                        </article>
-                      </div>
-                    </div>
-
-                    <ng-template #noRows>
-                      <div class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 text-xs text-slate-500
-                                  dark:bg-slate-800/40 dark:ring-slate-700">
-                        Personne n’a encore commencé ce quiz.
-                      </div>
-                    </ng-template>
                   </div>
+
+                  <div *ngIf="rows.length; else noRows">
+                    <!-- Table header (md+) -->
+                    <div
+                      class="hidden md:grid grid-cols-12 gap-3 px-3 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wide"
+                    >
+                      <div class="col-span-4">Étudiant</div>
+                      <div class="col-span-2">Statut</div>
+                      <div class="col-span-2">Progression</div>
+                      <div class="col-span-2">Score</div>
+                      <div class="col-span-1 text-center">Tentatives</div>
+                      <div class="col-span-1 text-right">Dernière</div>
+                    </div>
+
+                    <!-- Rows -->
+                    <div
+                      class="space-y-3 md:space-y-0 md:divide-y md:divide-slate-200 dark:md:divide-slate-700"
+                    >
+                      <article
+                        *ngFor="let r of rows; trackBy: trackByUid"
+                        class="p-3 rounded-xl ring-1 ring-slate-200 bg-white/80 dark:bg-slate-800/40 md:ring-0 md:bg-transparent md:rounded-none md:p-0 md:grid md:grid-cols-12 md:items-center md:gap-3"
+                      >
+                        <!-- Étudiant -->
+                        <div class="md:col-span-4 min-w-0">
+                          <div
+                            class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate"
+                          >
+                            {{ r.name }}
+                          </div>
+                          <div class="text-[11px] text-slate-500 truncate">
+                            {{ r.email || r.uid }}
+                          </div>
+                        </div>
+
+                        <!-- Statut -->
+                        <div class="md:col-span-2 mt-2 md:mt-0">
+                          <div
+                            class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1"
+                          >
+                            Statut
+                          </div>
+                          <ng-container [ngSwitch]="r.status">
+                            <span
+                              *ngSwitchCase="'in-progress'"
+                              class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800"
+                            >
+                              En cours
+                            </span>
+                            <span
+                              *ngSwitchCase="'submitted'"
+                              class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800"
+                            >
+                              Soumis
+                            </span>
+                            <span
+                              *ngSwitchCase="'expired'"
+                              class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-rose-50 text-rose-700 ring-1 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800"
+                            >
+                              Expiré
+                            </span>
+                            <span
+                              *ngSwitchDefault
+                              class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
+                            >
+                              —
+                            </span>
+                          </ng-container>
+                        </div>
+
+                        <!-- Progression -->
+                        <div class="md:col-span-2 mt-2 md:mt-0">
+                          <div
+                            class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1"
+                          >
+                            Progression
+                          </div>
+                          <div
+                            class="text-sm text-slate-700 dark:text-slate-200"
+                          >
+                            {{ r.answered }}/{{ r.total }}
+                          </div>
+                          <div
+                            class="mt-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700/60 overflow-hidden"
+                          >
+                            <div
+                              class="h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400"
+                              [style.width.%]="
+                                r.total ? (r.answered / r.total) * 100 : 0
+                              "
+                            ></div>
+                          </div>
+                        </div>
+
+                        <!-- Score -->
+                        <div class="md:col-span-2 mt-2 md:mt-0">
+                          <div
+                            class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1"
+                          >
+                            Score
+                          </div>
+                          <span
+                            *ngIf="r.score !== null; else noScore"
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800"
+                          >
+                            {{ r.score }}/{{ r.total }} • {{ r.percent }}%
+                          </span>
+                          <ng-template #noScore>
+                            <span
+                              class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
+                            >
+                              —
+                            </span>
+                          </ng-template>
+                        </div>
+
+                        <!-- Tentatives -->
+                        <div class="md:col-span-1 mt-2 md:mt-0 md:text-center">
+                          <div
+                            class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1"
+                          >
+                            Tentatives
+                          </div>
+                          <span
+                            class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
+                            title="Nombre de retakes confirmés"
+                          >
+                            ↻ {{ r.attemptCount }}
+                          </span>
+                        </div>
+
+                        <!-- Dernière -->
+                        <div class="md:col-span-1 mt-2 md:mt-0 md:text-right">
+                          <div
+                            class="md:hidden text-[10px] uppercase tracking-wide text-slate-500 mb-1"
+                          >
+                            Dernière
+                          </div>
+                          <div
+                            class="text-[11px] text-slate-500 dark:text-slate-400"
+                          >
+                            <ng-container
+                              *ngIf="r.lastSubmittedAt as d; else noDate"
+                            >
+                              {{ d | date : "short" }}
+                            </ng-container>
+                            <ng-template #noDate>—</ng-template>
+                          </div>
+                        </div>
+
+                        <!-- ...existing columns for Étudiant / Statut / Progression / Score / Tentatives / Dernière -->
+
+                        <!-- Actions: toggle details (placed as a full-width row action) -->
+                        <div
+                          class="md:col-span-12 mt-3 md:mt-2 flex justify-end"
+                        >
+                          <button
+                            type="button"
+                            (click)="toggleDetails(r.uid)"
+                            class="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-[12px] font-semibold ring-1 ring-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:ring-slate-700 dark:bg-slate-800/60 dark:text-slate-200 dark:hover:bg-slate-800"
+                            [attr.aria-expanded]="
+                              detailsOpen[r.uid] ? 'true' : 'false'
+                            "
+                            [attr.aria-controls]="'quiz-details-' + r.uid"
+                            title="Voir le détail des questions (bonnes/mauvaises)"
+                          >
+                            <svg
+                              class="h-4 w-4"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                            >
+                              <path
+                                *ngIf="!detailsOpen[r.uid]"
+                                d="M7 10l5 5 5-5H7z"
+                              />
+                              <path
+                                *ngIf="detailsOpen[r.uid]"
+                                d="M7 14l5-5 5 5H7z"
+                              />
+                            </svg>
+                            {{
+                              detailsOpen[r.uid]
+                                ? "Masquer les détails"
+                                : "Voir questions (✓/✗)"
+                            }}
+                          </button>
+                        </div>
+
+                        <!-- Details panel -->
+                        <div
+                          *ngIf="detailsOpen[r.uid]"
+                          [id]="'quiz-details-' + r.uid"
+                          class="md:col-span-12 mt-2 rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-3"
+                        >
+                          <ng-container
+                            *ngIf="
+                              detailsVerdicts[r.uid] as verdicts;
+                              else loadingVerdicts
+                            "
+                          >
+                            <ng-container
+                              *ngIf="verdicts.length; else noVerdicts"
+                            >
+                              <div class="space-y-3">
+                                <div
+                                  *ngFor="let v of verdicts; let i = index"
+                                  class="rounded-lg bg-white/80 dark:bg-slate-900/50 ring-1 ring-slate-200 dark:ring-slate-700 p-3"
+                                >
+                                  <div
+                                    class="flex items-start justify-between gap-3"
+                                  >
+                                    <div class="min-w-0">
+                                      <div
+                                        class="text-sm font-medium text-slate-900 dark:text-slate-100 truncate"
+                                      >
+                                        {{ v.index + 1 }}.
+                                        {{ v.prompt || "Question supprimée" }}
+                                      </div>
+                                      <div
+                                        class="mt-1 text-[12px] text-slate-600 dark:text-slate-300"
+                                      >
+                                        <ng-container [ngSwitch]="v.kind">
+                                          <span *ngSwitchCase="'mcq-single'"
+                                            >Choix unique</span
+                                          >
+                                          <span *ngSwitchCase="'mcq-multi'"
+                                            >Choix multiple</span
+                                          >
+                                          <span *ngSwitchCase="'text'"
+                                            >Réponse texte</span
+                                          >
+                                          <span *ngSwitchDefault
+                                            >Type: {{ v.kind || "—" }}</span
+                                          >
+                                        </ng-container>
+                                      </div>
+                                    </div>
+
+                                    <span
+                                      class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                                      [class.bg-emerald-50]="v.isCorrect"
+                                      [class.text-emerald-700]="v.isCorrect"
+                                      [class.ring-emerald-200]="v.isCorrect"
+                                      [class.bg-rose-50]="!v.isCorrect"
+                                      [class.text-rose-700]="!v.isCorrect"
+                                      [class.ring-rose-200]="!v.isCorrect"
+                                      class="ring-1"
+                                    >
+                                      {{
+                                        v.isCorrect ? "Correct" : "Incorrect"
+                                      }}
+                                    </span>
+                                  </div>
+
+                                  <!-- Answers rendering -->
+                                  <div class="mt-2 grid gap-1 text-[12px]">
+                                    <div
+                                      class="text-slate-600 dark:text-slate-300"
+                                    >
+                                      <span class="font-semibold"
+                                        >Votre réponse :</span
+                                      >
+                                      <ng-container [ngSwitch]="v.kind">
+                                        <!-- Single choice -->
+                                        <span *ngSwitchCase="'mcq-single'">
+                                          <ng-container
+                                            *ngIf="
+                                              v.userLabels?.length;
+                                              else noAns
+                                            "
+                                          >
+                                            {{ v.userLabels![0] }}
+                                          </ng-container>
+                                        </span>
+
+                                        <!-- Multiple choice -->
+                                        <span *ngSwitchCase="'mcq-multi'">
+                                          <ng-container
+                                            *ngIf="
+                                              v.userLabels?.length;
+                                              else noAns
+                                            "
+                                          >
+                                            <span
+                                              *ngFor="let lbl of v.userLabels"
+                                              class="mr-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 ring-1 ring-slate-200 dark:ring-slate-700"
+                                            >
+                                              {{ lbl }}
+                                            </span>
+                                          </ng-container>
+                                        </span>
+
+                                        <!-- Text -->
+                                        <span *ngSwitchCase="'text'">
+                                          <ng-container
+                                            *ngIf="
+                                              (v.userText?.trim()?.length ??
+                                                0) >
+                                                0;
+                                              else noAns
+                                            "
+                                          >
+                                            “{{ v.userText }}”
+                                          </ng-container>
+                                        </span>
+
+                                        <!-- Fallback -->
+                                        <span *ngSwitchDefault>
+                                          {{ v.user | json }}
+                                        </span>
+
+                                        <ng-template #noAns>—</ng-template>
+                                      </ng-container>
+                                    </div>
+
+                                    <div
+                                      class="text-slate-600 dark:text-slate-300"
+                                    >
+                                      <span class="font-semibold"
+                                        >Bonne réponse :</span
+                                      >
+                                      <ng-container [ngSwitch]="v.kind">
+                                        <span *ngSwitchCase="'mcq-single'">
+                                          <ng-container
+                                            *ngIf="
+                                              v.correctLabels?.length;
+                                              else noKey
+                                            "
+                                          >
+                                            {{ v.correctLabels![0] }}
+                                          </ng-container>
+                                        </span>
+                                        <span *ngSwitchCase="'mcq-multi'">
+                                          <ng-container
+                                            *ngIf="
+                                              v.correctLabels?.length;
+                                              else noKey
+                                            "
+                                          >
+                                            <span
+                                              *ngFor="
+                                                let lbl of v.correctLabels
+                                              "
+                                              class="mr-1 rounded-full bg-emerald-50/60 dark:bg-emerald-900/30 px-2 py-0.5 ring-1 ring-emerald-200 dark:ring-emerald-800"
+                                            >
+                                              {{ lbl }}
+                                            </span>
+                                          </ng-container>
+                                        </span>
+                                        <span *ngSwitchCase="'text'">
+                                          <ng-container
+                                            *ngIf="
+                                              v.correctText?.length;
+                                              else noKey
+                                            "
+                                          >
+                                            <span
+                                              *ngFor="let lbl of v.correctText"
+                                              class="mr-1 rounded-full bg-emerald-50/60 dark:bg-emerald-900/30 px-2 py-0.5 ring-1 ring-emerald-200 dark:ring-emerald-800"
+                                            >
+                                              “{{ lbl }}”
+                                            </span>
+                                          </ng-container>
+                                        </span>
+
+                                        <!-- <span *ngSwitchDefault>{{
+                                          v.correct | json
+                                        }}</span> -->
+                                        <ng-template #noKey>—</ng-template>
+                                      </ng-container>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </ng-container>
+
+                            <ng-template #noVerdicts>
+                              <div class="text-[12px] text-slate-500">
+                                Aucune question à afficher.
+                              </div>
+                            </ng-template>
+                          </ng-container>
+
+                          <ng-template #loadingVerdicts>
+                            <div
+                              class="h-10 rounded-lg bg-slate-200 animate-pulse dark:bg-slate-700/50"
+                            ></div>
+                          </ng-template>
+                        </div>
+                      </article>
+                    </div>
+                  </div>
+
+                  <ng-template #noRows>
+                    <div
+                      class="rounded-xl bg-slate-50 ring-1 ring-slate-200 p-3 text-xs text-slate-500 dark:bg-slate-800/40 dark:ring-slate-700"
+                    >
+                      Personne n’a encore commencé ce quiz.
+                    </div>
+                  </ng-template>
                 </div>
-              </ng-container>
+              </div>
             </ng-container>
-
-
-
+          </ng-container>
         </ng-container>
 
         <ng-template #loading>
-          <div class="h-20 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"></div>
+          <div
+            class="h-20 rounded-xl bg-slate-200 animate-pulse dark:bg-slate-800"
+          ></div>
         </ng-template>
       </div>
     </div>
@@ -318,33 +661,64 @@
 </div>
 
 <!-- confirm start (timed) -->
-<div *ngIf="confirmStartOpen" class="fixed inset-0 z-[110] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-black/50" (click)="confirmStartOpen=false"></div>
-  <div class="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-5">
+<div
+  *ngIf="confirmStartOpen"
+  class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+>
+  <div
+    class="absolute inset-0 bg-black/50"
+    (click)="confirmStartOpen = false"
+  ></div>
+  <div
+    class="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-5"
+  >
     <h4 class="text-base font-semibold mb-2">Démarrer le quiz chronométré ?</h4>
     <p class="text-sm text-slate-600 dark:text-slate-300">
-      Une fois commencé, le minuteur tourne (<b>impossible de fermer</b> la page jusqu’à l’envoi ou la fin du temps).
+      Une fois commencé, le minuteur tourne (<b>impossible de fermer</b> la page
+      jusqu’à l’envoi ou la fin du temps).
     </p>
     <div class="mt-4 flex justify-end gap-2">
-      <button (click)="confirmStartOpen=false" class="rounded-md px-3 py-1.5 text-sm ring-1 ring-slate-200 dark:ring-slate-700">Annuler</button>
-      <button (click)="confirmStart()" class="rounded-md px-3 py-1.5 text-sm font-semibold bg-emerald-600 text-white">Commencer</button>
+      <button
+        (click)="confirmStartOpen = false"
+        class="rounded-md px-3 py-1.5 text-sm ring-1 ring-slate-200 dark:ring-slate-700"
+      >
+        Annuler
+      </button>
+      <button
+        (click)="confirmStart()"
+        class="rounded-md px-3 py-1.5 text-sm font-semibold bg-emerald-600 text-white"
+      >
+        Commencer
+      </button>
     </div>
   </div>
 </div>
 
 <!-- max attempts reached -->
-<div *ngIf="maxAttemptsModalOpen" class="fixed inset-0 z-[120] flex items-center justify-center p-4">
-  <div class="absolute inset-0 bg-black/50" (click)="maxAttemptsModalOpen=false"></div>
-  <div class="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-5">
+<div
+  *ngIf="maxAttemptsModalOpen"
+  class="fixed inset-0 z-[120] flex items-center justify-center p-4"
+>
+  <div
+    class="absolute inset-0 bg-black/50"
+    (click)="maxAttemptsModalOpen = false"
+  ></div>
+  <div
+    class="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-5"
+  >
     <h4 class="text-base font-semibold mb-2">Limite de tentatives atteinte</h4>
     <p class="text-sm text-slate-600 dark:text-slate-300">
-      Vous avez atteint la limite de tentatives pour ce quiz
-      (<b>{{ lastUsedForModal }}</b>/<b>{{ lastMaxForModal }}</b>).
-      Contactez l’admin si vous avez besoin d’une nouvelle tentative.
+      Vous avez atteint la limite de tentatives pour ce quiz (<b>{{
+        lastUsedForModal
+      }}</b
+      >/<b>{{ lastMaxForModal }}</b
+      >). Contactez l’admin si vous avez besoin d’une nouvelle tentative.
     </p>
     <div class="mt-4 flex justify-end">
-      <button (click)="maxAttemptsModalOpen=false"
-              class="rounded-md px-3 py-1.5 text-sm font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900">
+      <button
+        (click)="maxAttemptsModalOpen = false"
+        class="rounded-md px-3 py-1.5 text-sm font-semibold bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+      >
         OK
       </button>
     </div>
@@ -353,41 +727,63 @@
 
 <!-- Result modal -->
 <div *ngIf="showResult" class="fixed inset-0 z-[130]">
-  <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" (click)="closeResult()"></div>
-  <div class="absolute inset-0 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="result-title">
-    <div class="relative w-full max-w-md rounded-3xl p-[1px]
-                bg-gradient-to-br from-indigo-500/40 via-cyan-500/30 to-fuchsia-500/30 shadow-2xl">
-      <div class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-6">
-
-        <button (click)="closeResult()"
-                class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full
-                       ring-1 ring-slate-200/80 dark:ring-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800"
-                aria-label="Fermer">
-          <svg class="h-5 w-5 text-slate-600 dark:text-slate-300" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18.3 5.7L12 12m0 0l-6.3 6.3M12 12l6.3 6.3M12 12L5.7 5.7"/>
+  <div
+    class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+    (click)="closeResult()"
+  ></div>
+  <div
+    class="absolute inset-0 flex items-center justify-center p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="result-title"
+  >
+    <div
+      class="relative w-full max-w-md rounded-3xl p-[1px] bg-gradient-to-br from-indigo-500/40 via-cyan-500/30 to-fuchsia-500/30 shadow-2xl"
+    >
+      <div
+        class="rounded-[calc(theme(borderRadius.3xl)-1px)] bg-white dark:bg-slate-900 ring-1 ring-black/10 dark:ring-white/10 p-6"
+      >
+        <button
+          (click)="closeResult()"
+          class="absolute top-3 right-3 inline-flex h-9 w-9 items-center justify-center rounded-full ring-1 ring-slate-200/80 dark:ring-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800"
+          aria-label="Fermer"
+        >
+          <svg
+            class="h-5 w-5 text-slate-600 dark:text-slate-300"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path
+              d="M18.3 5.7L12 12m0 0l-6.3 6.3M12 12l6.3 6.3M12 12L5.7 5.7"
+            />
           </svg>
         </button>
 
         <div class="flex items-center gap-3">
-          <div class="h-12 w-12 rounded-2xl ring-1 ring-emerald-200 bg-emerald-50 dark:bg-emerald-900/30
-                      text-emerald-700 dark:text-emerald-300 flex items-center justify-center"
-               *ngIf="resultStatus==='submitted'; else expiredIcon">
+          <div
+            class="h-12 w-12 rounded-2xl ring-1 ring-emerald-200 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 flex items-center justify-center"
+            *ngIf="resultStatus === 'submitted'; else expiredIcon"
+          >
             <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z"/>
+              <path d="M9 16.2l-3.5-3.6L4 14.1l5 5 11-11-1.5-1.5z" />
             </svg>
           </div>
           <ng-template #expiredIcon>
-            <div class="h-12 w-12 rounded-2xl ring-1 ring-amber-200 bg-amber-50 dark:bg-amber-900/30
-                        text-amber-700 dark:text-amber-300 flex items-center justify-center">
+            <div
+              class="h-12 w-12 rounded-2xl ring-1 ring-amber-200 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 flex items-center justify-center"
+            >
               <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M15 1H9v2h6V1zm-1 10h-2V8h2v3zm-2 2h2v6h-2v-6z"/>
+                <path d="M15 1H9v2h6V1zm-1 10h-2V8h2v3zm-2 2h2v6h-2v-6z" />
               </svg>
             </div>
           </ng-template>
 
           <div>
-            <h3 id="result-title" class="text-lg font-semibold text-slate-900 dark:text-white">
-              {{ resultStatus === 'expired' ? 'Temps écoulé' : 'Quiz soumis' }}
+            <h3
+              id="result-title"
+              class="text-lg font-semibold text-slate-900 dark:text-white"
+            >
+              {{ resultStatus === "expired" ? "Temps écoulé" : "Quiz soumis" }}
             </h3>
             <p class="text-sm text-slate-500 dark:text-slate-400">
               Voici votre résultat
@@ -395,24 +791,28 @@
           </div>
         </div>
 
-        <div class="mt-5 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 p-5
-                    bg-slate-50/70 dark:bg-slate-800/40 text-center">
-          <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">Score</div>
+        <div
+          class="mt-5 rounded-2xl ring-1 ring-slate-200 dark:ring-slate-700 p-5 bg-slate-50/70 dark:bg-slate-800/40 text-center"
+        >
+          <div class="text-xs uppercase tracking-wide text-slate-500 mb-1">
+            Score
+          </div>
           <div class="text-3xl font-bold text-slate-900 dark:text-white">
             {{ resultScore }}/{{ resultTotal }}
-            <span class="ml-2 text-base font-medium text-slate-500">• {{ resultPct }}%</span>
+            <span class="ml-2 text-base font-medium text-slate-500"
+              >• {{ resultPct }}%</span
+            >
           </div>
         </div>
 
         <div class="mt-6 flex justify-end gap-2">
-          <button (click)="closeResult()"
-                  class="rounded-lg px-4 py-2 text-sm font-semibold
-                         bg-indigo-600 text-white hover:bg-indigo-700
-                         focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+          <button
+            (click)="closeResult()"
+            class="rounded-lg px-4 py-2 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          >
             Fermer et revenir à la classe
           </button>
         </div>
-
       </div>
     </div>
   </div>
