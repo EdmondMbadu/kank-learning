@@ -11,18 +11,33 @@ import jsPDF from 'jspdf';
 
 // Type helper (optional)
 type AttemptRow = QuizAttempt & { uid: string; name?: string };
+type AttemptStatus = 'in-progress' | 'submitted' | 'expired' | null;
+type AttemptHistoryItem = {
+  attemptNo: number | null;
+  status: AttemptStatus;
+  score: number | null;
+  submittedAt: Date | null;
+  startedAt: Date | null;
+  durationSec: number | null;
+  payload: {
+    selectedIds: string[];
+    answers: any[];
+  };
+};
 // ---- VM type for the table
 type ScoreboardRow = {
   uid: string;
   name: string; // "First Last" | displayName | uid
   email: string; // fallback: ''
   attemptCount: number; // total retakes
-  status: 'in-progress' | 'submitted' | 'expired' | null;
+  status: AttemptStatus;
   answered: number; // answered count
   total: number; // a.numQuestions
   score: number | null; // raw score
   percent: number | null; // 0..100, null if not graded
   lastSubmittedAt: Date | null;
+  lastDurationSec: number | null;
+  attempts: AttemptHistoryItem[];
 };
 type VerdictItem = {
   index: number;
@@ -153,19 +168,19 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
                 : Math.round((score / total) * 100);
 
             const status = (r.status ?? null) as ScoreboardRow['status'];
-            const lastFromHist =
-              Array.isArray(r.history) && r.history.length
-                ? r.history
-                    .map((h: any) => this.tsToDate(h?.submittedAt))
-                    .filter((d: Date | null): d is Date => !!d)
-                    .sort((a: any, b: any) => b.getTime() - a.getTime())[0] ||
-                  null
-                : null;
+            const attempts = this.normalizeHistory(r);
+            const latestAttempt = attempts[0] ?? null;
 
             const lastRoot =
               this.tsToDate(r?.submittedAt) || this.tsToDate(r?.gradedAt);
 
-            const lastSubmittedAt = lastFromHist || lastRoot;
+            const lastSubmittedAt = latestAttempt?.submittedAt || lastRoot;
+            const lastDurationSec =
+              latestAttempt?.durationSec ||
+              this.computeDurationSeconds(
+                this.tsToDate(r?.startedAt),
+                lastRoot
+              );
 
             return {
               uid: r.uid,
@@ -178,6 +193,8 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
               score,
               percent,
               lastSubmittedAt,
+              lastDurationSec,
+              attempts,
             };
           };
 
@@ -494,9 +511,71 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     return x instanceof Date ? x : null;
   }
 
+  private normalizeHistory(att: AttemptRow | null | undefined): AttemptHistoryItem[] {
+    const history = Array.isArray((att as any)?.history)
+      ? ((att as any).history as any[])
+      : [];
+
+    const normalized = history.map((h: any, idx: number) => {
+      const submittedAt = this.tsToDate(h?.submittedAt);
+      const startedAt = this.tsToDate(h?.startedAt);
+      const durationSec = this.computeHistoryDurationSeconds(h, submittedAt, startedAt);
+      const fallbackNo = history.length - idx;
+      const attemptNo =
+        typeof h?.attemptNo === 'number' && h.attemptNo > 0
+          ? Number(h.attemptNo)
+          : fallbackNo > 0
+          ? fallbackNo
+          : null;
+
+      return {
+        attemptNo,
+        status: (h?.status ?? null) as AttemptStatus,
+        score: Number.isFinite(h?.score) ? Number(h.score) : null,
+        submittedAt,
+        startedAt,
+        durationSec,
+        payload: {
+          selectedIds: Array.isArray(h?.selectedIds) ? h.selectedIds : [],
+          answers: Array.isArray(h?.answers) ? h.answers : [],
+        },
+      };
+    });
+
+    return normalized.sort((a, b) => {
+      if (a.attemptNo != null && b.attemptNo != null && a.attemptNo !== b.attemptNo) {
+        return b.attemptNo - a.attemptNo;
+      }
+      const ta = a.submittedAt?.getTime() ?? 0;
+      const tb = b.submittedAt?.getTime() ?? 0;
+      return tb - ta;
+    });
+  }
+
+  private computeHistoryDurationSeconds(entry: any, submittedAt: Date | null, startedAt: Date | null): number | null {
+    if (entry && typeof entry.durationMs === 'number' && Number.isFinite(entry.durationMs)) {
+      return Math.max(0, Math.round(entry.durationMs / 1000));
+    }
+    if (startedAt && submittedAt) {
+      return this.computeDurationSeconds(startedAt, submittedAt);
+    }
+    return null;
+  }
+
+  private computeDurationSeconds(start: Date | null, end: Date | null): number | null {
+    if (!start || !end) return null;
+    const diff = end.getTime() - start.getTime();
+    if (!Number.isFinite(diff) || diff < 0) return null;
+    return Math.round(diff / 1000);
+  }
+
   // (optional) trackBy for *ngFor
   trackByUid(_i: number, r: ScoreboardRow) {
     return r.uid;
+  }
+
+  trackHistory(_i: number, r: AttemptHistoryItem) {
+    return r.attemptNo ?? r.submittedAt?.getTime() ?? _i;
   }
 
   private getCorrectKey(q: any) {
@@ -675,18 +754,22 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     return v == null ? [] : Array.isArray(v) ? v : [v];
   }
 
-  async downloadDetailsPdf(row: ScoreboardRow) {
+  async downloadDetailsPdf(row: ScoreboardRow, history?: AttemptHistoryItem) {
     const [assignment, attempts] = await firstValueFrom(
       combineLatest([this.assignment$, this.instructorAttempts$])
     );
 
     const attempt = (attempts as AttemptRow[]).find((a) => a.uid === row.uid);
-    if (!assignment || !attempt) {
+    const source = history ? history.payload : attempt;
+
+    if (!assignment || !source) {
       return;
     }
 
-    const verdicts = this.buildVerdicts(assignment, attempt);
-    this.detailsVerdicts[row.uid] = verdicts;
+    const verdicts = this.buildVerdicts(assignment, source as any);
+    if (!history) {
+      this.detailsVerdicts[row.uid] = verdicts;
+    }
 
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const marginX = 48;
@@ -702,22 +785,47 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     metaLines.push(`Étudiant : ${row.name}`);
     if (row.email) metaLines.push(`Courriel : ${row.email}`);
     const total = assignment?.numQuestions ?? row.total;
+    const scoreValue = history
+      ? history.score
+      : Number.isFinite((attempt as any)?.score)
+      ? Number((attempt as any).score)
+      : row.score;
     const scoreLabel =
-      attempt.score != null ? `${attempt.score}/${total}` : 'Non disponible';
+      scoreValue != null ? `${scoreValue}/${total}` : 'Non disponible';
     metaLines.push(`Score : ${scoreLabel}`);
-    metaLines.push(`Statut : ${row.status ?? '—'}`);
+    const statusLabel = history
+      ? history.status ?? '—'
+      : row.status ?? attempt?.status ?? '—';
+    metaLines.push(`Statut : ${statusLabel}`);
 
     metaLines.forEach((line) => {
       doc.text(line, marginX, y);
       y += 16;
     });
 
-    if (row.lastSubmittedAt) {
+    const attemptNo = history
+      ? history.attemptNo
+      : row.attempts?.[0]?.attemptNo ?? null;
+    if (attemptNo != null) {
+      doc.text(`Tentative #${attemptNo}`, marginX, y);
+      y += 16;
+    }
+
+    const submittedAt = history
+      ? history.submittedAt
+      : this.tsToDate((attempt as any)?.submittedAt) || row.lastSubmittedAt;
+    if (submittedAt) {
       doc.text(
-        `Dernière remise : ${row.lastSubmittedAt.toLocaleString()}`,
+        `Remis le : ${submittedAt.toLocaleString()}`,
         marginX,
         y
       );
+      y += 16;
+    }
+
+    const durationSec = history ? history.durationSec : row.lastDurationSec;
+    if (durationSec != null) {
+      doc.text(`Durée : ${this.clock(durationSec)}`, marginX, y);
       y += 16;
     }
 

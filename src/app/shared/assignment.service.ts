@@ -740,13 +740,23 @@ export class AssignmentService {
         : 'submitted';
       const prevUserCount = t?.attemptCount ?? 0;
 
+      const startedAt: firebase.firestore.Timestamp | null =
+        t?.startedAt ?? null;
+      const submittedAt = firebase.firestore.Timestamp.now();
+      const durationMs =
+        startedAt instanceof firebase.firestore.Timestamp
+          ? Math.max(0, submittedAt.toMillis() - startedAt.toMillis())
+          : null;
+
       const historyEntry = {
         score,
         selectedIds,
         answers,
         status: finalStatus,
         attemptNo: prevUserCount + 1,
-        submittedAt: firebase.firestore.Timestamp.now(), // client timestamp inside array item
+        submittedAt, // client timestamp inside array item
+        startedAt,
+        durationMs,
       };
 
       tx.update(tRef, {

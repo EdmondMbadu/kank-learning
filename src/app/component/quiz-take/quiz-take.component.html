@@ -345,12 +345,13 @@
                           >
                             Score
                           </div>
-                          <span
-                            *ngIf="r.score !== null; else noScore"
-                            class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800"
-                          >
-                            {{ r.score }}/{{ r.total }} • {{ r.percent }}%
-                          </span>
+                          <ng-container *ngIf="r.score !== null; else noScore">
+                            <span
+                              class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800"
+                            >
+                              {{ r.score }}/{{ r.total }} • {{ r.percent }}%
+                            </span>
+                          </ng-container>
                           <ng-template #noScore>
                             <span
                               class="rounded-full px-2 py-0.5 text-[11px] font-medium bg-slate-100 text-slate-600 ring-1 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700"
@@ -358,6 +359,17 @@
                               —
                             </span>
                           </ng-template>
+                          <div
+                            class="mt-1 text-[11px] text-slate-500 dark:text-slate-400"
+                          >
+                            Durée :
+                            <ng-container
+                              *ngIf="r.lastDurationSec !== null; else durationDash"
+                            >
+                              {{ clock(r.lastDurationSec) }}
+                            </ng-container>
+                            <ng-template #durationDash>—</ng-template>
+                          </div>
                         </div>
 
                         <!-- Tentatives -->
@@ -395,6 +407,153 @@
                         </div>
 
                         <!-- ...existing columns for Étudiant / Statut / Progression / Score / Tentatives / Dernière -->
+
+                        <!-- Attempt history -->
+                        <div class="md:col-span-12 mt-3 md:mt-2">
+                          <div
+                            class="rounded-xl ring-1 ring-slate-200 dark:ring-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-3"
+                          >
+                            <div
+                              class="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+                            >
+                              <span>Historique des tentatives</span>
+                              <span class="text-[10px] font-normal"
+                                >{{ r.attempts.length }}
+                                {{
+                                  r.attempts.length > 1
+                                    ? "tentatives"
+                                    : "tentative"
+                                }}</span
+                              >
+                            </div>
+                            <div *ngIf="r.attempts.length; else noAttemptHistory">
+                              <div class="mt-2 space-y-2">
+                                <div
+                                  *ngFor="
+                                    let h of r.attempts;
+                                    trackBy: trackHistory
+                                  "
+                                  class="rounded-lg bg-white/90 dark:bg-slate-900/40 ring-1 ring-slate-200 dark:ring-slate-700 p-3"
+                                >
+                                  <div
+                                    class="flex flex-wrap items-center justify-between gap-3"
+                                  >
+                                    <div>
+                                      <div
+                                        class="text-sm font-semibold text-slate-900 dark:text-slate-100"
+                                      >
+                                        Tentative
+                                        {{ h.attemptNo ?? "—" }}
+                                      </div>
+                                      <div
+                                        class="text-[11px] text-slate-500 dark:text-slate-400"
+                                      >
+                                        <ng-container
+                                          *ngIf="h.submittedAt; else noHistoryDate"
+                                        >
+                                          {{ h.submittedAt | date : "short" }}
+                                        </ng-container>
+                                        <ng-template #noHistoryDate
+                                          >Date inconnue</ng-template
+                                        >
+                                      </div>
+                                    </div>
+                                    <div
+                                      class="text-sm font-medium text-slate-900 dark:text-slate-100"
+                                    >
+                                      <ng-container
+                                        *ngIf="h.score !== null; else historyNoScore"
+                                      >
+                                        {{ h.score }}/{{ r.total }}
+                                      </ng-container>
+                                      <ng-template #historyNoScore>—</ng-template>
+                                    </div>
+                                  </div>
+                                  <div
+                                    class="mt-2 flex flex-wrap items-center gap-2 text-[11px]"
+                                  >
+                                    <span
+                                      class="rounded-full px-2 py-0.5 font-semibold ring-1"
+                                      [ngClass]="{
+                                        'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-800':
+                                          h.status === 'submitted',
+                                        'bg-rose-50 text-rose-700 ring-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:ring-rose-800':
+                                          h.status === 'expired',
+                                        'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:ring-amber-800':
+                                          h.status === 'in-progress',
+                                        'bg-slate-100 text-slate-600 ring-slate-200 dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-700':
+                                          !h.status
+                                      }"
+                                    >
+                                      <ng-container [ngSwitch]="h.status">
+                                        <span *ngSwitchCase="'submitted'"
+                                          >Soumis</span
+                                        >
+                                        <span *ngSwitchCase="'expired'"
+                                          >Expiré</span
+                                        >
+                                        <span *ngSwitchCase="'in-progress'"
+                                          >En cours</span
+                                        >
+                                        <span *ngSwitchDefault>—</span>
+                                      </ng-container>
+                                    </span>
+                                    <span
+                                      class="rounded-full px-2 py-0.5 font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-700"
+                                    >
+                                      Durée :
+                                      <ng-container
+                                        *ngIf="
+                                          h.durationSec !== null;
+                                          else noHistoryDuration
+                                        "
+                                      >
+                                        {{ clock(h.durationSec) }}
+                                      </ng-container>
+                                      <ng-template #noHistoryDuration
+                                        >—</ng-template
+                                      >
+                                    </span>
+                                    <span
+                                      class="rounded-full px-2 py-0.5 font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200 dark:bg-slate-800/60 dark:text-slate-200 dark:ring-slate-700"
+                                    >
+                                      Score :
+                                      <ng-container
+                                        *ngIf="h.score !== null; else scoreHistoryDash"
+                                      >
+                                        {{ h.score }}/{{ r.total }}
+                                      </ng-container>
+                                      <ng-template #scoreHistoryDash
+                                        >—</ng-template
+                                      >
+                                    </span>
+                                    <button
+                                      type="button"
+                                      (click)="downloadDetailsPdf(r, h)"
+                                      class="ml-auto inline-flex items-center gap-1 rounded-full px-3 py-1.5 font-semibold ring-1 ring-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:ring-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200 dark:hover:bg-indigo-900/60"
+                                    >
+                                      <svg
+                                        class="h-3.5 w-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                      >
+                                        <path
+                                          d="M5 20h14v-2H5v2zm7-18L5.33 9h3.92v4h5.5V9h3.92L12 2z"
+                                        />
+                                      </svg>
+                                      PDF
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <ng-template #noAttemptHistory>
+                              <div class="mt-2 text-[12px] text-slate-500">
+                                Aucune tentative soumise pour l'instant.
+                              </div>
+                            </ng-template>
+                          </div>
+                        </div>
 
                         <!-- Actions: toggle details (placed as a full-width row action) -->
                         <div
