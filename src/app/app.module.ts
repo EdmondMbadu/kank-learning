@@ -12,42 +12,26 @@ import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { LoginComponent } from './component/login/login.component';
 import { RegisterComponent } from './component/register/register.component';
-import { DashboardComponent } from './component/dashboard/dashboard.component';
 import { FormsModule } from '@angular/forms';
 import { ForgotPasswordComponent } from './component/forgot-password/forgot-password.component';
 import { VerifyEmailComponent } from './component/verify-email/verify-email.component';
 import { LandingPageComponent } from './component/landing-page/landing-page.component';
-import { NavbarComponent } from './component/navbar/navbar.component';
-import { ClassComponent } from './component/class/class.component';
-import { ProfileComponent } from './component/profile/profile.component';
-import { GradesComponent } from './component/grades/grades.component';
-import { MessagesComponent } from './component/messages/messages.component';
-import { QuizTakeComponent } from './component/quiz-take/quiz-take.component';
-import { ActivityComponent } from './component/activity/activity.component';
-import { ClassReadingsComponent } from './component/class-readings/class-readings.component';
+import { SharedModule } from './shared/shared.module';
 
 @NgModule({
   declarations: [
     AppComponent,
     LoginComponent,
     RegisterComponent,
-    DashboardComponent,
     ForgotPasswordComponent,
     VerifyEmailComponent,
     LandingPageComponent,
-    NavbarComponent,
-    ClassComponent,
-    ProfileComponent,
-    GradesComponent,
-    MessagesComponent,
-    QuizTakeComponent,
-    ActivityComponent,
-    ClassReadingsComponent,
   ],
   imports: [
     BrowserModule,
     AppRoutingModule,
     FormsModule,
+    SharedModule,
     AngularFireModule.initializeApp(environment.firebase),
     AngularFireFunctionsModule,
     provideAuth(() => getAuth()),
