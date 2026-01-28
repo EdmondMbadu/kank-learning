@@ -7,7 +7,6 @@ import { AssignmentService } from 'src/app/shared/assignment.service';
 import { ClassService } from 'src/app/shared/class.service';
 import { QuizAssignment, QuizAttempt } from 'src/app/model/user';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
-import jsPDF from 'jspdf';
 
 // Type helper (optional)
 type AttemptRow = QuizAttempt & { uid: string; name?: string };
@@ -58,6 +57,7 @@ type VerdictItem = {
   templateUrl: './quiz-take.component.html',
 })
 export class QuizTakeComponent implements OnInit, OnDestroy {
+  private jsPdfCtor: any | null = null;
   detailsOpen: Record<string, boolean> = {};
   detailsVerdicts: Record<string, VerdictItem[]> = {};
   classId$ = this.route.paramMap.pipe(map((p) => p.get('classId')!));
@@ -771,7 +771,8 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
       this.detailsVerdicts[row.uid] = verdicts;
     }
 
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const JsPdf = await this.getJsPdfCtor();
+    const doc = new JsPdf({ unit: 'pt', format: 'a4' });
     const marginX = 48;
     const usableWidth = 515;
     let y = 64;
@@ -882,7 +883,7 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
       || 'export';
   }
 
-  private ensurePageSpace(doc: jsPDF, currentY: number, needed: number): number {
+  private ensurePageSpace(doc: any, currentY: number, needed: number): number {
     const limit = doc.internal.pageSize.getHeight() - 72;
     if (currentY + needed <= limit) {
       return currentY;
@@ -921,5 +922,12 @@ export class QuizTakeComponent implements OnInit, OnDestroy {
     if (v.correctLabels?.length) return v.correctLabels.join(', ');
     if (v.correctText?.length) return v.correctText.join(', ');
     return '—';
+  }
+
+  private async getJsPdfCtor() {
+    if (this.jsPdfCtor) return this.jsPdfCtor;
+    const mod = await import('jspdf');
+    this.jsPdfCtor = (mod as any).default || mod;
+    return this.jsPdfCtor;
   }
 }
