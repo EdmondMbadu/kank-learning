@@ -69,6 +69,8 @@ export class ProfileComponent implements OnInit, OnDestroy {
   child = { firstName: '', lastName: '', username: '', code: '' };
   creating = false;
   err = '';
+  deleting: Record<string, boolean> = {};
+  deleteErr = '';
   childUsers$!: Observable<User[]>;
 
   async onFileSelected(ev: Event) {
@@ -194,5 +196,34 @@ export class ProfileComponent implements OnInit, OnDestroy {
     } catch (e: any) {
       alert(e?.message || 'Échec');
     }
+  }
+
+  async deleteChild(u: User) {
+    if (!this.me?.uid || !u?.uid) return;
+    if (u.uid === this.me.uid) {
+      alert('Vous ne pouvez pas supprimer votre propre compte.');
+      return;
+    }
+    const label =
+      (u as any)?.username || u.displayName || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.uid;
+    const ok = confirm(
+      `Supprimer définitivement “${label}” ? Cette action est irréversible.`
+    );
+    if (!ok) return;
+
+    this.deleteErr = '';
+    this.deleting[u.uid] = true;
+    try {
+      await this.auth.deleteManagedChildUser(u.uid);
+      alert('Compte supprimé ✅');
+    } catch (e: any) {
+      this.deleteErr = e?.message || 'Impossible de supprimer ce compte.';
+    } finally {
+      delete this.deleting[u.uid];
+    }
+  }
+
+  isDeleting(u: User): boolean {
+    return !!u?.uid && !!this.deleting[u.uid];
   }
 }

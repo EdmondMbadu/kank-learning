@@ -15,6 +15,7 @@ import {
 } from 'rxjs';
 import { map, shareReplay, switchMap, take } from 'rxjs/operators';
 import { AngularFireStorage } from '@angular/fire/compat/storage'; // ✅ NEW
+import { AngularFireFunctions } from '@angular/fire/compat/functions';
 import { User } from '../model/user';
 import { getApps, initializeApp } from '@angular/fire/app';
 import {
@@ -45,7 +46,8 @@ export class AuthService {
     private afs: AngularFirestore,
     private router: Router,
     private storage: AngularFireStorage,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private fns: AngularFireFunctions
   ) {
     // Read Firestore user doc when auth state changes
     this.user$ = this.afAuth.authState.pipe(
@@ -466,6 +468,11 @@ export class AuthService {
     } finally {
       await signOut(auth2).catch(() => {});
     }
+  }
+
+  async deleteManagedChildUser(targetUid: string) {
+    const callable = this.fns.httpsCallable('deleteManagedChild');
+    await firstValueFrom(callable({ targetUid }));
   }
   private activePersonaUid$ = new BehaviorSubject<string | null>(
     localStorage.getItem('activePersonaUid') || null

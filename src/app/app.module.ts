@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AngularFireModule } from '@angular/fire/compat';
+import { AngularFireFunctionsModule } from '@angular/fire/compat/functions';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -48,6 +49,7 @@ import { ClassReadingsComponent } from './component/class-readings/class-reading
     AppRoutingModule,
     FormsModule,
     AngularFireModule.initializeApp(environment.firebase),
+    AngularFireFunctionsModule,
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
   ],

@@ -151,16 +151,23 @@
               <button (click)="promptRename(u)" class="rounded px-2 py-1 text-xs ring-1 ring-slate-300">Renommer</button>
               <!-- change password (needs current) -->
               <button (click)="promptChangePwd(u)" class="rounded px-2 py-1 text-xs ring-1 ring-slate-300">Changer code</button>
+              <!-- delete -->
+              <button
+                (click)="deleteChild(u)"
+                [disabled]="isDeleting(u)"
+                class="rounded px-2 py-1 text-xs font-semibold text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50
+                       disabled:opacity-60 disabled:cursor-not-allowed">
+                {{ isDeleting(u) ? 'Suppression…' : 'Supprimer' }}
+              </button>
             </div>
           </div>
         </div>
         <ng-template #noRows><div class="text-sm text-slate-500">Aucun compte rattaché.</div></ng-template>
       </div>
+      <p *ngIf="deleteErr" class="mt-2 text-xs text-rose-600">{{ deleteErr }}</p>
       <ng-template #cLoading><div class="h-10 rounded bg-slate-200 animate-pulse dark:bg-slate-800"></div></ng-template>
     </div>
   </div>
 </ng-container>
   </div>
 </div>
-
-
