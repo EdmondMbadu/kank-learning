@@ -60,6 +60,9 @@ export class ClassComponent implements OnInit {
   builderEditingId: string | null = null;
 
   editingQuizId: string | null = null; // when set, builder is editing an existing quiz
+  forkSourceId: string | null = null;
+  forkBusy = false;
+  forkError = '';
 
   addReadingOpen = false;
   reading = {
@@ -213,6 +216,9 @@ export class ClassComponent implements OnInit {
 
   assignmentsAll$ = this.classId$.pipe(
     switchMap((id) => this.asgn.assignments$(id))
+  );
+  quizTemplates$ = this.assignmentsAll$.pipe(
+    map((list) => (list ?? []).filter((a: any) => a?.type === 'quiz'))
   );
 
   assignments$ = combineLatest([
@@ -1046,6 +1052,9 @@ export class ClassComponent implements OnInit {
     this.assigneeQuery$.next('');
     this.builderOpen = false;
     this.builderMaxAttempts = null;
+    this.forkSourceId = null;
+    this.forkError = '';
+    this.forkBusy = false;
   }
 
   lockTimed = false;
@@ -1574,6 +1583,87 @@ export class ClassComponent implements OnInit {
       alert(e?.message || 'Impossible de charger le quiz à éditer.');
     }
   }
+  private builderHasData(): boolean {
+    return (
+      !!this.builderTitle.trim() ||
+      this.builderQuestions.length > 0 ||
+      this.builderPoints != null ||
+      this.builderTimed ||
+      this.builderTimeMin != null ||
+      this.builderMaxAttempts != null ||
+      this.builderAudience !== 'all' ||
+      this.builderAssignees.size > 0
+    );
+  }
+
+  async forkFromQuiz(classId: string, assignmentId: string) {
+    if (!assignmentId) return;
+    if (this.builderHasData()) {
+      const ok = confirm(
+        'Remplacer le contenu en cours par un quiz existant ? Les modifications non enregistrées seront perdues.'
+      );
+      if (!ok) return;
+    }
+
+    this.forkBusy = true;
+    this.forkError = '';
+    try {
+      const a: any = await this.asgn.getCustomQuizForEdit(
+        classId,
+        assignmentId
+      );
+      if (!a) throw new Error('Quiz introuvable.');
+
+      this.builderTitle = a.title ? `Copie de ${a.title}` : '';
+      this.builderPoints = (a.points ?? null) as number | null;
+
+      this.builderTimed = !!a.timed;
+      this.builderTimeMin = this.builderTimed
+        ? Math.max(1, Math.round((a.timeLimitSec || 0) / 60))
+        : null;
+
+      const maxAttempts =
+        typeof a.maxAttempts === 'number' ? a.maxAttempts : null;
+      this.builderMaxAttempts =
+        maxAttempts && maxAttempts < 10000 ? maxAttempts : null;
+
+      this.builderAudience = (a.audience as 'all' | 'subset') || 'all';
+      this.builderAssignees.clear();
+      (Array.isArray(a.assignedTo) ? a.assignedTo : []).forEach((uid: string) =>
+        this.builderAssignees.add(uid)
+      );
+
+      let rawQs: any[] = [];
+      if (Array.isArray(a.pool) && a.pool.length) {
+        rawQs = a.pool;
+      } else if (Array.isArray(a.questions) && a.questions.length) {
+        rawQs = a.questions;
+      } else {
+        rawQs = await this.asgn.getCustomQuizQuestions(classId, assignmentId);
+      }
+      this.builderQuestions = rawQs.map((q, i) =>
+        this.normalizeForBuilder(q, i)
+      );
+
+      this.builderEditingId = null;
+      this.editingQuizId = null;
+      this.forkSourceId = null;
+      if (this.draft.imagePreviewUrl)
+        URL.revokeObjectURL(this.draft.imagePreviewUrl);
+      this.draft = this.newDraft();
+
+      this.builderOpen = true;
+      setTimeout(() => {
+        document
+          .querySelector('[role="dialog"]')
+          ?.scrollTo?.({ top: 0, behavior: 'smooth' });
+      }, 0);
+    } catch (e: any) {
+      this.forkError = e?.message || 'Impossible de charger ce quiz.';
+    } finally {
+      this.forkBusy = false;
+    }
+  }
 
   private normalizeForBuilder(raw: any, idx: number): EditorQuestion {
     const id = raw?.id ?? raw?.qid ?? `q${idx + 1}`;
@@ -1744,6 +1834,9 @@ export class ClassComponent implements OnInit {
     this.assigneeQuery = '';
     this.assigneeQuery$.next('');
     this.builderEditingId = null;
+    this.forkSourceId = null;
+    this.forkError = '';
+    this.forkBusy = false;
     if (this.draft.imagePreviewUrl)
       URL.revokeObjectURL(this.draft.imagePreviewUrl);
     this.draft = this.newDraft();

@@ -948,6 +948,49 @@
 
     <!-- Body: keep your existing builder fields -->
     <div class="p-4 sm:p-5 space-y-4">
+      <div *ngIf="!editingQuizId"
+           class="rounded-lg bg-white ring-1 ring-slate-200 p-3 dark:bg-slate-900 dark:ring-slate-700">
+        <div class="text-sm font-medium text-slate-900 dark:text-slate-100">
+          Utiliser un quiz existant
+        </div>
+        <p class="mt-0.5 text-xs text-slate-500">
+          Charge un quiz existant comme point de départ (le quiz original reste inchangé).
+        </p>
+
+        <ng-container *ngIf="(quizTemplates$ | async) as templates">
+          <div class="mt-2 grid gap-2 md:grid-cols-3">
+            <select
+              [(ngModel)]="forkSourceId"
+              class="md:col-span-2 h-9 rounded-lg border border-slate-300 bg-white px-2 text-sm
+                    text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                    dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+              <option [ngValue]="null">Choisir un quiz…</option>
+              <option *ngFor="let q of templates" [ngValue]="q.id">
+                {{ q.title }}
+              </option>
+            </select>
+
+            <ng-container *ngIf="(classId$ | async) as classId">
+              <button
+                (click)="forkFromQuiz(classId, forkSourceId!)"
+                [disabled]="!forkSourceId || forkBusy"
+                class="h-9 rounded-lg px-3 text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700
+                      disabled:opacity-60 disabled:cursor-not-allowed">
+                {{ forkBusy ? 'Chargement…' : 'Utiliser ce quiz' }}
+              </button>
+            </ng-container>
+          </div>
+
+          <div *ngIf="!templates.length" class="mt-2 text-xs text-slate-500">
+            Aucun quiz existant à utiliser pour l’instant.
+          </div>
+        </ng-container>
+
+        <div *ngIf="forkError" class="mt-2 text-xs text-rose-600">
+          {{ forkError }}
+        </div>
+      </div>
+
       <div class="grid gap-2 md:grid-cols-3">
         <input [(ngModel)]="builderTitle" placeholder="Titre du quiz"
                class="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
