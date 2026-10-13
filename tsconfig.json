@@ -6,6 +6,9 @@
     "outDir": "./dist/out-tsc",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    // AngularFire 7 compat declarations conflict with Firebase's snapshot types.
+    // Keep application code strict while skipping dependency declaration checks.
+    "skipLibCheck": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
