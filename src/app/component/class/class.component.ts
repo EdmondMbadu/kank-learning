@@ -61,6 +61,51 @@ export class ClassComponent implements OnInit {
   quizImportMessage = '';
   private quizImportRequest = 0;
   deleting: Record<string, boolean> = {};
+  pdfQuiz: { id: string; title: string } | null = null;
+  pdfIncludeAnswers = false;
+  pdfBusy = false;
+  pdfError = '';
+
+  openQuizPdf(id: string, title?: string) {
+    this.pdfQuiz = { id, title: title || 'Quiz' };
+    this.pdfIncludeAnswers = false;
+    this.pdfError = '';
+  }
+
+  closeQuizPdf() {
+    if (!this.pdfBusy) this.pdfQuiz = null;
+  }
+
+  async downloadQuizPdf(classId: string) {
+    if (!this.pdfQuiz || this.pdfBusy) return;
+    const target = this.pdfQuiz;
+    const includeAnswers = this.pdfIncludeAnswers;
+    this.pdfBusy = true;
+    this.pdfError = '';
+    try {
+      const role = await firstValueFrom(this.role$);
+      if (role !== 'instructor' && role !== 'ta') throw new Error('Export réservé aux formateurs.');
+      const assignment = await this.asgn.getCustomQuizForEdit(classId, target.id);
+      if (!assignment) throw new Error('Quiz introuvable.');
+      const rawQuestions = assignment.pool?.length ? assignment.pool
+        : assignment.questions?.length ? assignment.questions
+        : await this.asgn.getCustomQuizQuestions(classId, target.id);
+      const { createQuizPdf, quizPdfFilename } = await import('./quiz-pdf');
+      const doc = await createQuizPdf({
+        title: assignment.title || target.title,
+        questions: rawQuestions.map((q: any, i: number) => this.normalizeForBuilder(q, i)),
+        points: assignment.points,
+        timed: assignment.timed,
+        timeLimitSec: assignment.timeLimitSec,
+      }, includeAnswers);
+      doc.save(quizPdfFilename(assignment.title || target.title, includeAnswers));
+      this.pdfQuiz = null;
+    } catch (error) {
+      this.pdfError = error instanceof Error ? error.message : 'Impossible de télécharger ce PDF.';
+    } finally {
+      this.pdfBusy = false;
+    }
+  }
 
   builderEditingId: string | null = null;
 

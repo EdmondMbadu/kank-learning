@@ -189,7 +189,7 @@
                 <div *ngIf="assigns.length; else noAssigns" class="mt-3 space-y-2">
                   <!-- existing assignment rows unchanged -->
                   <div *ngFor="let a of assigns; trackBy: trackById"
-                      class="flex items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
+                      class="flex flex-col items-start md:flex-row md:items-center justify-between gap-3 rounded-xl ring-1 ring-slate-200 dark:ring-slate-800
                               bg-white/90 dark:bg-slate-800/70 backdrop-blur px-3 py-2 transition
                               hover:shadow-md hover:ring-indigo-300/60">
                     <!-- LEFT: title + meta (unchanged) -->
@@ -263,7 +263,7 @@
                       </ng-container>
 
                       <!-- Desktop -->
-                      <div class="hidden sm:flex items-center gap-2">
+                      <div class="hidden sm:flex flex-wrap items-center gap-2">
                         <a [routerLink]="['/class', cl.id, 'quiz', a.id]"
                           class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                           Ouvrir
@@ -274,6 +274,11 @@
                                 (click)="beginEditQuiz(cl.id!, a.id!)"
                                 class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-sky-600 text-white hover:bg-sky-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                           Éditer
+                        </button>
+                        <button *ngIf="a.type === 'quiz' && ((role$ | async) === 'instructor' || (role$ | async) === 'ta')"
+                                type="button" (click)="openQuizPdf(a.id!, a.title)"
+                                class="rounded-lg px-3 py-1.5 text-xs font-semibold bg-slate-100 text-slate-700 ring-1 ring-slate-200 hover:bg-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:bg-slate-700 dark:text-slate-100 dark:ring-slate-600">
+                          Télécharger PDF
                         </button>
                         <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
                                 (click)="confirmDeleteAssignment(cl.id!, a.id!)"
@@ -305,6 +310,11 @@
                                       (click)="beginEditQuiz(cl.id!, a.id!)"
                                       class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">
                                 Éditer
+                              </button>
+                              <button *ngIf="a.type === 'quiz' && ((role$ | async) === 'instructor' || (role$ | async) === 'ta')"
+                                      type="button" (click)="openQuizPdf(a.id!, a.title)"
+                                      class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                Télécharger PDF
                               </button>
 
                               <button *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'"
@@ -923,6 +933,39 @@
       <div class="rounded-3xl h-40 bg-slate-200 animate-pulse dark:bg-slate-800"></div>
     </ng-template>
 
+  </div>
+</div>
+
+<!-- Quiz PDF version selector -->
+<div *ngIf="pdfQuiz as quiz" class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+     role="dialog" aria-modal="true" aria-labelledby="quiz-pdf-title" (keydown.escape)="closeQuizPdf()">
+  <div class="absolute inset-0 bg-black/50" (click)="closeQuizPdf()"></div>
+  <div class="relative w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-black/10 dark:bg-slate-900 dark:ring-white/10">
+    <div class="flex items-center justify-between gap-3">
+      <h3 id="quiz-pdf-title" class="text-lg font-semibold text-slate-900 dark:text-white">Télécharger le quiz en PDF</h3>
+      <button type="button" aria-label="Fermer" (click)="closeQuizPdf()" [disabled]="pdfBusy"
+              class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:hover:bg-slate-800">✕</button>
+    </div>
+    <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">{{ quiz.title }}</p>
+    <label for="quiz-pdf-version" class="mt-5 block text-sm font-medium text-slate-700 dark:text-slate-200">Version du PDF</label>
+    <select id="quiz-pdf-version" [(ngModel)]="pdfIncludeAnswers" [disabled]="pdfBusy" aria-describedby="quiz-pdf-description"
+            class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-700 dark:text-white">
+      <option [ngValue]="false">Questions seules</option>
+      <option [ngValue]="true">Avec les réponses</option>
+    </select>
+    <p id="quiz-pdf-description" class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+      {{ pdfIncludeAnswers ? 'Toutes les questions et les bonnes réponses, pour la correction.' : 'Toutes les questions et les choix, sans corrigé, pour les étudiants.' }}
+    </p>
+    <p *ngIf="pdfError" role="alert" class="mt-3 text-sm text-rose-700 dark:text-rose-300">{{ pdfError }}</p>
+    <div class="mt-5 flex justify-end gap-2">
+      <button type="button" (click)="closeQuizPdf()" [disabled]="pdfBusy"
+              class="rounded-lg px-3 py-2 text-sm ring-1 ring-slate-200 disabled:opacity-50 dark:ring-slate-700">Annuler</button>
+      <button *ngIf="(classId$ | async) as classId" type="button" (click)="downloadQuizPdf(classId)" [disabled]="pdfBusy"
+              class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+        {{ pdfBusy ? 'Préparation…' : 'Télécharger PDF' }}
+      </button>
+    </div>
+    <p *ngIf="pdfBusy" role="status" class="mt-3 text-xs text-slate-500">Création du PDF en cours…</p>
   </div>
 </div>
 
