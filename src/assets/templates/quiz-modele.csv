@@ -1,0 +1,4 @@
+question,type,choix_1,choix_2,choix_3,choix_4,choix_5,reponse_correcte,image_url
+Quelle est la capitale de la France ?,mcq-single,Paris,Lyon,Marseille,Lille,,1,
+Quels nombres sont pairs ?,mcq-multi,2,3,4,5,,1|3,
+Combien font 2 + 2 ?,text,,,,,,4,

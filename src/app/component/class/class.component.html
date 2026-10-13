@@ -164,6 +164,13 @@
 
           <!-- Accordion content -->
           <div *ngIf="sectionOpen.assignments" id="sec-assignments" class="mt-4">
+            <div *ngIf="(role$ | async) === 'instructor' || (role$ | async) === 'ta'" class="mb-4 flex flex-wrap items-center gap-3">
+              <button type="button" (click)="openCreateQuiz()"
+                      class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+                + Créer un quiz
+              </button>
+              <span class="text-xs text-slate-500 dark:text-slate-400">Ajoutez vos questions manuellement ou importez un fichier CSV.</span>
+            </div>
             <ng-container *ngIf="(assignments$ | async) as assigns; else aLoading">
               <div class="mt-1 flex flex-wrap items-center gap-2">
                 <label class="text-xs text-slate-500">Afficher un quiz&nbsp;:</label>
@@ -887,13 +894,13 @@
                 <div>
                   <div class="text-sm font-semibold text-slate-900 dark:text-white">Créer un quiz</div>
                   <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                    Confectionnez un quiz personnalisé pour cette classe.
+                    Ajoutez vos questions manuellement ou importez-les depuis un fichier CSV.
                   </p>
                 </div>
               </div>
 
               <button
-                (click)="builderOpen = true"
+                (click)="openCreateQuiz()"
                 class="mt-3 w-full sm:w-auto rounded-lg px-4 py-2 text-sm font-semibold
                       bg-indigo-600 text-white shadow hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
@@ -991,6 +998,34 @@
         </div>
       </div>
 
+      <div *ngIf="!editingQuizId" class="rounded-xl bg-indigo-50 p-4 ring-1 ring-indigo-200 dark:bg-indigo-950/30 dark:ring-indigo-800">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h4 class="text-sm font-semibold text-indigo-900 dark:text-indigo-100">Importer les questions depuis un CSV</h4>
+            <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">Préparez toutes vos questions dans Excel ou Google Sheets, puis exportez en CSV UTF-8.</p>
+          </div>
+          <a href="assets/templates/quiz-modele.csv" download="quiz-modele.csv"
+             class="text-xs font-semibold text-indigo-700 underline underline-offset-2 dark:text-indigo-300">Télécharger le modèle CSV</a>
+        </div>
+        <label for="quiz-csv-file" class="mt-3 block text-xs font-medium text-slate-700 dark:text-slate-200">Fichier de questions (.csv, 1 Mo maximum)</label>
+        <input id="quiz-csv-file" type="file" accept=".csv,text/csv" [disabled]="quizImportBusy"
+               (change)="onImportQuizCsv($event)" aria-describedby="quiz-csv-help"
+               class="mt-1 block w-full text-xs text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:font-semibold file:text-white disabled:opacity-50 dark:text-slate-200" />
+        <div id="quiz-csv-help" class="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+          <p>Une ligne par question : <code>question</code>, <code>type</code>, <code>choix_1</code>, <code>choix_2</code>, …, <code>reponse_correcte</code>, <code>image_url</code> (optionnel).</p>
+          <p>Types : <code>mcq-single</code> (une réponse), <code>mcq-multi</code> (plusieurs réponses), <code>text</code> (réponse texte).</p>
+          <p>Bonne réponse : numéro du choix à partir de 1 (ex. : <code>2</code>), plusieurs numéros séparés par <code>|</code> (ex. : <code>1|3</code>), ou le texte attendu. Vous pouvez ajouter des colonnes <code>choix_6</code>, etc.</p>
+          <p>Les questions importées s’ajoutent à la liste ci-dessous. Le titre et les paramètres restent modifiables avant l’enregistrement.</p>
+        </div>
+        <p *ngIf="quizImportBusy" role="status" class="mt-3 text-xs text-indigo-700 dark:text-indigo-200">Lecture et vérification du fichier…</p>
+        <p *ngIf="quizImportMessage" role="status" class="mt-3 text-xs font-medium text-emerald-800 dark:text-emerald-300">{{ quizImportMessage }}</p>
+        <div *ngIf="quizImportErrors.length" role="alert" class="mt-3 rounded-lg bg-rose-50 p-3 text-xs text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
+          <p class="font-semibold">Import impossible. Aucune question de ce fichier n’a été ajoutée.</p>
+          <ul class="mt-2 max-h-40 list-disc space-y-1 overflow-y-auto pl-4">
+            <li *ngFor="let error of quizImportErrors">{{ error }}</li>
+          </ul>
+        </div>
+      </div>
       <div class="grid gap-2 md:grid-cols-3">
         <input [(ngModel)]="builderTitle" placeholder="Titre du quiz"
                class="md:col-span-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
@@ -1236,6 +1271,7 @@
         <div class="pt-3 text-right">
           <ng-container *ngIf="(classId$ | async) as classId">
             <button (click)="saveCustomQuiz(classId)"
+                    [disabled]="quizImportBusy"
                     class="rounded-lg px-3 py-1.5 text-xs mx-4 font-semibold bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
               Enregistrer le quiz
             </button>

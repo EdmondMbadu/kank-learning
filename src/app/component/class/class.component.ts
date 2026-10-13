@@ -27,6 +27,7 @@ import { MessageService } from 'src/app/shared/message.service';
 import { AngularFireStorage } from '@angular/fire/compat/storage';
 import { DataService } from 'src/app/shared/data.service';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { parseQuizCsv, QuizCsvError } from './quiz-csv';
 // 1) Add these types + helpers at the top of the class (after existing fields)
 type AvgStats = {
   pct: number | null;
@@ -55,6 +56,10 @@ export class ClassComponent implements OnInit {
   builderOpen = false;
   builderTitle = '';
   builderPoints: number | null = null;
+  quizImportBusy = false;
+  quizImportErrors: string[] = [];
+  quizImportMessage = '';
+  private quizImportRequest = 0;
   deleting: Record<string, boolean> = {};
 
   builderEditingId: string | null = null;
@@ -123,6 +128,60 @@ export class ClassComponent implements OnInit {
   }
   // builderQuestions: QuizQuestion[] = [];
   builderQuestions: EditorQuestion[] = [];
+
+  openCreateQuiz() {
+    if (this.editingQuizId) {
+      this.editingQuizId = null;
+      this.resetBuilder();
+    }
+    this.builderOpen = true;
+  }
+
+  private resetQuizImport() {
+    this.quizImportRequest++;
+    this.quizImportBusy = false;
+    this.quizImportErrors = [];
+    this.quizImportMessage = '';
+  }
+
+  async onImportQuizCsv(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = ''; // Allow retrying the same file after correcting it.
+    if (!file || this.editingQuizId || this.quizImportBusy) return;
+    this.quizImportErrors = [];
+    this.quizImportMessage = '';
+    if (!/\.csv$/i.test(file.name)) {
+      this.quizImportErrors = ['Choisissez un fichier .csv exporté en UTF-8.'];
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      this.quizImportErrors = ['Le fichier CSV ne doit pas dépasser 1 Mo.'];
+      return;
+    }
+    const request = ++this.quizImportRequest;
+    this.quizImportBusy = true;
+    try {
+      const source = await file.text();
+      if (request !== this.quizImportRequest || this.editingQuizId) return;
+      const questions = parseQuizCsv(source).map((question) => ({
+        ...question,
+        id: crypto.randomUUID(),
+      }));
+      this.builderQuestions = [...this.builderQuestions, ...questions];
+      if (!this.builderTitle.trim()) {
+        this.builderTitle = file.name.replace(/\.csv$/i, '').replace(/[_-]+/g, ' ');
+      }
+      this.quizImportMessage = `${questions.length} question(s) importée(s) depuis « ${file.name} ». Vérifiez-les ci-dessous, puis enregistrez le quiz.`;
+    } catch (error) {
+      if (request !== this.quizImportRequest) return;
+      this.quizImportErrors = error instanceof QuizCsvError
+        ? error.errors
+        : ['Impossible de lire ce fichier. Exportez-le en CSV UTF-8 et réessayez.'];
+    } finally {
+      if (request === this.quizImportRequest) this.quizImportBusy = false;
+    }
+  }
 
   newDraft() {
     return {
@@ -973,6 +1032,7 @@ export class ClassComponent implements OnInit {
   }
   // class.component.ts -> saveCustomQuiz(...)
   async saveCustomQuiz(classId: string) {
+    if (this.quizImportBusy) return;
     const me = await firstValueFrom(this.me$);
     if (!me?.uid) return;
     if (!this.builderTitle.trim()) {
@@ -1055,6 +1115,8 @@ export class ClassComponent implements OnInit {
     this.forkSourceId = null;
     this.forkError = '';
     this.forkBusy = false;
+    this.resetQuizImport();
+    this.cancelEditDraft();
   }
 
   lockTimed = false;
@@ -1572,6 +1634,7 @@ export class ClassComponent implements OnInit {
       this.draft = this.newDraft();
       this.builderEditingId = null;
       this.editingQuizId = assignmentId;
+      this.resetQuizImport();
       this.builderOpen = true;
 
       setTimeout(() => {
@@ -1823,6 +1886,7 @@ export class ClassComponent implements OnInit {
     this.builderOpen = false;
   }
   private resetBuilder() {
+    this.resetQuizImport();
     this.builderTitle = '';
     this.builderPoints = null;
     this.builderQuestions = [];
